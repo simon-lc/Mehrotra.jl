@@ -16,6 +16,7 @@ can be optimized for
 - x, y, z: decision variables
 - p: problem parameters
 - κ: central-path parameter
+- ∘: cone product
 - K: Cartesian product of convex cones; nonnegative orthant R+ and second-order cones Q are currently implemented
 
 ## Solution gradients
