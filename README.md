@@ -5,15 +5,18 @@ A solver for cone-constrained feasibility problems. The main application for thi
 ## Standard form
 Problems of the following form:
 ```
-find         x, y, z
+find         x = [y, z, s]
 
-subject to   f(x,y,z; p) = 0,
-             y ∘ z = κ
-             y, z in K = R+ x Q^1 x ... x Q^k
+subject to   f(y,z,s; p) = 0,
+             z ∘ s = κ
+             z, s in K = R+ x Q^1 x ... x Q^k
 ```
 can be optimized for
 
-- x, y, z: decision variables
+- x = [y, z, s]: decision variables
+- y: primal variables
+- z: duals variables
+- s: slack variables
 - p: problem parameters
 - κ: central-path parameter
 - ∘: cone product
