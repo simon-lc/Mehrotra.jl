@@ -1,10 +1,9 @@
 function generate_cones(num_cone, idx_nn, idx_soc;
-    checkbounds=false,
+    checkbounds=true,
     threads=false)
 
-    @variables a[1:num_cone] b[1:num_cone]
-    # a = Symbolics.variables(:a, 1:num_cone)
-    # b = Symbolics.variables(:b, 1:num_cone)
+    a = Symbolics.variables(:a, 1:num_cone)
+    b = Symbolics.variables(:b, 1:num_cone)
 
     Φ = cone_barrier(a, idx_nn, idx_soc)
     Φa = cone_barrier_gradient(a, idx_nn, idx_soc)

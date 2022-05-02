@@ -3,6 +3,32 @@ function initialize_cone!(x, idx_nn, idx_soc)
     initialize_second_order!(x, idx_soc)
 end
 
+# barrier
+function cone_barrier(x, idx_ineq, idx_soc)
+    Φ = 0.0
+
+    # nonnegative orthant
+    if length(idx_ineq) > 0
+        x_ineq = @views x[idx_ineq]
+        Φ += nonnegative_barrier(x_ineq)
+    end
+
+    # soc
+    for idx in idx_soc
+        if length(idx) > 0
+            x_soc = @views x[idx]
+            Φ += second_order_barrier(x_soc)
+        end
+    end
+
+    return Φ
+end
+
+function cone_barrier_gradient(x, idx_ineq, idx_soc)
+    vcat(
+        [length(idx_ineq) > 0 ? nonnegative_barrier_gradient(x[idx_ineq]) : zeros(0),
+        [length(idx) > 0 ? second_order_barrier_gradient(x[idx]) : zeros(0) for idx in idx_soc]...]...)
+end
 
 # product
 function cone_product(a, b, idx_nn, idx_soc)
@@ -44,7 +70,7 @@ function cone_violation(x̂, x, τ, idx_nn, idx_soc)
 end
 
 # evalute
-function cone!(problem::ProblemData212{T}, methods::ConeMethods, idx::Indices212, solution::Point{T};
+function cone!(problem::ProblemData214{T}, methods::ConeMethods, idx::Indices214, solution::Point{T};
     barrier=false,
     barrier_gradient=false,
     product=false,

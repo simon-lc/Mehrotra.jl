@@ -1,5 +1,4 @@
-
-struct SolverData212{T}
+struct SolverData214{T}
     residual::Vector{T}
     jacobian_variables::SparseMatrixCSC{T,Int}
     jacobian_parameters::Matrix{T}
@@ -11,33 +10,30 @@ struct SolverData212{T}
     solution_sensitivity::Matrix{T}
 end
 
-function SolverData(dims::Dimensions212, idx::Indices212;
+function SolverData(dims::Dimensions214, idx::Indices214;
     T=Float64)
 
     num_variables = dims.variables
     num_parameters = dims.parameters
-    num_equality = dims.equality_dual
-    num_cone = dims.cone_dual
+    num_equality = dims.equality
+    num_cone = dims.cone
 
-    num_total = dims.total
-    num_symmetric = dims.symmetric
+    residual = zeros(num_variables)
 
-    residual = Point(dims, idx)
+    jacobian_variables = spzeros(num_variables, num_variables)
+    jacobian_parameters = zeros(num_variables, num_parameters)
 
-    jacobian_variables = spzeros(num_total, num_total)
-    jacobian_parameters = zeros(num_total, num_parameters)
-
-    step = Point(dims, idx)
-    step_correction = Point(dims, idx)
+    step = zeros(num_variables)
+    step_correction = zeros(num_variables)
 
     merit = zeros(1)
-    merit_gradient = zeros(num_variables + num_equality + num_cone)
+    merit_gradient = zeros(num_variables)
 
-    constraint_violation = zeros(num_equality + num_cone)
+    constraint_violation = zeros(num_variables)
 
-    solution_sensitivity = zeros(num_total, num_parameters)
+    solution_sensitivity = zeros(num_variables, num_parameters)
 
-    SolverData212(
+    SolverData214(
         residual,
         jacobian_variables,
         jacobian_parameters,

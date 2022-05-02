@@ -1,15 +1,15 @@
-struct Solver212{T,X,EX,EP,C,CX,CP,CD,CDX,CDXX,CDXP,B,BX,P,PX,PXI,K}
-    problem::ProblemData212{T,X}
-    methods::ProblemMethods{T,E,EX,EP,C,CX,CP,CD,CDX,CDXX,CDXP}
+struct Solver215{T,X,E,EX,EP,B,BX,P,PX,PXI,K}
+    problem::ProblemData215{T,X}
+    methods::ProblemMethods{T,E,EX,EP}
     cone_methods::ConeMethods{T,B,BX,P,PX,PXI,K}
-    data::SolverData212{T}
+    data::SolverData215{T}
 
     solution::Vector{T}
     candidate::Vector{T}
     parameters::Vector{T}
 
-    indices::Indices212
-    dimensions::Dimensions212
+    indices::Indices215
+    dimensions::Dimensions215
 
     linear_solver::LDLSolver{T,Int}
 
@@ -25,20 +25,20 @@ struct Solver212{T,X,EX,EP,C,CX,CP,CD,CDX,CDXX,CDXP,B,BX,P,PX,PXI,K}
     options::Options{T}
 end
 
-function Solver(methods, num_variables, num_parameters, num_equality, num_cone;
-    parameters=zeros(num_parameters),
+function Solver(methods, num_primals, num_cone, num_parameters;
     nonnegative_indices=collect(1:num_cone),
     second_order_indices=[collect(1:0)],
+    parameters=zeros(num_parameters),
     custom=nothing,
     options=Options())
 
     # indices
-    idx = Indices212(num_variables, num_parameters, num_cone;
+    idx = Indices215(num_primals, num_cone, num_parameters;
         nonnegative=nonnegative_indices,
         second_order=second_order_indices)
 
     # dimensions
-    dim = Dimensions(num_variables, num_parameters, num_equality, num_cone;
+    dim = Dimensions(num_variables, num_cone, num_parameters;
         nonnegative=length(nonnegative_indices),
         second_order=[length(idx_soc) for idx_soc in second_order_indices])
 
@@ -46,18 +46,15 @@ function Solver(methods, num_variables, num_parameters, num_equality, num_cone;
     cone_methods = ConeMethods(num_cone, nonnegative_indices, second_order_indices)
 
     # problem data
-    p_data = ProblemData(num_variables, num_parameters, num_equality, num_cone;
-        nonnegative_indices=nonnegative_indices,
-        second_order_indices=second_order_indices,
+    p_data = ProblemData(dim.variables, num_parameters, dim.equality, num_cone;
         custom=custom)
 
     # solver data
-    s_data = SolverData(dim, idx,
-        max_filter=options.max_filter)
+    s_data = SolverData(dim, idx)
 
     # points
-    solution = Point(dim, idx)
-    candidate = Point(dim, idx)
+    solution = ones(dim.variables)
+    candidate = ones(dim.variables)
 
     # interior-point
     central_path = [0.1]
@@ -65,7 +62,7 @@ function Solver(methods, num_variables, num_parameters, num_equality, num_cone;
 
     # augmented Lagrangian
     penalty = [10.0]
-    dual = zeros(num_equality)
+    dual = zeros(dim.equality)
 
     # linear solver TODO: constructor
     random_solution = Point(dim, idx)
@@ -93,7 +90,7 @@ function Solver(methods, num_variables, num_parameters, num_equality, num_cone;
     primal_regularization_last = [0.0]
     dual_regularization = [0.0]
 
-    Solver212(
+    Solver215(
         p_data,
         methods,
         cone_methods,
@@ -115,7 +112,7 @@ function Solver(methods, num_variables, num_parameters, num_equality, num_cone;
     )
 end
 
-function Solver(objective, equality, cone, num_variables::Int;
+function Solver(equality, num_variables::Int;
     parameters=zeros(0),
     nonnegative_indices=nothing,
     second_order_indices=nothing,
@@ -125,7 +122,7 @@ function Solver(objective, equality, cone, num_variables::Int;
 
     # codegen methods
     num_parameters = length(parameters)
-    methods, num_equality, num_cone = ProblemMethods(num_variables, num_parameters, objective, equality, cone)
+    methods, num_equality, num_cone = ProblemMethods(num_variables, num_parameters, equality)
 
     # solver
     solver = Solver(methods, num_variables, num_parameters, num_equality, num_cone;
