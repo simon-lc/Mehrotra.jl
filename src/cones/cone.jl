@@ -44,7 +44,7 @@ function cone_violation(x̂, x, τ, idx_nn, idx_soc)
 end
 
 # evalute
-function cone!(problem::ProblemData{T}, methods::ConeMethods, idx::Indices, solution::Point{T};
+function cone!(problem::ProblemData212{T}, methods::ConeMethods, idx::Indices212, solution::Point{T};
     barrier=false,
     barrier_gradient=false,
     product=false,
