@@ -1,8 +1,8 @@
-struct Indices214
+struct Indices218
     variables::Vector{Int}
     primals::Vector{Int}
-    cone::Vector{Int}
-    slack::Vector{Int}
+    duals::Vector{Int}
+    slacks::Vector{Int}
     equality::Vector{Int}
     cone_product::Vector{Int}
     parameters::Vector{Int}
@@ -17,19 +17,19 @@ function Indices(num_primals, num_cone, num_parameters;
     num_variables = num_primals + 2 * num_cone
     variables = collect(1:num_variables)
     primals = collect(1:num_primals)
-    cone = collect(num_primals .+ (1:num_cone))
-    slack = collect(num_primals + num_cone .+ (1:num_cone))
+    duals = collect(num_primals .+ (1:num_cone))
+    slacks = collect(num_primals + num_cone .+ (1:num_cone))
 
     equality = collect(1:num_variables + num_cone)
     cone_product = collect(num_variables + num_cone .+ (1:num_cone))
 
     parameters = collect(1:num_parameters)
 
-    return Indices214(
+    return Indices218(
         variables,
         primals,
-        cone,
-        slack,
+        duals,
+        slacks,
         equality,
         cone_product,
         parameters,

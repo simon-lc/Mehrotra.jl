@@ -16,11 +16,16 @@ using GeometryBasics
 using Plots
 
 
+include("codegen.jl")
 include("dimensions.jl")
 include("indices.jl")
-include("solver_data.jl")
-include("problem_data.jl")
+# include("linear_solver.jl")
+include("methods.jl")
+include("options.jl")
 include("print.jl")
+include("problem_data.jl")
+include("solver_data.jl")
+include("solver.jl")
 
 include("cones/methods.jl")
 include("cones/codegen.jl")

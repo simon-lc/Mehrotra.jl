@@ -1,4 +1,4 @@
-struct ProblemMethods214{T,E,EX,EP}
+struct ProblemMethods218{T,E,EX,EP}
     equality_constraint::E                             # g
     equality_jacobian_variables::EX                    # gx
     equality_jacobian_parameters::EP                   # gθ
@@ -23,13 +23,13 @@ struct ProblemMethods214{T,E,EX,EP}
     # cone_product_jacobian_variables_parameters_sparsity::Vector{Tuple{Int,Int}}      # (h'y)xθ
 end
 
-function ProblemMethods(num_variables::Int, num_parameters::Int, equality::Function)
-    g, gx, gθ, gx_sparsity, gθ_sparsity, num_g = generate_gradients(equality, num_variables, num_parameters)
+function ProblemMethods(equality::Function, dim::Dimensions218, ind::Indices218)
+    f, fx, fθ, fx_sparsity, fθ_sparsity = generate_gradients(equality, dim, ind)
 
-    methods = ProblemMethods214(
-        g, gx, gθ,
-            zeros(length(gx_sparsity)), zeros(length(gθ_sparsity)),
-            gx_sparsity, gθ_sparsity,
+    methods = ProblemMethods218(
+        f, fx, fθ,
+            zeros(length(fx_sparsity)), zeros(length(fθ_sparsity)),
+            fx_sparsity, fθ_sparsity,
         # h, hx, hθ,
         #     zeros(length(hx_sparsity)), zeros(length(hθ_sparsity)),
         #     hx_sparsity, hθ_sparsity,
@@ -38,5 +38,5 @@ function ProblemMethods(num_variables::Int, num_parameters::Int, equality::Funct
         #     hᵀyxx_sparsity, hᵀyxθ_sparsity,
     )
 
-    return methods, num_g
+    return methods
 end

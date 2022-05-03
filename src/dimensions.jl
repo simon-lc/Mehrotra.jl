@@ -1,8 +1,8 @@
-struct Dimensions214
+struct Dimensions218
     variables::Int
     primals::Int
-    cone::Int
-    slack::Int
+    duals::Int
+    slacks::Int
     equality::Int
     cone_product::Int
     parameters::Int
@@ -15,15 +15,16 @@ function Dimensions(num_primals, num_cone, num_parameters;
     second_order=[0,],
     )
 
-    num_slack = num_cone
-    num_variables = num_primals + num_cone + num_slack
-    num_equality = num_primals + num_slack
+    num_duals = num_cone
+    num_slacks = num_cone
+    num_variables = num_primals + num_duals + num_slacks
+    num_equality = num_primals + num_slacks
 
-    Dimensions214(
+    Dimensions218(
         num_variables,
         num_primals,
-        num_cone,
-        num_slack,
+        num_duals,
+        num_slacks,
         num_equality,
         num_cone,
         num_parameters,

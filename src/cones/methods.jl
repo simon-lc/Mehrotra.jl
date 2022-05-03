@@ -1,4 +1,4 @@
-struct ConeMethods{B,BX,P,PX,PXI,E}
+struct ConeMethods{B,BX,P,PX,PXI,E}initialize_cone!(x, idx_nn, idx_soc)
     barrier::B
     barrier_gradient::BX
     product::P

@@ -17,23 +17,23 @@ function unpack_parameters(parameters)
     return p2, v15, u, timestep, mass, gravity, friction_coefficient, side
 end
 
-function residual(variables, parameters)
-    x, y, z = unpack_variables(variables, num_primals, num_cone)
+function residual(primals, duals, slacks, parameters)
+    y, z, s = primals, duals, slacks
     p2, v15, u, timestep, mass, gravity, friction_coefficient, side = unpack_parameters(parameters)
 
-    v25 = x
+    v25 = y
     p1 = p2 - timestep * v15
     p3 = p2 + timestep * v25
 
     vtan = v25[2:3]
 
-    sγ = z[1:1]
-    sψ = z[2:2]
-    sβ = z[3:6]
+    γ = z[1:1]
+    ψ = z[2:2]
+    β = z[3:6]
 
-    γ = y[1:1]
-    ψ = y[2:2]
-    β = y[3:6]
+    sγ = s[1:1]
+    sψ = s[2:2]
+    sβ = s[3:6]
 
     N = [0 0 1]
     D = [1 0 0;
@@ -51,11 +51,13 @@ function residual(variables, parameters)
     return res
 end
 
+using Mehrotra
+
 num_primals = 3
 num_cone = 6
-num_variables = num_primals + 2 * num_cone
 num_parameters = 14
 idx_nn = collect(1:6)
+idx_soc = [collect(1:0)]
 variables = ones(num_variables)
 p2 = [1,1,1.0]
 v15 = [0,-1,1.0]
@@ -63,11 +65,31 @@ u = rand(3)
 parameters = [p2; v15; u; 0.01; 1.0; -9.81; 0.3; 0.5]
 
 
-residual(variables, parameters)
-generate_gradients(residual, num_variables, num_parameters)
-ProblemMethods(num_variables, num_parameters, residual)
-generate_cones(num_cone, idx_nn, idx_soc)
+#
+# function Mehrotra.solve!(solver)
+#     # initialize
+#     initialize_primals!(solver)
+#     initialize_cone!(solver)
+#     initialize_slack!(solver)
+#     initialize_augmented_lagrangian!(solver)
+#
+#
+#
+#     return nothing
+# end
 
-dims = Dimensions(num_primals, num_cone, num_parameters)
-idx = Indices(num_primals, num_cone, num_parameters)
-SolverData(dims, idx)
+dim = Dimensions(num_primals, num_cone, num_parameters;
+    nonnegative=num_cone,
+    second_order=[0,])
+ind = Indices(num_primals, num_cone, num_parameters;
+    nonnegative=collect(1:num_cone),
+    second_order=[collect(1:0)])
+meths = generate_gradients(residual, dim, ind)
+prob_methods = ProblemMethods(residual, dim, ind)
+
+
+
+solver = Solver(residual, num_primals, num_cone, parameters=parameters)
+solve!(solver)
+
+solver.indices

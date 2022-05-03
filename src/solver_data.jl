@@ -1,4 +1,4 @@
-struct SolverData214{T}
+struct SolverData218{T}
     residual::Vector{T}
     jacobian_variables::SparseMatrixCSC{T,Int}
     jacobian_parameters::Matrix{T}
@@ -10,7 +10,7 @@ struct SolverData214{T}
     solution_sensitivity::Matrix{T}
 end
 
-function SolverData(dims::Dimensions214, idx::Indices214;
+function SolverData(dims::Dimensions218, idx::Indices218;
     T=Float64)
 
     num_variables = dims.variables
@@ -33,7 +33,7 @@ function SolverData(dims::Dimensions214, idx::Indices214;
 
     solution_sensitivity = zeros(num_variables, num_parameters)
 
-    SolverData214(
+    SolverData218(
         residual,
         jacobian_variables,
         jacobian_parameters,
