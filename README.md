@@ -15,7 +15,7 @@ can be optimized for
 
 - x = [y, z, s]: decision variables
 - y: primal variables
-- z: duals variables
+- z: dual variables
 - s: slack variables
 - p: problem parameters
 - κ: central-path parameter
