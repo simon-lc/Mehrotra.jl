@@ -1,4 +1,4 @@
-struct ConeMethods{B,BX,P,PX,PXI,E}initialize_cone!(x, idx_nn, idx_soc)
+struct ConeMethods228{B,BX,P,PX,PXI,E}
     barrier::B
     barrier_gradient::BX
     product::P
@@ -7,9 +7,9 @@ struct ConeMethods{B,BX,P,PX,PXI,E}initialize_cone!(x, idx_nn, idx_soc)
     target::E
 end
 
-function ConeMethods(num_cone, idx_nn, idx_soc)
+function ConeMethods228(num_cone, idx_nn, idx_soc)
     Φ_func, Φa_func, p_func, pa_func, pai_func, t_func = generate_cones(num_cone, idx_nn, idx_soc)
-    return ConeMethods(
+    return ConeMethods228(
         Φ_func,
         Φa_func,
         p_func,

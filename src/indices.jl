@@ -1,4 +1,4 @@
-struct Indices218
+struct Indices228
     variables::Vector{Int}
     primals::Vector{Int}
     duals::Vector{Int}
@@ -20,12 +20,12 @@ function Indices(num_primals, num_cone, num_parameters;
     duals = collect(num_primals .+ (1:num_cone))
     slacks = collect(num_primals + num_cone .+ (1:num_cone))
 
-    equality = collect(1:num_variables + num_cone)
-    cone_product = collect(num_variables + num_cone .+ (1:num_cone))
+    equality = collect(1:num_primals + num_cone)
+    cone_product = collect(num_primals + num_cone .+ (1:num_cone))
 
     parameters = collect(1:num_parameters)
 
-    return Indices218(
+    return Indices228(
         variables,
         primals,
         duals,

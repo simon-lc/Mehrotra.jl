@@ -1,15 +1,15 @@
-struct Solver218{T,X,E,EX,EP,B,BX,P,PX,PXI,K}
-    problem::ProblemData218{T,X}
-    methods::ProblemMethods218{T,E,EX,EP}
-    cone_methods::ConeMethods{B,BX,P,PX,PXI,K}
-    data::SolverData218{T}
+struct Solver228{T,X,E,EX,EP,B,BX,P,PX,PXI,K}
+    problem::ProblemData228{T,X}
+    methods::ProblemMethods228{T,E,EX,EP}
+    cone_methods::ConeMethods228{B,BX,P,PX,PXI,K}
+    data::SolverData228{T}
 
-    solution::Vector{T}
-    candidate::Vector{T}
+    solution::Point228{T}
+    candidate::Point228{T}
     parameters::Vector{T}
 
-    indices::Indices218
-    dimensions::Dimensions218
+    indices::Indices228
+    dimensions::Dimensions228
 
     # linear_solver::LDLSolver{T,Int}
 
@@ -22,7 +22,7 @@ struct Solver218{T,X,E,EX,EP,B,BX,P,PX,PXI,K}
     primal_regularization_last::Vector{T}
     dual_regularization::Vector{T}
 
-    options::Options218{T}
+    options::Options228{T}
 end
 
 function Solver(equality, num_primals::Int, num_cone::Int;
@@ -30,7 +30,7 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     nonnegative_indices=collect(1:num_cone),
     second_order_indices=[collect(1:0)],
     custom=nothing,
-    options=Options218(),
+    options=Options228(),
     )
 
     num_parameters = length(parameters)
@@ -46,10 +46,10 @@ function Solver(equality, num_primals::Int, num_cone::Int;
         second_order=second_order_indices)
 
     # codegen methods
-    methods, num_equality = ProblemMethods(dim.variables, num_parameters, equality)
+    methods = ProblemMethods(equality, dim, idx)
 
     # cone methods
-    cone_methods = ConeMethods(num_cone, nonnegative_indices, second_order_indices)
+    cone_methods = ConeMethods228(num_cone, nonnegative_indices, second_order_indices)
 
     # problem data
     p_data = ProblemData(dim.variables, num_parameters, dim.equality, num_cone;
@@ -59,8 +59,8 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     s_data = SolverData(dim, idx)
 
     # points
-    solution = ones(dim.variables)
-    candidate = ones(dim.variables)
+    solution = Point(dim, idx)
+    candidate = Point(dim, idx)
 
     # interior-point
     central_path = [0.1]
@@ -96,7 +96,7 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     primal_regularization_last = [0.0]
     dual_regularization = [0.0]
 
-    Solver218(
+    Solver228(
         p_data,
         methods,
         cone_methods,

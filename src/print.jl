@@ -16,35 +16,25 @@ function solver_info(solver)
 end
 solver_info(nothing)
 function iteration_status(
-        total_iterations,
-        outer_iterations,
-        inner_iterations,
-        residual_violation,
+        iterations,
         equality_violation,
         cone_product_violation,
-        slack_violation,
         central_path,
-        penalty,
         step_size)
 
     # header
-    if rem(total_iterations - 1, 10) == 0
-        @printf "------------------------------------------------------------------------------------------------\n"
-        @printf "total  outer  inner |residual| |equality|  |comp|    |slack|  central path   penalty      step  \n"
-        @printf "------------------------------------------------------------------------------------------------\n"
+    if rem(iterations - 1, 10) == 0
+        @printf "-------------------------------------------------------------------\n"
+        @printf "iter  |equality|   |comp|      central path    step  \n"
+        @printf "-------------------------------------------------------------------\n"
     end
 
     # iteration information
-    @printf("%3d     %2d    %3d   %9.2e  %9.2e %9.2e %9.2e   %9.2e   %9.2e   %9.2e \n",
-        total_iterations,
-        outer_iterations,
-        inner_iterations,
-        residual_violation,
+    @printf("%3d   %9.2e    %9.2e  %9.2e       %9.2e \n",
+        iterations,
         equality_violation,
         cone_product_violation,
-        slack_violation,
         central_path,
-        penalty,
         step_size)
 end
 

@@ -70,7 +70,7 @@ function cone_violation(x̂, x, τ, idx_nn, idx_soc)
 end
 
 # evalute
-function cone!(problem::ProblemData218{T}, methods::ConeMethods, idx::Indices218, solution::Point{T};
+function cone!(problem::ProblemData228{T}, methods::ConeMethods228, solution::Point228{T};
     barrier=false,
     barrier_gradient=false,
     product=false,
@@ -78,18 +78,18 @@ function cone!(problem::ProblemData218{T}, methods::ConeMethods, idx::Indices218
     target=false,
     ) where T
 
-    s = solution.cone_slack
-    t = solution.cone_slack_dual
+    z = solution.duals
+    s = solution.slacks
 
     # barrier
     barrier && methods.barrier(problem.barrier, s)
     barrier_gradient && methods.barrier_gradient(problem.barrier_gradient, s)
 
     # cone
-    product && methods.product(problem.cone_product, s, t)
-    jacobian && methods.product_jacobian(problem.cone_product_jacobian_primal, s, t)
-    jacobian && methods.product_jacobian(problem.cone_product_jacobian_dual, t, s)
-    target && methods.target(problem.cone_target, s, t)
+    product && methods.product(problem.cone_product, z, s)
+    jacobian && methods.product_jacobian(problem.cone_product_jacobian_dual, z, s)
+    jacobian && methods.product_jacobian(problem.cone_product_jacobian_slack, s, z)
+    target && methods.target(problem.cone_target, z, s)
 
     return
 end
