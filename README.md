@@ -28,6 +28,7 @@ The solver is differentiable, and gradients of the solution (including internal 
 ## Quick start
 ```julia
 using Mehrotra
+```
 
 ## Remaining tasks
 - warm-starting strategy
