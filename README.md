@@ -28,3 +28,17 @@ The solver is differentiable, and gradients of the solution (including internal 
 ## Quick start
 ```julia
 using Mehrotra
+
+## Remaining tasks
+- warm-starting strategy
+- consistency logic for efficient dynamics query
+- exploit structure of the symmetric problems
+- allocation-free linear solve
+- allocation-free implementation
+- experiment with different relaxation scheduling strategies
+- interface to provide your own function evaluations and gradients
+- provide your own linear system solver
+- implement different benchmark problems 
+- add tests
+- add documentation
+- register package
