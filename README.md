@@ -43,4 +43,5 @@ using Mehrotra
 - add tests
 - add documentation
 - register package
+- add quaternion support
 - differentiate solution
