@@ -31,7 +31,7 @@ using Mehrotra
 ```
 
 ## Remaining tasks
-- warm-starting strategy
+- warm-starting strategy (add user-provided slacks initialization method s = F(z) in general)
 - consistency logic for efficient dynamics query
 - exploit structure of the symmetric problems
 - allocation-free linear solve
