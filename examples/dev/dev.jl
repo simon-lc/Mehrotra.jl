@@ -1,13 +1,6 @@
 using Mehrotra
 
 
-
-
-
-
-
-
-
 """
     find        x,y,z
     subject to  f(x,y,z)

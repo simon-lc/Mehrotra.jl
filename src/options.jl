@@ -1,7 +1,7 @@
 Base.@kwdef mutable struct Options228{T}
     residual_norm::T=1.0
     constraint_norm::T=1.0
-    max_iterations::Int=10
+    max_iterations::Int=30
     max_residual_iterations::Int=100
     scaling_line_search::T=0.5
     max_iteration_line_search::Int=25 ###################################
@@ -17,7 +17,7 @@ Base.@kwdef mutable struct Options228{T}
     penalty_initial::T=1.0
     penalty_scaling::T=10.0
     dual_initial::T=0.0
-    residual_tolerance::T=1.0e-4   ###########################
+    residual_tolerance::T=1.0e-6   ###########################
     optimality_tolerance::T=1.0e-4
     slack_tolerance::T=1.0e-4
     equality_tolerance::T=1.0e-4 ###########################

@@ -40,4 +40,9 @@ include("residual.jl")
 include("search_direction.jl")
 include("centering.jl")
 
+export
+    Dimensions,
+    Indices
+
+
 end # module

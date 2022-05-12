@@ -19,7 +19,7 @@ function cone_search(α, x, Δx, idx_nn, idx_soc; τ_nn=0.99, τ_soc=0.99, ϵ=1e
 
             ρs = x_Δ / x_x
             ρv = Δx1 / sqrt(x_x)
-            ρv -= (x_Δ / sqrt(x_x) + Δ0) / (x0 / sqrt(x_x) + 1) * x1 / x_x
+            ρv -= (x_Δ / sqrt(x_x) + Δx0) / (x0 / sqrt(x_x) + 1) * x1 / x_x
             if norm(ρv) - ρs > 0.0
                 α = min(α, τ_soc / (norm(ρv) - ρs))
             end
