@@ -50,4 +50,4 @@ solver = Solver(residual, num_primals, num_cone,
     second_order_indices=idx_soc,
     )
 
-solve!(solver)
+Mehrotra.solve!(solver)

@@ -39,6 +39,7 @@ include("evaluate.jl")
 include("residual.jl")
 include("search_direction.jl")
 include("centering.jl")
+include("solve.jl")
 
 export
     Dimensions,
