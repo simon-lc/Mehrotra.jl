@@ -1,9 +1,10 @@
-function Mehrotra.solve!(solver)
+function Mehrotra.solve!(solver; initialization::Bool=true)
     # initialize
-    initialize_primals!(solver)
-    initialize_duals!(solver)
-    initialize_slacks!(solver)
-    initialize_interior_point!(solver)
+    solver.trace.iterations = 0
+    initialization && initialize_primals!(solver)
+    initialization && initialize_duals!(solver)
+    initialization && initialize_slacks!(solver)
+    initialization && initialize_interior_point!(solver)
 
     # indices
     indices = solver.indices
@@ -67,6 +68,7 @@ function Mehrotra.solve!(solver)
     cone_product_violation = norm(data.residual.cone_product, Inf)
 
     for i = 1:options.max_iterations
+        solver.trace.iterations += 1
         # check for convergence
         if (equality_violation <= options.residual_tolerance &&
             cone_product_violation <= options.residual_tolerance)

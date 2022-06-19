@@ -25,6 +25,7 @@ include("point.jl")
 include("print.jl")
 include("problem_data.jl")
 include("solver_data.jl")
+include("trace.jl")
 
 include("cones/methods.jl")
 include("cones/codegen.jl")

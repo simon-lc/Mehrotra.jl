@@ -23,6 +23,7 @@ struct Solver228{T,X,E,EX,EP,B,BX,P,PX,PXI,K}
     dual_regularization::Vector{T}
 
     options::Options228{T}
+    trace::Trace228{T}
 end
 
 function Solver(equality, num_primals::Int, num_cone::Int;
@@ -96,6 +97,8 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     primal_regularization_last = [0.0]
     dual_regularization = [0.0]
 
+    trace = Trace228()
+
     Solver228(
         p_data,
         methods,
@@ -115,5 +118,6 @@ function Solver(equality, num_primals::Int, num_cone::Int;
         primal_regularization_last,
         dual_regularization,
         options,
+        trace,
     )
 end

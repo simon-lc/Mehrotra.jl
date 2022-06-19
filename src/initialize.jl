@@ -1,7 +1,7 @@
 # solver
 function initialize!(solver::Solver228, guess)
     # variables
-    solver.solution .= guess
+    solver.solution.all .= guess
     return
 end
 
@@ -11,12 +11,18 @@ function initialize_primals!(solver)
 end
 
 function initialize_duals!(solver)
-    initialize_cone!(solver.solution.duals, solver.indices.cone_nonnegative, solver.indices.cone_second_order)
+    initialize_cone!(
+        solver.solution.duals,
+        solver.indices.cone_nonnegative,
+        solver.indices.cone_second_order)
     return
 end
 
 function initialize_slacks!(solver)
-    initialize_cone!(solver.solution.slacks, solver.indices.cone_nonnegative, solver.indices.cone_second_order)
+    initialize_cone!(
+        solver.solution.slacks,
+        solver.indices.cone_nonnegative,
+        solver.indices.cone_second_order)
     return
 end
 
