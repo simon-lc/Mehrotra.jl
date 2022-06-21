@@ -71,7 +71,7 @@ function residual(primals, duals, slacks, parameters)
     return res
 end
 
-function full_residual(solution, parameters)
+function full_residual(solution, parameters, κ)
     primals = solution[1:3]
     duals = solution[3 .+ (1:16)]
     slacks = solution[3+16 .+ (1:16)]
@@ -135,7 +135,8 @@ function full_residual(solution, parameters)
         sγ - ϕ;
         sψ - fric;
         sβ - mdp;
-        z .* s;
+        z .* s .- κ;
+        # z .* s;
         ]
     return res
 end
@@ -151,7 +152,9 @@ v15 = [0,-1]
 ω15 = [0]
 u = rand(3)
 side = 0.5
-parameters = [p2; θ2; v15; ω15; u; 0.01; 1.0; 0.1; -9.81; 1.0; side]
+timestep = 0.05
+friction_coefficient = 1.0
+parameters = [p2; θ2; v15; ω15; u; timestep; 1.0; 0.1; -9.81; friction_coefficient; side]
 
 solver = Solver(residual, num_primals, num_cone,
     parameters=parameters,
@@ -165,36 +168,48 @@ solve!(solver)
 variables = solver.solution.all
 
 # no warm starting
-H = 1000
+H = 100
 p2 = [1,1.0]
 θ2 = [0.0]
 v15 = [-3.0,0.0]
 ω15 = [20.0]
-u = [zeros(3) for i=1:H]
+u = [0.3*rand(3) for i=1:H]
 p, θ, v, ω, iterations = simulate_block_2d(solver, p2, θ2, v15, ω15, u,
-    friction_coefficient=1.0)
+    friction_coefficient=friction_coefficient,
+    timestep=timestep)
 
 
 # with warm starting
-H = 1000
+H = 100
 p2 = [1,1.0]
 θ2 = [0.0]
 v15 = [-3.0,0.0]
 ω15 = [20.0]
-u = [zeros(3) for i=1:H]
 p, θ, v, ω, warm_iterations = warm_simulate_block_2d(solver, p2, θ2, v15, ω15, u,
-    friction_coefficient=1.0)
+    friction_coefficient=friction_coefficient,
+    timestep=timestep)
 
 
 # with sensitivity based warm starting
-H = 1000
+H = 100
 p2 = [1,1.0]
 θ2 = [0.0]
 v15 = [-3.0,0.0]
 ω15 = [20.0]
-u = [zeros(3) for i=1:H]
 p, θ, v, ω, sensi_iterations = sensitivity_simulate_block_2d(solver, p2, θ2, v15, ω15, u,
-    friction_coefficient=1.0)
+    friction_coefficient=friction_coefficient,
+    timestep=timestep)
+
+
+# with sensitivity based warm starting
+H = 1
+p2 = [1,1.0]
+θ2 = [0.0]
+v15 = [-3.0,0.0]
+ω15 = [20.0]
+p, θ, v, ω, al_iterations = al_simulate_block_2d(solver, p2, θ2, v15, ω15, u,
+    friction_coefficient=friction_coefficient,
+    timestep=timestep)
 
 
 scatter(sensi_iterations, ylims=(0,Inf), color=:yellow,
@@ -204,13 +219,18 @@ scatter!(warm_iterations, ylims=(0,Inf), color=:red,
 scatter!(iterations, ylims=(0,Inf), color=:black,
     markershape=:circle, markersize=9, label="cold start")
 
+mean(iterations)
+mean(warm_iterations)
+mean(sensi_iterations)
 
+solver
+solver
+solver
 
 # plot(hcat(p...)')
-
 render(vis)
 setobject!(vis[:particle], HyperRectangle(Vec(-side/2, -side/2, -side/2), Vec(side, side, side)))
-anim = MeshCat.Animation(100)
+anim = MeshCat.Animation(Int(floor(1/timestep)))
 
 for i = 1:H
     atframe(anim, i) do

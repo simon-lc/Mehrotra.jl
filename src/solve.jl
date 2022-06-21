@@ -98,7 +98,6 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
 
         # search direction
         search_direction_nonsymmetric!(solver.data.step, solver.data)
-
         # affine line search
         affine_step_size = 1.0
         # cone search duals

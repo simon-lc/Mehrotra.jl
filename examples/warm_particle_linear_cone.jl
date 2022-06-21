@@ -40,7 +40,7 @@ function residual(primals, duals, slacks, parameters)
     return res
 end
 
-function full_residual(solution, parameters)
+function full_residual(solution, parameters, κ)
     primals = solution[1:3]
     duals = solution[3 .+ (1:6)]
     slacks = solution[3+6 .+ (1:6)]
@@ -72,8 +72,8 @@ function full_residual(solution, parameters)
         sγ - (p3[3:3] .- side/2);
         sψ - (friction_coefficient * γ - [sum(β)]);
         sβ - (P * v25 + ψ[1]*ones(4));
-        # z .* s .- κ[1];
-        z .* s;
+        z .* s .- κ[1];
+        # z .* s;
         ]
     return res
 end
@@ -86,7 +86,10 @@ idx_soc = [collect(1:0)]
 p2 = [1,1,1.0]
 v15 = [1,-1,1.0]
 u = rand(3)
-parameters = [p2; v15; u; 0.01; 1.0; -9.81; 0.5; 0.5]
+side = 0.5
+timestep = 0.15
+friction_coefficient = 0.3
+parameters = [p2; v15; u; timestep; 1.0; -9.81; friction_coefficient; side]
 
 solver = Solver(residual, num_primals, num_cone,
     parameters=parameters,
@@ -99,29 +102,33 @@ solve!(solver)
 solver.trace.iterations
 
 # no warm starting
-H = 200
+H = 100
 p2 = [1,1,1.0]
 v15 = [2,-4,1.0]
-u = [zeros(3) for i=1:H]
+u = [0.3rand(3) for i=1:H]
 p, v, iterations = simulate_particle(
-    solver, p2, v15, u, friction_coefficient=0.3)
+    solver, p2, v15, u,
+    friction_coefficient=friction_coefficient,
+    timestep=timestep)
 plot(hcat(p...)')
 
 # with warm starting
-H = 200
+H = 100
 p2 = [1,1,1.0]
 v15 = [2,-4,1.0]
-u = [zeros(3) for i=1:H]
 warm_p, warm_v, warm_iterations = warm_simulate_particle(
-    solver, p2, v15, u, friction_coefficient=0.3)
+    solver, p2, v15, u,
+    friction_coefficient=friction_coefficient,
+    timestep=timestep)
 
 # with sensitivity based warm starting
-H = 200
+H = 100
 p2 = [1,1,1.0]
 v15 = [2,-4,1.0]
-u = [zeros(3) for i=1:H]
 sensi_p, sensi_v, sensi_iterations = sensitivity_simulate_particle(
-    solver, p2, v15, u, friction_coefficient=0.3)
+    solver, p2, v15, u,
+    friction_coefficient=friction_coefficient,
+    timestep=timestep)
 
 scatter(sensi_iterations, ylims=(0,Inf), color=:yellow,
     markershape=:square, markersize=9, label="sensitivity based warm start")
@@ -140,7 +147,7 @@ mean(sensi_iterations)
 ################################################################################
 render(vis)
 setobject!(vis[:particle], HyperRectangle(Vec(-side/2, -side/2, -side/2), Vec(side, side, side)))
-anim = MeshCat.Animation(100)
+anim = MeshCat.Animation(Int(floor(1/timestep)))
 
 for i = 1:H
     atframe(anim, i) do
