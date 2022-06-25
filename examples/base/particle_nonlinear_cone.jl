@@ -57,20 +57,179 @@ solver = Solver(residual, num_primals, num_cone,
     parameters=parameters,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,
-    options=Options228(max_iterations=30, verbose=true)
+    options=Options228(
+        max_iterations=30,
+        verbose=true,
+        complementarity_tolerance=1e-4,
+        residual_tolerance=1e-4,
+        )
     )
 
 solve!(solver)
 solver.options.residual_tolerance
 solver.options.complementarity_tolerance
+solver.solution.duals
+solver.solution.duals
+solver.solution.duals
+solver.solution.duals
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function active_set_solve!(solver, κ)
+    # function active_residual(solver, y, z)
+    #     # solver = deepcopy(solver0)
+    #     e = [1,1,0,0]
+    #     Z = Matrix(Diagonal([z[1]; z[2] * ones(3)]))
+    #     Z[2,2:4] .= z[2:4]
+    #     Z[2:4,2] .= z[2:4]
+    #     s = κ * Z \ e
+    #
+    #     # solver.solution.primals .= y
+    #     # solver.solution.duals .= z
+    #     # solver.solution.slacks .= s
+    #     #
+    #     # residual!(solver.data, solver.problem, solver.indices, solver.solution, κ)
+    #     # # return Vector(deepcopy(solver.data.residual.equality))
+    #     # # return solver.data.residual.equality
+    #     # return deepcopy(solver.data.residual.equality)
+    #     return residual(y, z, s, parameters)
+    # end
+
+    ny = solver.dimensions.primals
+    nz = solver.dimensions.duals
+    for i = 1:10
+        @show i
+        yzs = solver.solution.all
+        JF = FiniteDiff.finite_difference_jacobian(yzs ->
+            residual(yzs[1:ny], yzs[ny .+ (1:nz)], yzs[ny + nz .+ (1:nz)], parameters), yzs)
+        J = JF[1:ny+nz, 1:ny+nz]
+
+        # e = [1,1,0,0.0]
+        # dsdz = κ * FiniteDiff.finite_difference_jacobian(z -> κ * Z_matrix(z) \ e, yzs[ny .+ (1:nz)])
+        dsdz = dsdz_fct(solver.solution.duals, κ)
+        drsds = JF[nx .+ (1:nz), nx + nz .+ (1:nz)]
+        J[nx .+ (1:nz), nx .+ (1:nz)] += drsds * dsdz
+
+        r = residual(yzs[1:ny], yzs[ny .+ (1:nz)], yzs[ny + nz .+ (1:nz)], parameters)
+        Δ = - J \ r
+        @show J
+        @show norm(r)
+        @show norm(Δ)
+        Δy = Δ[1:ny]
+        Δz = Δ[ny .+ (1:nz)]
+
+        Δs = dsdz * Δz
+
+        residual!(solver.data, solver.problem, solver.indices, solver.solution, κ)
+        equality_violation = norm(solver.data.residual.equality, Inf)
+        cone_product_violation = norm(solver.data.residual.cone_product, Inf)
+
+        println("equality = ", scn(equality_violation))
+        println("cone prd = ", scn(cone_product_violation))
+
+        α = 1.0
+        # cone search duals
+        α = cone_search(α, solver.solution.duals, Δz,
+            solver.indices.cone_nonnegative, solver.indices.cone_second_order;
+            τ_nn=0.99, τ_soc=0.99, ϵ=1e-14)
+        # cone search slacks
+        α = cone_search(α, solver.solution.slacks, Δs,
+            solver.indices.cone_nonnegative, solver.indices.cone_second_order;
+            τ_nn=0.99, τ_soc=0.99, ϵ=1e-14)
+
+        for j = 1:20
+            solver.candidate.primals .= solver.solution.primals + α * Δy
+            solver.candidate.duals .= solver.solution.duals + α * Δz
+            solver.candidate.slacks .= solver.solution.slacks + α * Δs
+
+
+            residual!(solver.data, solver.problem, solver.indices, solver.candidate, κ)
+            equality_violation_candidate = norm(solver.data.residual.equality, Inf)
+            cone_product_violation_candidate = norm(solver.data.residual.cone_product, Inf)
+            # Test progress
+            if (equality_violation_candidate <= equality_violation ||
+                cone_product_violation_candidate <= cone_product_violation)
+                break
+            end
+
+            # decrease step size
+            α = 0.5 * α
+        end
+
+        solver.solution.primals .= solver.solution.primals + α * Δy
+        solver.solution.duals .= solver.solution.duals + α * Δz
+        solver.solution.slacks .= solver.solution.slacks + α * Δs
+
+        # dredy =
+        # dredz =
+        # dreds =
+        # J = [
+        #     dredy dredz + dreds * dsdz;
+        #     drsdy drsdz + drsds * dsdz;
+        # ]
+    end
+
+
+    return nothing
+end
+
+z = [1e-3, 1e-4, 1e-5, 1e-6]
+e = [1,1,0,0]
+Z = Matrix(Diagonal([z[1]; z[2] *ones(3)]))
+Z[2,2:4] .= z[2:4]
+Z[2:4,2] .= z[2:4]
+Z
+
+active_set_solve!(solver, 1e-4)
+solver.solution.duals
+solver.solution.slacks
+
+
+function Z_matrix(z)
+    Z = Matrix(Diagonal([z[1]; z[2] *ones(3)]))
+    Z[2,2:4] .= z[2:4]
+    Z[2:4,2] .= z[2:4]
+    return Z
+end
+
+
+
+
+@variables zv[1:4]
+@variables κv
+zv = Symbolics.scalarize(zv)
+Zv = Z_matrix(zv)
+out = κv * Zv \ e
+jac = Symbolics.jacobian(out, zv)
+dsdz_fct = eval(build_function(jac, zv, κv)[1])
+dsdz_fct(rand(4), 1e-4)
+
+dsdz = κ * FiniteDiff.finite_difference_jacobian(z -> κ * Z_matrix(z) \ e, yzs[ny .+ (1:nz)])
 
 
 residual!(solver.data, solver.problem, solver.indices, solver.solution, [solver.options.complementarity_tolerance])
 residual!(solver.data, solver.problem, solver.indices, solver.solution, [solver.options.complementarity_tolerance])
 residual!(solver.data, solver.problem, solver.indices, solver.solution, [0.0])
 
-solver.data.residual
-
+solver.data.residual.cone_product
+solver.solution
 
 variables = solver.solution.all
 r, ∇r = residual_complex(solver, variables)
@@ -98,3 +257,31 @@ for i = 1:H
     settransform!(vis[:particle], MeshCat.Translation(p[i]...))
     sleep(0.01)
 end
+
+n = 3
+idx_nn = Vector{Int}()
+idx_soc = [1:n]
+
+x = rand(n)
+y = rand(n)
+Δx = 0.05 * (rand(n) .- 0.5)
+Δy = 0.05 * (rand(n) .- 0.5)
+
+α = 0.1
+c0 = cone_product(x, y, idx_nn, idx_soc)
+cx = cone_product(Δx, y, idx_nn, idx_soc)
+cy = cone_product(x, Δy, idx_nn, idx_soc)
+cxy = cone_product(Δx, Δy, idx_nn, idx_soc)
+c2 = cone_product(x+Δx, y+Δy, idx_nn, idx_soc)
+c2 - c0 - cx - cy - cxy
+
+function max_alpha(z, s, Δz, Δs, idx_nn, idx_soc, options; α=1.0)
+    tolerance = max(options.complementarity_tolerance - options.residual_tolerance, 0.0)
+    for i = 1:10000
+        c = cone_product(z+α*Δz, s+α*Δs, idx_nn, idx_soc)
+        all(c .>= tolerance) && break
+        α *= 0.98
+    end
+    return α
+end
+0.98^1000

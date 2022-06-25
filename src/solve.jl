@@ -65,7 +65,7 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
 
     # violations
     equality_violation = norm(data.residual.equality, Inf)
-    cone_product_violation = norm(data.residual.cone_product, Inf)
+    cone_product_violation = cone_violation(solver)#norm(data.residual.cone_product, Inf)
 
     for i = 1:options.max_iterations
         solver.trace.iterations += 1
@@ -95,6 +95,7 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
         ## Predictor step
         # residual
         residual!(data, problem, indices, solution, 0.0000*κ)
+        # residual!(data, problem, indices, solution, [options.complementarity_tolerance])
 
         # search direction
         search_direction_nonsymmetric!(solver.data.step, solver.data)
@@ -114,11 +115,7 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
         central_path_target = max(central_path_candidate, options.complementarity_tolerance)
 
         ## Corrector step
-        @show central_path_target
         residual!(data, problem, indices, solution, [central_path_target])
-        @show norm(solver.data.residual.cone_product, Inf)
-        @show solver.data.residual.cone_product
-
         search_direction_nonsymmetric!(solver.data.step, solver.data)
 
         # line search
@@ -135,7 +132,7 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
         # violations
         residual!(data, problem, indices, solution, options.complementarity_tolerance) # TODO needs to be only recomputing residual of the cone
         equality_violation = norm(data.residual.equality, Inf)
-        cone_product_violation = norm(data.residual.cone_product, Inf)
+        cone_product_violation = cone_violation(solver)#norm(data.residual.cone_product, Inf)
 
         for i = 1:options.max_iteration_line_search
             # update candidate
@@ -167,11 +164,17 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
 
             # violations
             equality_violation_candidate = norm(data.residual.equality, Inf)
-            cone_product_violation_candidate = norm(data.residual.cone_product, Inf)
+            cone_product_violation_candidate = cone_violation(solver)#norm(data.residual.cone_product, Inf)
+
+
 
             # Test progress
-            if (equality_violation_candidate <= equality_violation ||
+            if (
+                (equality_violation_candidate <= equality_violation ||
                 cone_product_violation_candidate <= cone_product_violation)
+                )
+                # &&
+                # all(data.residual.cone_product .>= -options.residual_tolerance)
                 break
             end
 
