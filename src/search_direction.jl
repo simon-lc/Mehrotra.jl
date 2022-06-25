@@ -4,7 +4,7 @@ function search_direction_nonsymmetric!(step, data::SolverData228)
     ny = solver.dimensions.primals
     nz = solver.dimensions.duals
     ns = solver.dimensions.slacks
-    step.all .= (data.jacobian_variables + Diagonal([1e-8ones(ny); zeros(nz+ns)])) \ data.residual.all
+    step.all .= (data.jacobian_variables + Diagonal([0.0*1e-8ones(ny); zeros(nz+ns)])) \ data.residual.all
     step.all .*= -1.0
     return
 end

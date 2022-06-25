@@ -114,7 +114,11 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
         central_path_target = max(central_path_candidate, options.complementarity_tolerance)
 
         ## Corrector step
+        @show central_path_target
         residual!(data, problem, indices, solution, [central_path_target])
+        @show norm(solver.data.residual.cone_product, Inf)
+        @show solver.data.residual.cone_product
+
         search_direction_nonsymmetric!(solver.data.step, solver.data)
 
         # line search

@@ -4,7 +4,7 @@ using MeshCat
 include("particle_utils.jl")
 
 vis = Visualizer()
-open(vis)
+render(vis)
 
 function residual(primals, duals, slacks, parameters)
     y, z, s = primals, duals, slacks
@@ -61,6 +61,16 @@ solver = Solver(residual, num_primals, num_cone,
     )
 
 solve!(solver)
+solver.options.residual_tolerance
+solver.options.complementarity_tolerance
+
+
+residual!(solver.data, solver.problem, solver.indices, solver.solution, [solver.options.complementarity_tolerance])
+residual!(solver.data, solver.problem, solver.indices, solver.solution, [solver.options.complementarity_tolerance])
+residual!(solver.data, solver.problem, solver.indices, solver.solution, [0.0])
+
+solver.data.residual
+
 
 variables = solver.solution.all
 r, ∇r = residual_complex(solver, variables)
