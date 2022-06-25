@@ -1,11 +1,11 @@
 function generate_gradients(func::Function, dim::Dimensions228, ind::Indices228;
-    checkbounds=true,
-    threads=false)
+        checkbounds=true,
+        threads=false)
 
     x = Symbolics.variables(:x, 1:dim.variables)
     θ = Symbolics.variables(:θ, 1:dim.parameters)
 
-    f = num_parameters > 0 ?
+    f = dim.parameters > 0 ?
         func(x[ind.primals], x[ind.duals], x[ind.slacks], θ) :
         func(x[ind.primals], x[ind.duals], x[ind.slacks])
 

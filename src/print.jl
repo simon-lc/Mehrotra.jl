@@ -14,7 +14,7 @@ function solver_info(solver)
     println("                           Stanford University \n")
     print(crayon"reset")
 end
-solver_info(nothing)
+
 function iteration_status(
         iterations,
         equality_violation,

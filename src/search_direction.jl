@@ -1,7 +1,6 @@
 
 function search_direction_nonsymmetric!(step, data::SolverData228)
     # fill!(step, 0.0)
-    @show data.jacobian_variables
     ny = solver.dimensions.primals
     nz = solver.dimensions.duals
     ns = solver.dimensions.slacks

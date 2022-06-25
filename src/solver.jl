@@ -13,7 +13,7 @@ struct Solver228{T,X,E,EX,EP,B,BX,P,PX,PXI,K}
 
     # linear_solver::LDLSolver{T,Int}
 
-    central_path::Vector{T}
+    central_path::Vector{T} #TODO maybe remove
     fraction_to_boundary::Vector{T}
     penalty::Vector{T}
     dual::Vector{T}
@@ -31,6 +31,7 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     nonnegative_indices=collect(1:num_cone),
     second_order_indices=[collect(1:0)],
     custom=nothing,
+    # methods=nothing,
     options=Options228(),
     )
 
@@ -47,6 +48,8 @@ function Solver(equality, num_primals::Int, num_cone::Int;
         second_order=second_order_indices)
 
     # codegen methods
+    # @show (methods === nothing)
+    # (methods === nothing) && (methods = ProblemMethods(equality, dim, idx))
     methods = ProblemMethods(equality, dim, idx)
 
     # cone methods

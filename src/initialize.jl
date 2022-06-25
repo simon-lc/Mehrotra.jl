@@ -1,7 +1,7 @@
 # solver
-function initialize!(solver::Solver228, guess)
+function initialize!(solver::Solver228, variables)
     # variables
-    solver.solution.all .= guess
+    solver.solution.all .= variables
     return
 end
 
@@ -31,3 +31,26 @@ function initialize_interior_point!(solver)
     solver.fraction_to_boundary[1] = max(0.99, 1.0 - solver.central_path[1])
     return
 end
+
+# solver
+# variables = ones(solver.dimensions.variables)
+#
+# initialize!(solver, variables)
+# Main.@code_warntype initialize!(solver, variables)
+# @benchmark $initialize!($solver, $variables)
+#
+# initialize_primals!(solver)
+# Main.@code_warntype initialize_primals!(solver)
+# @benchmark $initialize_primals!($solver)
+#
+# initialize_duals!(solver)
+# Main.@code_warntype initialize_duals!(solver)
+# @benchmark $initialize_duals!($solver)
+#
+# initialize_slacks!(solver)
+# Main.@code_warntype initialize_slacks!(solver)
+# @benchmark $initialize_slacks!($solver)
+#
+# initialize_interior_point!(solver)
+# Main.@code_warntype initialize_interior_point!(solver)
+# @benchmark $initialize_interior_point!($solver)

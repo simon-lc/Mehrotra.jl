@@ -7,6 +7,7 @@ struct Point228{T}
     cone_product::SubArray{T,1,Vector{T},Tuple{Vector{Int}},false}
 end
 
+
 function Point(dims::Dimensions228, idx::Indices228)
     x = zeros(dims.variables)
     y = @views x[idx.primals]

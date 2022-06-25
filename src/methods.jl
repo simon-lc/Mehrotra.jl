@@ -20,9 +20,13 @@ function ProblemMethods(equality::Function, dim::Dimensions228, idx::Indices228)
     # c, cx, cθ, cx_sparsity, cθ_sparsity = generate_gradients(cone, dim, idx)
 
     methods = ProblemMethods228(
-        e, ex, eθ,
-            zeros(length(ex_sparsity)), zeros(length(eθ_sparsity)),
-            ex_sparsity, eθ_sparsity,
+        e,
+        ex,
+        eθ,
+        zeros(length(ex_sparsity)),
+        zeros(length(eθ_sparsity)),
+        ex_sparsity,
+        eθ_sparsity,
         # c, cx, cθ,
         #     zeros(length(cx_sparsity)), zeros(length(cθ_sparsity)),
         #     cx_sparsity, cθ_sparsity,

@@ -21,7 +21,7 @@ Base.@kwdef mutable struct Options228{T}
     optimality_tolerance::T=1.0e-4
     slack_tolerance::T=1.0e-4
     equality_tolerance::T=1.0e-4 ###########################
-    complementarity_tolerance::T=1.0e-4 #############################
+    complementarity_tolerance::T=1.0e-4 ###############################
     min_regularization::T=1.0e-20
     primal_regularization_initial::T=1.0e-7
     dual_regularization_initial::T=1.0e-7

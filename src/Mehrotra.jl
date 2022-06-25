@@ -12,7 +12,6 @@ using Rotations
 using SparseArrays
 using MeshCat
 using GeometryBasics
-using Plots
 using FiniteDiff
 
 include("dimensions.jl")
@@ -45,6 +44,5 @@ include("solve.jl")
 export
     Dimensions,
     Indices
-
 
 end # module
