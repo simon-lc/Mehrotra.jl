@@ -1,4 +1,5 @@
 [![CI](https://github.com/simon-lc/Mehrotra.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/simon-lc/Mehrotra.jl/actions/workflows/CI.yml)
+[![codecov](https://codecov.io/gh/simon-lc/Mehrotra.jl/branch/main/graph/badge.svg?token=XTJdkIODOX)](https://codecov.io/gh/simon-lc/Mehrotra.jl)
 
 # Mehrotra.jl
 A solver for cone-constrained feasibility problems. The main application for this solver is implicit integration of contact dynamics.
