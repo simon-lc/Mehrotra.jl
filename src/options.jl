@@ -17,7 +17,7 @@ Base.@kwdef mutable struct Options228{T}
     penalty_initial::T=1.0
     penalty_scaling::T=10.0
     dual_initial::T=0.0
-    residual_tolerance::T=1.0e-6   ###########################
+    residual_tolerance::T=1.0e-4   ###########################
     optimality_tolerance::T=1.0e-4
     slack_tolerance::T=1.0e-4
     equality_tolerance::T=1.0e-4 ###########################

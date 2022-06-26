@@ -41,6 +41,7 @@ include("search_direction.jl")
 include("centering.jl")
 include("solve.jl")
 include("violation.jl")
+include("differentiate.jl")
 
 export
     Dimensions,

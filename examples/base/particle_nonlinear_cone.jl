@@ -249,7 +249,7 @@ FiniteDiff.finite_difference_jacobian(variables -> residual(
 H = 300
 p2 = [1,1,1.0]
 v15 = [0,-4,1.0]
-u = [100(rand(3) .- 0.5) for i=1:H]
+u = [0(rand(3) .- 0.5) for i=1:H]
 p, v = simulate_particle(solver, p2, v15, u, friction_coefficient=0.3)
 
 plot(hcat(p...)')
