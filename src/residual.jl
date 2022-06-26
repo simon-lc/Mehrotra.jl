@@ -1,4 +1,5 @@
-function residual!(data::SolverData228, problem::ProblemData228, idx::Indices228, solution::Point228, κ)
+function residual!(data::SolverData228, problem::ProblemData228, idx::Indices228,
+        solution::Point228, parameters, κ)
     x = solution.all
     y = solution.primals
     z = solution.duals

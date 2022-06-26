@@ -57,7 +57,7 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
     )
 
     # residual
-    residual!(data, problem, indices, solution, [options.complementarity_tolerance])
+    residual!(data, problem, indices, solution, parameters, [options.complementarity_tolerance])
 
     # violations
     equality_violation = norm(data.residual.equality, Inf)
@@ -87,8 +87,8 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
 
         ## Predictor step
         # residual
-        residual!(data, problem, indices, solution, 0.0000*κ)
-        # residual!(data, problem, indices, solution, [options.complementarity_tolerance])
+        residual!(data, problem, indices, solution, parameters, 0.0000*κ)
+        # residual!(data, problem, indices, solution, parameters, [options.complementarity_tolerance])
 
         # search direction
         search_direction_nonsymmetric!(solver.data.step, solver.data)
@@ -108,7 +108,7 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
         central_path_target = max(central_path_candidate, options.complementarity_tolerance)
 
         ## Corrector step
-        residual!(data, problem, indices, solution, [central_path_target])
+        residual!(data, problem, indices, solution, parameters, [central_path_target])
         search_direction_nonsymmetric!(solver.data.step, solver.data)
 
         # line search
@@ -123,7 +123,7 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
             τ_nn=0.99, τ_soc=0.99, ϵ=1e-14)
 
         # violations
-        residual!(data, problem, indices, solution, options.complementarity_tolerance) # TODO needs to be only recomputing residual of the cone
+        residual!(data, problem, indices, solution, parameters, options.complementarity_tolerance) # TODO needs to be only recomputing residual of the cone
         equality_violation = norm(data.residual.equality, Inf)
         cone_product_violation = cone_violation(solver)#norm(data.residual.cone_product, Inf)
 
@@ -150,7 +150,7 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
 
             ## Predictor step
             # residual
-            residual!(data, problem, indices, candidate, options.complementarity_tolerance) # TODO needs to be options.complementarity_tolerance
+            residual!(data, problem, indices, candidate, parameters, options.complementarity_tolerance) # TODO needs to be options.complementarity_tolerance
 
             # violations
             equality_violation_candidate = norm(data.residual.equality, Inf)

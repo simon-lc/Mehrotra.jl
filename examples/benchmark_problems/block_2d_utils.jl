@@ -1,4 +1,4 @@
-function unpack_parameters(parameters)
+function unpack_block_2d_parameters(parameters)
     p2 = parameters[1:2]
     θ2 = parameters[3:3]
     v15 = parameters[4:5]
@@ -109,7 +109,7 @@ end
 
 function linear_block_2d_residual(primals, duals, slacks, parameters)
     y, z, s = primals, duals, slacks
-    p2, θ2, v15, ω15, u, timestep, mass, inertia, gravity, friction_coefficient, side = unpack_parameters(parameters)
+    p2, θ2, v15, ω15, u, timestep, mass, inertia, gravity, friction_coefficient, side = unpack_block_2d_parameters(parameters)
 
     # velocity
     v25 = y[1:2]

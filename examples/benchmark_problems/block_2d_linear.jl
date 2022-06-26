@@ -50,7 +50,7 @@ p2 = [1,1.0]
 v15 = [-3.0,0.0]
 ω15 = [20.0]
 U = [zeros(3) for i=1:H]
-p, θ, v, ω = simulate_block_2d(solver, p2, θ2, v15, ω15, U;
+p, θ, v, ω, iterations = simulate_block_2d(solver, p2, θ2, v15, ω15, U;
     timestep=timestep,
     mass=mass,
     inertia=inertia,

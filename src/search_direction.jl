@@ -1,13 +1,14 @@
 
 function search_direction_nonsymmetric!(step, data::SolverData228)
     # fill!(step, 0.0)
-    ny = solver.dimensions.primals
-    nz = solver.dimensions.duals
-    ns = solver.dimensions.slacks
+    ny = length(step.primals)
+    nz = length(step.duals)
+    ns = length(step.slacks)
     step.all .= (data.jacobian_variables + Diagonal([0.0*1e-8ones(ny); zeros(nz+ns)])) \ data.residual.all
     step.all .*= -1.0
     return
 end
+
 
 # function search_direction!(solver)
 #     # correct inertia

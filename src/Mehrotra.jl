@@ -43,6 +43,8 @@ include("solve.jl")
 include("violation.jl")
 include("differentiate.jl")
 
+include("utils.jl")
+
 export
     Dimensions,
     Indices

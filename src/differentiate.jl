@@ -25,7 +25,7 @@ function differentiate!(solver)
     # equality_jacobian_variables
     # equality_jacobian_parameters
     # cone_jacobian_variables
-    residual!(data, problem, indices, solution, [options.complementarity_tolerance])
+    residual!(data, problem, indices, solution, parameters, [options.complementarity_tolerance])
 
     # # TODO: check if we can use current residual Jacobian w/o recomputing
     # # residual Jacobian wrt variables

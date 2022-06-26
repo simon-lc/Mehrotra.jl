@@ -1,4 +1,4 @@
-function unpack_parameters(parameters)
+function unpack_particle_parameters(parameters)
     p2 = parameters[1:3]
     v15 = parameters[4:6]
     u = parameters[7:9]
@@ -12,7 +12,7 @@ end
 
 function linear_particle_residual(primals, duals, slacks, parameters)
     y, z, s = primals, duals, slacks
-    p2, v15, u, timestep, mass, gravity, friction_coefficient, side = unpack_parameters(parameters)
+    p2, v15, u, timestep, mass, gravity, friction_coefficient, side = unpack_particle_parameters(parameters)
 
     v25 = y
     p1 = p2 - timestep * v15
@@ -44,39 +44,9 @@ function linear_particle_residual(primals, duals, slacks, parameters)
     return res
 end
 
-function residual(primals, duals, slacks, parameters)
-    y, z, s = primals, duals, slacks
-    p2, v15, u, timestep, mass, gravity, friction_coefficient, side = unpack_parameters(parameters)
-
-    v25 = y
-    p1 = p2 - timestep * v15
-    p3 = p2 + timestep * v25
-
-    γ = z[1:1]
-    β = z[2:4]
-
-    sγ = s[1:1]
-    sβ = s[2:4]
-
-    N = [0 0 1]
-    D = [1 0 0;
-         0 1 0]
-
-    vtan = D * v25
-
-    res = [
-        mass * (p3 - 2p2 + p1)/timestep - timestep * mass * [0,0, gravity] - N' * γ - D' * β[2:3] - u * timestep;
-        sγ - (p3[3:3] .- side/2);
-        sβ[2:3] - vtan;
-        β[1:1] - friction_coefficient * γ;
-        # z ∘ s .- κ[1];
-        ]
-    return res
-end
-
 function non_linear_particle_residual(primals, duals, slacks, parameters)
     y, z, s = primals, duals, slacks
-    p2, v15, u, timestep, mass, gravity, friction_coefficient, side = unpack_parameters(parameters)
+    p2, v15, u, timestep, mass, gravity, friction_coefficient, side = unpack_particle_parameters(parameters)
 
     v25 = y
     p1 = p2 - timestep * v15
