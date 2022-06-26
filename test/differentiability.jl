@@ -25,14 +25,14 @@ include("finite_difference_utils.jl")
     #########################################
     # residual jacobians
     #########################################
-    test_residual_jacobian(solver, Mehrotra.lcp_residual;
+    test_residual_jacobian(solver, lcp_residual;
         mode=:variables)
-    @test test_residual_jacobian(solver, Mehrotra.lcp_residual;
+    @test test_residual_jacobian(solver, lcp_residual;
         mode=:variables) < 1e-6
 
-    test_residual_jacobian(solver, Mehrotra.lcp_residual;
+    test_residual_jacobian(solver, lcp_residual;
         mode=:parameters)
-    @test test_residual_jacobian(solver, Mehrotra.lcp_residual;
+    @test test_residual_jacobian(solver, lcp_residual;
         mode=:parameters) < 1e-6
 
     #########################################
@@ -65,14 +65,14 @@ end
     #########################################
     # residual jacobians
     #########################################
-    test_residual_jacobian(solver, Mehrotra.lcp_residual;
+    test_residual_jacobian(solver, lcp_residual;
         mode=:variables)
-    @test test_residual_jacobian(solver, Mehrotra.lcp_residual;
+    @test test_residual_jacobian(solver, lcp_residual;
         mode=:variables) < 1e-6
 
-    test_residual_jacobian(solver, Mehrotra.lcp_residual;
+    test_residual_jacobian(solver, lcp_residual;
         mode=:parameters)
-    @test test_residual_jacobian(solver, Mehrotra.lcp_residual;
+    @test test_residual_jacobian(solver, lcp_residual;
         mode=:parameters) < 1e-6
 
     #########################################
@@ -127,14 +127,14 @@ end
     #########################################
     # residual jacobians
     #########################################
-    test_residual_jacobian(solver, Mehrotra.non_linear_particle_residual;
+    test_residual_jacobian(solver, non_linear_particle_residual;
         mode=:variables)
-    @test test_residual_jacobian(solver, Mehrotra.non_linear_particle_residual;
+    @test test_residual_jacobian(solver, non_linear_particle_residual;
         mode=:variables) < 1e-6
 
-    test_residual_jacobian(solver, Mehrotra.non_linear_particle_residual;
+    test_residual_jacobian(solver, non_linear_particle_residual;
         mode=:parameters)
-    @test test_residual_jacobian(solver, Mehrotra.non_linear_particle_residual;
+    @test test_residual_jacobian(solver, non_linear_particle_residual;
         mode=:parameters) < 1e-6
 
     #########################################
