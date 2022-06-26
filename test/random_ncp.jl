@@ -3,7 +3,7 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/lcp_utils.j
 ################################################################################
 # non negative cone
 ################################################################################
-@testset "lcp: non negative cone" begin
+@testset "random ncp: non negative cone" begin
     Random.seed!(0)
 
     num_primals = 10
@@ -41,7 +41,7 @@ end
 ################################################################################
 # non negative cone
 ################################################################################
-@testset "lcp: second order cone" begin
+@testset "random ncp: second order cone" begin
     Random.seed!(0)
 
     num_primals = 4
