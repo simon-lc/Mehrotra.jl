@@ -49,15 +49,11 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
     options.verbose && solver_info(solver)
 
     # evaluate
-    evaluate!(problem, methods, solution, parameters,
+    evaluate!(problem, methods, cone_methods, solution, parameters,
         equality_constraint=true,
         equality_jacobian_variables=true,
-    )
-
-    cone!(problem, cone_methods, solution,
-        product=true,
-        jacobian=true,
-        target=true
+        cone_constraint=true,
+        cone_jacobian_variables=true,
     )
 
     # residual
@@ -73,23 +69,20 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
         if (equality_violation <= options.residual_tolerance &&
             cone_product_violation <= options.residual_tolerance)
 
-            # # differentiate
-            # options.differentiate && differentiate!(solver)
+            # differentiate
+            options.differentiate && differentiate!(solver)
 
             options.verbose && solver_status(solver, true)
             return true
         end
 
         # evaluate equality constraint & gradient
-        evaluate!(problem, methods, solution, parameters,
+        # evaluate cone product constraint and target
+        evaluate!(problem, methods, cone_methods, solution, parameters,
             equality_constraint=true,
             equality_jacobian_variables=true,
-        )
-        # evaluate cone product constraint and target
-        cone!(problem, cone_methods, solution,
-            product=true,
-            jacobian=true,
-            target=true
+            cone_constraint=true,
+            cone_jacobian_variables=true,
         )
 
         ## Predictor step
@@ -147,15 +140,12 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
             end
 
             # evaluate candidate equality constraint & gradient
-            evaluate!(problem, methods, candidate, parameters,
+            # evaluate candidate cone product constraint and target
+            evaluate!(problem, methods, cone_methods, candidate, parameters,
                 equality_constraint=true,
                 equality_jacobian_variables=true,
-            )
-            # evaluate candidate cone product constraint and target
-            cone!(problem, cone_methods, candidate,
-                product=true,
-                jacobian=true,
-                target=true
+                cone_constraint=true,
+                cone_jacobian_variables=true,
             )
 
             ## Predictor step
@@ -167,14 +157,9 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
             cone_product_violation_candidate = cone_violation(solver)#norm(data.residual.cone_product, Inf)
 
 
-
             # Test progress
-            if (
-                (equality_violation_candidate <= equality_violation ||
+            if (equality_violation_candidate <= equality_violation ||
                 cone_product_violation_candidate <= cone_product_violation)
-                )
-                # &&
-                # all(data.residual.cone_product .>= -options.residual_tolerance)
                 break
             end
 

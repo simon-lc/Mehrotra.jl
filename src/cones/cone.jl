@@ -73,9 +73,9 @@ end
 function cone!(problem::ProblemData228{T}, methods::ConeMethods228, solution::Point228{T};
     barrier=false,
     barrier_gradient=false,
-    product=false,
-    jacobian=false,
-    target=false,
+    cone_constraint=false,
+    cone_jacobian_variables=false,
+    cone_target=false,
     ) where T
 
     z = solution.duals
@@ -86,10 +86,10 @@ function cone!(problem::ProblemData228{T}, methods::ConeMethods228, solution::Po
     barrier_gradient && methods.barrier_gradient(problem.barrier_gradient, s)
 
     # cone
-    product && methods.product(problem.cone_product, z, s)
-    jacobian && methods.product_jacobian(problem.cone_product_jacobian_dual, z, s)
-    jacobian && methods.product_jacobian(problem.cone_product_jacobian_slack, s, z)
-    target && methods.target(problem.cone_target, z, s)
+    cone_constraint && methods.product(problem.cone_product, z, s)
+    cone_jacobian_variables && methods.product_jacobian(problem.cone_product_jacobian_dual, z, s)
+    cone_jacobian_variables && methods.product_jacobian(problem.cone_product_jacobian_slack, s, z)
+    cone_target && methods.target(problem.cone_target, z, s)
 
     return
 end

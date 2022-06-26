@@ -1,10 +1,10 @@
-struct ConeMethods228{B,BX,P,PX,PXI,E}
+struct ConeMethods228{B,BX,P,PX,PXI,TA}
     barrier::B
     barrier_gradient::BX
     product::P
     product_jacobian::PX
     produce_jacobian_inverse::PXI
-    target::E
+    target::TA
 end
 
 function ConeMethods228(num_cone, idx_nn, idx_soc)

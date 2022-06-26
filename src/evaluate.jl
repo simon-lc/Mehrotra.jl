@@ -1,12 +1,14 @@
-function evaluate!(problem::ProblemData228{T}, methods::ProblemMethods228{T,E,EX,EP},
-        solution::Point228{T}, parameters::Vector{T};
+function evaluate!(problem::ProblemData228{T},
+        methods::ProblemMethods228{T,E,EX,EP},
+        cone_methods::ConeMethods228{B,BX,P,PX,PXI,TA},
+        solution::Point228{T},
+        parameters::Vector{T};
         equality_constraint=false,
         equality_jacobian_variables=false,
         equality_jacobian_parameters=false,
-        # cone_constraint=false,
-        # cone_jacobian_variables=false,
-        # cone_jacobian_parameters=false,
-        ) where {T,E,EX,EP,C,CX,CP}
+        cone_constraint=false,
+        cone_jacobian_variables=false,
+        ) where {T,E,EX,EP,B,BX,P,PX,PXI,TA}
 
     x = solution.all
     y = solution.primals
@@ -35,5 +37,12 @@ function evaluate!(problem::ProblemData228{T}, methods::ProblemMethods228{T,E,EX
             problem.equality_jacobian_parameters[idx...] = methods.equality_jacobian_parameters_cache[i]
         end
     end
+
+    # evaluate candidate cone product constraint, cone target and jacobian
+    cone!(problem, cone_methods, solution,
+        cone_constraint=cone_constraint,
+        cone_jacobian_variables=cone_jacobian_variables,
+        cone_target=true # TODO this should only be true once at the beginning of the solve
+    )
     return
 end

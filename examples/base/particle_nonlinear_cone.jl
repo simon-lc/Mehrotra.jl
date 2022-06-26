@@ -43,7 +43,7 @@ idx_nn = collect(1:1)
 idx_soc = [collect(2:4)]
 p2 = [1,1,1.0]
 v15 = [0,-1,1.0]
-u = rand(3)
+u = [0.4, 0.8, 0.9]
 side = 0.5
 parameters = [p2; v15; u; 0.01; 1.0; -9.81; 0.0; side]
 
@@ -62,10 +62,13 @@ solver = Solver(residual, num_primals, num_cone,
         verbose=true,
         complementarity_tolerance=1e-4,
         residual_tolerance=1e-4,
+        differentiate=true,
         )
     )
 
 solve!(solver)
+solver.data.solution_sensitivity
+
 solver.options.residual_tolerance
 solver.options.complementarity_tolerance
 solver.solution.duals
