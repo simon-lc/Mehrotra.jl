@@ -32,9 +32,7 @@ jobs:
         shell: julia --project=monorepo {0}
         run: |
           using Pkg;
-          # dev mono repo versions
-          pkg"dev . ./DojoEnvironments"
-          Pkg.test("Dojo"; coverage=true)
+          Pkg.test("Mehrotra"; coverage=true)
       - uses: julia-actions/julia-uploadcodecov@latest
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
