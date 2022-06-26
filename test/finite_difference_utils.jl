@@ -76,7 +76,9 @@ function test_solution_sensitivity(solver)
     S0 = solver.data.solution_sensitivity
 
     # finitediff
-    S1 = FiniteDiff.finite_difference_jacobian(parameters -> problem_solution(solver, parameters), parameters)
+    S1 = FiniteDiff.finite_difference_jacobian(
+        parameters -> problem_solution(solver, parameters),
+        solver.parameters, absstep=1e-10)
 
     return norm(S0 - S1, Inf) / max(1, norm(S0, Inf), norm(S1, Inf))
 end

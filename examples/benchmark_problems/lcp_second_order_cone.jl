@@ -16,7 +16,7 @@ C = Cs * Cs'
 d = rand(num_cone)
 parameters = [vec(A); b; vec(C); d]
 
-solver = Solver(lcp_second_order_cone_residual, num_primals, num_cone,
+solver = Solver(lcp_residual, num_primals, num_cone,
     parameters=parameters,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,

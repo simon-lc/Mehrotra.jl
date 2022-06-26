@@ -21,7 +21,7 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/lcp_utils.j
     d = rand(num_cone)
     parameters = [vec(A); b; vec(C); d]
 
-    solver = Mehrotra.Solver(lcp_non_negative_cone_residual, num_primals, num_cone,
+    solver = Mehrotra.Solver(lcp_residual, num_primals, num_cone,
         parameters=parameters,
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
@@ -59,7 +59,7 @@ end
     d = rand(num_cone)
     parameters = [vec(A); b; vec(C); d]
 
-    solver = Mehrotra.Solver(lcp_second_order_cone_residual, num_primals, num_cone,
+    solver = Mehrotra.Solver(lcp_residual, num_primals, num_cone,
         parameters=parameters,
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
