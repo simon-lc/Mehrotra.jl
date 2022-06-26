@@ -8,7 +8,7 @@ include("finite_difference_utils.jl")
     #########################################
     # problem setup
     #########################################
-    solver = Mehrotra.random_lcp(;
+    solver = random_lcp(;
         num_primals=2,
         num_cone=3,
         cone_type=:non_negative_cone,
@@ -48,7 +48,7 @@ end
     #########################################
     # problem setup
     #########################################
-    solver = Mehrotra.random_lcp(;
+    solver = random_lcp(;
         num_primals=2,
         num_cone=3,
         cone_type=:second_order_cone,
@@ -111,7 +111,7 @@ end
     ################################################################################
     # solve
     ################################################################################
-    solver = Solver(non_linear_particle_residual, num_primals, num_cone,
+    solver = Mehrotra.Solver(non_linear_particle_residual, num_primals, num_cone,
         parameters=parameters,
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
