@@ -1,4 +1,5 @@
 include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/lcp_utils.jl"))
+include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/particle_utils.jl"))
 include("finite_difference_utils.jl")
 
 ################################################################################
