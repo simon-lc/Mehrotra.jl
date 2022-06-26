@@ -1,5 +1,5 @@
-include(joinpath(module_dir(), "examples/benchmark_problems/particle_utils.jl"))
-include(joinpath(module_dir(), "examples/benchmark_problems/block_2d_utils.jl"))
+include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/particle_utils.jl"))
+include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/block_2d_utils.jl"))
 
 ################################################################################
 # linear particle
@@ -30,6 +30,7 @@ include(joinpath(module_dir(), "examples/benchmark_problems/block_2d_utils.jl"))
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
         options=Mehrotra.Options228(
+            verbose=false,
             residual_tolerance=1e-6,
             complementarity_tolerance=1e-6,
             )
@@ -70,10 +71,9 @@ end
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
         options=Mehrotra.Options228(
-            max_iterations=30,
-            verbose=true,
-            complementarity_tolerance=1e-4,
-            residual_tolerance=1e-4,
+            verbose=false,
+            residual_tolerance=1e-6,
+            complementarity_tolerance=1e-6,
             differentiate=false,
             )
         )

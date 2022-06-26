@@ -1,4 +1,4 @@
-include(joinpath(module_dir(), "examples/benchmark_problems/lcp_utils.jl"))
+include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/lcp_utils.jl"))
 
 ################################################################################
 # non negative cone
@@ -20,14 +20,13 @@ include(joinpath(module_dir(), "examples/benchmark_problems/lcp_utils.jl"))
     C = Cs * Cs'
     d = rand(num_cone)
     parameters = [vec(A); b; vec(C); d]
-    @show num_parameters
-    @show length(parameters)
 
     solver = Mehrotra.Solver(lcp_non_negative_cone_residual, num_primals, num_cone,
         parameters=parameters,
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
         options=Mehrotra.Options228(
+            verbose=false,
             residual_tolerance=1e-6,
             complementarity_tolerance=1e-6,
             )
@@ -65,6 +64,7 @@ end
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
         options=Mehrotra.Options228(
+            verbose=false,
             residual_tolerance=1e-6,
             complementarity_tolerance=1e-6,
             )
