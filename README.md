@@ -33,6 +33,13 @@ using Mehrotra
 ```
 
 ## Remaining tasks
+- primals regualization for QP polytope collision detection
+- fix compressed steps
+- custom residual methods to do nested optimization
+- improve upon compressed step
+- think about a general framework to handle QP, LP, DynamicsLCP, DynamicsNCP
+- add quaternions
+
 - warm-starting strategy (add user-provided slacks initialization method s = F(z) in general)
 - consistency logic for efficient dynamics query
 - exploit structure of the symmetric problems
