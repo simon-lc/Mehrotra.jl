@@ -94,7 +94,9 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     # residual_jacobian_variables_symmetric!(s_data.jacobian_variables_symmetric, s_data.jacobian_variables, idx,
     #     p_data.second_order_jacobians, p_data.second_order_jacobians)
     #
-    linear_solver = lu_solver(s_data.dense_jacobian_variables)
+    linear_solver = options.compressed_search_direction ?
+        lu_solver(s_data.dense_compressed_jacobian_variables) :
+        lu_solver(s_data.dense_jacobian_variables)
 
     # regularization
     primal_regularization = [0.0]

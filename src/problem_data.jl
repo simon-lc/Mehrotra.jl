@@ -8,7 +8,7 @@ struct ProblemData228{T,X}
     cone_product_jacobian_inverse_dual::Matrix{T}
     cone_product_jacobian_inverse_slack::Matrix{T}
     cone_target::Vector{T}
-    compressed_jacobian_variables::Matrix{T}
+    # compressed_jacobian_variables::Matrix{T}
     # cone_jacobian_variables::Matrix{T}
     # cone_jacobian_parameters::Matrix{T}
     custom::X
@@ -27,7 +27,7 @@ function ProblemData(num_variables, num_parameters, num_equality, num_cone;
     cone_product_jacobian_inverse_dual = zeros(num_cone, num_cone)
     cone_product_jacobian_inverse_slack = zeros(num_cone, num_cone)
     cone_target = zeros(num_cone)
-    compressed_jacobian_variables = zeros(num_equality, num_equality)
+    # compressed_jacobian_variables = zeros(num_equality, num_equality)
     # cone_jacobian_variables = zeros(num_cone, num_variables)
     # cone_jacobian_parameters = zeros(num_cone, num_parameters)
 
@@ -41,7 +41,7 @@ function ProblemData(num_variables, num_parameters, num_equality, num_cone;
         cone_product_jacobian_inverse_dual,
         cone_product_jacobian_inverse_slack,
         cone_target,
-        compressed_jacobian_variables,
+        # compressed_jacobian_variables,
         # cone_jacobian_variables,
         # cone_jacobian_parameters,
         custom,

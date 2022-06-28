@@ -95,7 +95,8 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
             κ.zero_central_path, compressed=compressed)
 
         # search direction
-        unstructured_search_direction!(solver)
+        # unstructured_search_direction!(solver)
+        search_direction!(solver, compressed=compressed)
         # affine line search
         affine_step_size = 1.0
         # cone search duals
@@ -113,7 +114,8 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
 
         ## Corrector step
         residual!(data, problem, indices, solution, parameters, κ.target_central_path)
-        unstructured_search_direction!(solver)
+        # unstructured_search_direction!(solver)
+        search_direction!(solver, compressed=compressed)
 
         # line search
         step_size = 1.0
@@ -192,7 +194,7 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
             i,
             equality_violation,
             cone_product_violation,
-            central_path_target,
+            κ.target_central_path[1],
             step_size)
     end
 

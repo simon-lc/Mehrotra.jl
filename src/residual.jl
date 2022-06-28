@@ -82,7 +82,7 @@ function residual!(data::SolverData228, problem::ProblemData228, idx::Indices228
     data.residual.equality .= problem.equality_constraint
     data.jacobian_parameters[idx.equality, idx.parameters] .= problem.equality_jacobian_parameters # TODO
     if compressed
-        data.compressed_jacobian_variables .= problem.equality_jacobian_variables[:, idx.equality] # TODO
+        # data.compressed_jacobian_variables .= problem.equality_jacobian_variables[idx.equality, idx.equality] # TODO
     else
         data.jacobian_variables[idx.equality, idx.variables] .= problem.equality_jacobian_variables # TODO
     end
@@ -99,17 +99,33 @@ function residual!(data::SolverData228, problem::ProblemData228, idx::Indices228
         data.cone_product_jacobian_inverse_slack .= Zi
         data.cone_product_jacobian_dual .= S
 
-        data.residual.duals .+= - Zi * data.residual.cone_product| # - Z⁻¹ cone_product
-        data.compressed_jacobian_variables[idx.duals, idx.duals] .+= - Zi * S # -Z⁻¹ S
+        mul!(data.cone_product_jacobian_ratio, Zi, S) # -Z⁻¹ S
+        data.cone_product_jacobian_ratio .*= -1.0 # -Z⁻¹ S
+        data.compressed_jacobian_variables[idx.duals, idx.duals] .= data.cone_product_jacobian_ratio # -Z⁻¹ S
+
+        mul!(data.residual.duals, Zi, data.residual.cone_product) # - Z⁻¹ cone_product
+        data.residual.duals .*= -1.0 # - Z⁻¹ cone_product
     else
         # Fill the jacobian
         data.jacobian_variables[idx.cone_product, idx.duals] .= problem.cone_product_jacobian_dual # TODO
         data.jacobian_variables[idx.cone_product, idx.slacks] .= problem.cone_product_jacobian_slack # TODO
-        return
     end
     return
 end
 
+
+# n = 5
+# A = rand(n,n)
+# B = rand(n,n)
+# C = rand(n,n)
+# function mmy(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}) where T
+#     mul!(A, B, C)
+#     return nothing
+# end
+#
+# mmy(A, B, C)
+# Main.@code_warntype mmy(A, B, C)
+# @benchmark $mmy($A, $B, $C)
 
 #
 # function residual_symmetric!(residual_symmetric, residual, residual_second_order, matrix, idx::Indices)

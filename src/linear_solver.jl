@@ -26,6 +26,7 @@ end
 """
 mutable struct LUSolver{T} <: LinearSolver
     A::Array{T,2}
+    x::Vector{T}
     ipiv::Vector{Int}
     lda::Int
     info::Base.RefValue{Int}
@@ -33,10 +34,11 @@ end
 
 function lu_solver(A)
     m, n = size(A)
+    x = zeros(m)
     ipiv = similar(A, LinearAlgebra.BlasInt, min(m, n))
     lda  = max(1, stride(A, 2))
     info = Ref{LinearAlgebra.BlasInt}()
-    LUSolver(copy(A), ipiv, lda, info)
+    LUSolver(copy(A), x, ipiv, lda, info)
 end
 
 function getrf!(A, ipiv, lda, info)
@@ -59,11 +61,13 @@ function factorize!(s::LUSolver{T}, A::AbstractMatrix{T}) where T
     getrf!(s.A, s.ipiv, s.lda, s.info)
 end
 
-function linear_solve!(s::LUSolver{T}, x::Vector{T}, A::Matrix{T},
-        b::Vector{T}; reg::T = 0.0, fact::Bool = true) where T
+function linear_solve!(s::LUSolver{T}, x::AbstractVector{T}, A::Matrix{T},
+        b::AbstractVector{T}; reg::T = 0.0, fact::Bool = true) where T
     fact && factorize!(s, A)
-    x .= b
-    LinearAlgebra.LAPACK.getrs!('N', s.A, s.ipiv, x)
+    s.x .= b
+    LinearAlgebra.LAPACK.getrs!('N', s.A, s.ipiv, s.x)
+    x .= s.x
+    return nothing
 end
 
 function linear_solve!(s::LUSolver{T}, x::Matrix{T}, A::Matrix{T},
