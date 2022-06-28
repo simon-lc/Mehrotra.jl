@@ -74,7 +74,8 @@ function cone!(problem::ProblemData228{T}, methods::ConeMethods228, solution::Po
     barrier=false,
     barrier_gradient=false,
     cone_constraint=false,
-    cone_jacobian_variables=false,
+    cone_jacobian=false,
+    cone_jacobian_inverse=false,
     cone_target=false,
     ) where T
 
@@ -87,8 +88,10 @@ function cone!(problem::ProblemData228{T}, methods::ConeMethods228, solution::Po
 
     # cone
     cone_constraint && methods.product(problem.cone_product, z, s)
-    cone_jacobian_variables && methods.product_jacobian(problem.cone_product_jacobian_dual, z, s)
-    cone_jacobian_variables && methods.product_jacobian(problem.cone_product_jacobian_slack, s, z)
+    cone_jacobian && methods.product_jacobian(problem.cone_product_jacobian_dual, z, s)
+    cone_jacobian && methods.product_jacobian(problem.cone_product_jacobian_slack, s, z)
+    cone_jacobian_inverse && methods.product_jacobian_inverse(problem.cone_product_jacobian_inverse_dual, z, s)
+    cone_jacobian_inverse && methods.product_jacobian_inverse(problem.cone_product_jacobian_inverse_slack, s, z)
     cone_target && methods.target(problem.cone_target, z, s)
 
     return

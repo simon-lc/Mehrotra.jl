@@ -42,8 +42,9 @@ Base.@kwdef mutable struct Options228{T}
     armijo_tolerance::T=1.0e-4
     machine_tolerance::T=1.0e-16
     max_filter::Int=1000
-    codegen_checkbounds::Bool=false
-    codegen_threads::Bool=false
-    differentiate::Bool=true
-    verbose::Bool=true
+    compressed_search_direction::Bool=false #########################
+    codegen_checkbounds::Bool=false ##########################
+    codegen_threads::Bool=false ##########################
+    differentiate::Bool=true ##########################
+    verbose::Bool=true #############################
 end

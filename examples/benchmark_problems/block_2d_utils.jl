@@ -187,6 +187,9 @@ function simulate_block_2d(solver, p2, θ2, v15, ω15, u; timestep=0.01, mass=1.
         push!(v, v15)
         push!(ω, ω15)
         parameters = [p2; θ2; v15; ω15; u[i]; timestep; mass; inertia; gravity; friction_coefficient; side]
+        push!(v, v15)
+        push!(ω, ω15)
+        parameters = [p2; θ2; v15; ω15; u[i]; timestep; mass; inertia; gravity; friction_coefficient; side]
         solver.parameters .= parameters
 
         solver.options.verbose = false

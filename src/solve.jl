@@ -39,11 +39,12 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
     cone_methods = solver.cone_methods
 
     # barrier + augmented Lagrangian
-    κ = solver.central_path
+    κ = solver.central_paths
     τ = solver.fraction_to_boundary
 
     # options
     options = solver.options
+    compressed = options.compressed_search_direction
 
     # info
     options.verbose && solver_info(solver)
@@ -53,15 +54,17 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
         equality_constraint=true,
         equality_jacobian_variables=true,
         cone_constraint=true,
-        cone_jacobian_variables=true,
+        cone_jacobian=true,
+        cone_jacobian_inverse=true,
     )
 
     # residual
-    residual!(data, problem, indices, solution, parameters, [options.complementarity_tolerance])
+    residual!(data, problem, indices, solution, parameters,
+        κ.tolerance_central_path, compressed=compressed)
 
     # violations
     equality_violation = norm(data.residual.equality, Inf)
-    cone_product_violation = cone_violation(solver)#norm(data.residual.cone_product, Inf)
+    cone_product_violation = cone_violation(solver)
 
     for i = 1:options.max_iterations
         solver.trace.iterations += 1
@@ -82,16 +85,17 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
             equality_constraint=true,
             equality_jacobian_variables=true,
             cone_constraint=true,
-            cone_jacobian_variables=true,
+            cone_jacobian=true,
+            cone_jacobian_inverse=true,
         )
 
         ## Predictor step
         # residual
-        residual!(data, problem, indices, solution, parameters, 0.0000*κ)
-        # residual!(data, problem, indices, solution, parameters, [options.complementarity_tolerance])
+        residual!(data, problem, indices, solution, parameters,
+            κ.zero_central_path, compressed=compressed)
 
         # search direction
-        search_direction_nonsymmetric!(solver.data.step, solver.data)
+        unstructured_search_direction!(solver)
         # affine line search
         affine_step_size = 1.0
         # cone search duals
@@ -104,12 +108,12 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
             τ_nn=0.99, τ_soc=0.99, ϵ=1e-14)
 
         # centering
-        central_path_candidate = centering(solution, step, affine_step_size, indices)
-        central_path_target = max(central_path_candidate, options.complementarity_tolerance)
+        candidate_central_path = centering(solution, step, affine_step_size, indices)
+        κ.target_central_path .= max(candidate_central_path, options.complementarity_tolerance)
 
         ## Corrector step
-        residual!(data, problem, indices, solution, parameters, [central_path_target])
-        search_direction_nonsymmetric!(solver.data.step, solver.data)
+        residual!(data, problem, indices, solution, parameters, κ.target_central_path)
+        unstructured_search_direction!(solver)
 
         # line search
         step_size = 1.0
@@ -123,9 +127,10 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
             τ_nn=0.99, τ_soc=0.99, ϵ=1e-14)
 
         # violations
-        residual!(data, problem, indices, solution, parameters, options.complementarity_tolerance) # TODO needs to be only recomputing residual of the cone
+        residual!(data, problem, indices, solution, parameters,
+            κ.tolerance_central_path, compressed=compressed) # TODO needs to be only recomputing residual of the cone
         equality_violation = norm(data.residual.equality, Inf)
-        cone_product_violation = cone_violation(solver)#norm(data.residual.cone_product, Inf)
+        cone_product_violation = cone_violation(solver)
 
         for i = 1:options.max_iteration_line_search
             # update candidate
@@ -145,16 +150,18 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
                 equality_constraint=true,
                 equality_jacobian_variables=true,
                 cone_constraint=true,
-                cone_jacobian_variables=true,
+                cone_jacobian=true,
+                cone_jacobian_inverse=true,
             )
 
             ## Predictor step
             # residual
-            residual!(data, problem, indices, candidate, parameters, options.complementarity_tolerance) # TODO needs to be options.complementarity_tolerance
+            residual!(data, problem, indices, candidate, parameters,
+                κ.tolerance_central_path, compressed=compressed) # TODO needs to be options.complementarity_tolerance
 
             # violations
             equality_violation_candidate = norm(data.residual.equality, Inf)
-            cone_product_violation_candidate = cone_violation(solver)#norm(data.residual.cone_product, Inf)
+            cone_product_violation_candidate = cone_violation(solver)
 
 
             # Test progress

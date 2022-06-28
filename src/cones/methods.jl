@@ -3,7 +3,7 @@ struct ConeMethods228{B,BX,P,PX,PXI,TA}
     barrier_gradient::BX
     product::P
     product_jacobian::PX
-    produce_jacobian_inverse::PXI
+    product_jacobian_inverse::PXI
     target::TA
 end
 

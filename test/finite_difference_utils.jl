@@ -30,6 +30,7 @@ function test_residual_jacobian(solver, residual; mode::Symbol=:variables)
     parameters = solver.parameters
     options = solver.options
     indices = solver.indices
+    κ = solver.central_paths
 
     # find solution
     Mehrotra.solve!(solver)
@@ -40,9 +41,10 @@ function test_residual_jacobian(solver, residual; mode::Symbol=:variables)
         equality_jacobian_variables=true,
         equality_jacobian_parameters=true,
         cone_constraint=true,
-        cone_jacobian_variables=true,
+        cone_jacobian=true,
+        cone_jacobian_inverse=true,
     )
-    Mehrotra.residual!(data, problem, indices, solution, parameters, [options.complementarity_tolerance])
+    Mehrotra.residual!(data, problem, indices, solution, parameters, κ.tolerance_central_path)
 
     # reference
     if mode == :variables

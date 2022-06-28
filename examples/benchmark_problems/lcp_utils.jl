@@ -32,7 +32,7 @@ function lcp_residual(primals, duals, slacks, parameters)
 
     res = [
         A * y + b;
-        C * z + d - s;
+        s - C * z + d;
         # z .* s .- κ[1];
         ]
     return res

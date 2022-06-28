@@ -12,8 +12,9 @@ struct Solver228{T,X,E,EX,EP,B,BX,P,PX,PXI,K}
     dimensions::Dimensions228
 
     # linear_solver::LDLSolver{T,Int}
+    linear_solver::LUSolver{T}
 
-    central_path::Vector{T} #TODO maybe remove
+    central_paths::CentralPath228{T}
     fraction_to_boundary::Vector{T}
     penalty::Vector{T}
     dual::Vector{T}
@@ -67,8 +68,8 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     candidate = Point(dim, idx)
 
     # interior-point
-    central_path = [0.1]
-    fraction_to_boundary = [max(0.99, 1.0 - central_path[1])]
+    central_paths = CentralPath228(num_cone, options.complementarity_tolerance)
+    fraction_to_boundary = max.(0.99, 1.0 .- central_paths.central_path)
 
     # augmented Lagrangian
     penalty = [10.0]
@@ -93,7 +94,7 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     # residual_jacobian_variables_symmetric!(s_data.jacobian_variables_symmetric, s_data.jacobian_variables, idx,
     #     p_data.second_order_jacobians, p_data.second_order_jacobians)
     #
-    # linear_solver = ldl_solver(s_data.jacobian_variables_symmetric)
+    linear_solver = lu_solver(s_data.dense_jacobian_variables)
 
     # regularization
     primal_regularization = [0.0]
@@ -112,8 +113,8 @@ function Solver(equality, num_primals::Int, num_cone::Int;
         parameters,
         idx,
         dim,
-        # linear_solver,
-        central_path,
+        linear_solver,
+        central_paths,
         fraction_to_boundary,
         penalty,
         dual,

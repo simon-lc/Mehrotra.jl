@@ -1,5 +1,73 @@
+# function residual!(data::SolverData228, problem::ProblemData228, idx::Indices228,
+#         solution::Point228, parameters, central_path)
+#     x = solution.all
+#     y = solution.primals
+#     z = solution.duals
+#     s = solution.slacks
+#     θ = parameters
+#
+#     # reset
+#     res = data.residual.all
+#     fill!(res, 0.0)
+#
+#     # equality
+#     data.residual.equality .= problem.equality_constraint
+#     data.jacobian_variables[idx.equality, idx.variables] .= problem.equality_jacobian_variables # TODO
+#     data.jacobian_parameters[idx.equality, idx.parameters] .= problem.equality_jacobian_parameters # TODO
+#
+#     # cone: z ∘ s - κ e
+#     for (i, ii) in enumerate(idx.cone_product)
+#         res[ii] = problem.cone_product[i] - central_path[i] * problem.cone_target[i]
+#     end
+#     # Fill the jacobian
+#     data.jacobian_variables[idx.cone_product, idx.duals] .= problem.cone_product_jacobian_dual # TODO
+#     data.jacobian_variables[idx.cone_product, idx.slacks] .= problem.cone_product_jacobian_slack # TODO
+#     return
+# end
+
+
+"""
+    residual!(data, problem, idx, solution, parameters, central_path; compressed)
+    compute non compressed residual and jacobian for problem structured as follows,
+        jacobian_variables = [
+            A B C
+            D E F
+            0 S Z
+            ]
+    compute compressed residual and jacobian for problem structured as follows,
+        jacobian_variables = [
+            A B 0
+            C 0 I
+            0 S Z
+            ]
+    where
+        A = ∂optimality_constraints / ∂y == num_primals, num_primals
+        B = ∂optimality_constraints / ∂z == num_primals, num_cone
+        C = ∂slack_constraints / ∂y == num_cone, num_primals
+        I = identity matrix == num_cone, num_cone
+        S = ∂(z∘s) / ∂z == num_cone, num_cone
+        Z = ∂(z∘s) / ∂s == num_cone, num_cone
+
+    we solve
+        |A B 0| |Δy|   |-optimality    |
+        |C 0 I|×|Δz| = |-slack_equality|
+        |0 S Z| |Δs|   |-cone_product  |
+    we get the compressed form
+        |A B     | |Δy|   |-optimality                       |
+        |C -Z⁻¹S |×|Δz| = |-slack_equality + Z⁻¹ cone_product|
+        Δs = -Z⁻¹ (cone_product + S * Δz)
+
+    data: SolverData228
+    problem: ProblemData228
+    idx: Indices228
+    solution: Point228
+    parameters: Vector{T}
+    central_path: Vector{T}
+    compressed: Bool
+
+"""
 function residual!(data::SolverData228, problem::ProblemData228, idx::Indices228,
-        solution::Point228, parameters, κ)
+        solution::Point228, parameters, central_path; compressed::Bool=false)
     x = solution.all
     y = solution.primals
     z = solution.duals
@@ -12,19 +80,35 @@ function residual!(data::SolverData228, problem::ProblemData228, idx::Indices228
 
     # equality
     data.residual.equality .= problem.equality_constraint
-    data.jacobian_variables[idx.equality, idx.variables] .= problem.equality_jacobian_variables # TODO
     data.jacobian_parameters[idx.equality, idx.parameters] .= problem.equality_jacobian_parameters # TODO
+    if compressed
+        data.compressed_jacobian_variables .= problem.equality_jacobian_variables[:, idx.equality] # TODO
+    else
+        data.jacobian_variables[idx.equality, idx.variables] .= problem.equality_jacobian_variables # TODO
+    end
 
     # cone: z ∘ s - κ e
     for (i, ii) in enumerate(idx.cone_product)
-        res[ii] = problem.cone_product[i] - κ[1] * problem.cone_target[i]
+        res[ii] = problem.cone_product[i] - central_path[i] * problem.cone_target[i]
     end
-    # Fill the jacobian
-    data.jacobian_variables[idx.cone_product, idx.duals] .= problem.cone_product_jacobian_dual # TODO
-    data.jacobian_variables[idx.cone_product, idx.slacks] .= problem.cone_product_jacobian_slack # TODO
+
+    if compressed
+        # compression corrections
+        Zi = problem.cone_product_jacobian_inverse_slack
+        S = problem.cone_product_jacobian_dual
+        data.cone_product_jacobian_inverse_slack .= Zi
+        data.cone_product_jacobian_dual .= S
+
+        data.residual.duals .+= - Zi * data.residual.cone_product| # - Z⁻¹ cone_product
+        data.compressed_jacobian_variables[idx.duals, idx.duals] .+= - Zi * S # -Z⁻¹ S
+    else
+        # Fill the jacobian
+        data.jacobian_variables[idx.cone_product, idx.duals] .= problem.cone_product_jacobian_dual # TODO
+        data.jacobian_variables[idx.cone_product, idx.slacks] .= problem.cone_product_jacobian_slack # TODO
+        return
+    end
     return
 end
-
 
 
 #

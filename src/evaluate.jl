@@ -7,7 +7,8 @@ function evaluate!(problem::ProblemData228{T},
         equality_jacobian_variables=false,
         equality_jacobian_parameters=false,
         cone_constraint=false,
-        cone_jacobian_variables=false,
+        cone_jacobian=false,
+        cone_jacobian_inverse=false,
         ) where {T,E,EX,EP,B,BX,P,PX,PXI,TA}
 
     x = solution.all
@@ -41,7 +42,8 @@ function evaluate!(problem::ProblemData228{T},
     # evaluate candidate cone product constraint, cone target and jacobian
     cone!(problem, cone_methods, solution,
         cone_constraint=cone_constraint,
-        cone_jacobian_variables=cone_jacobian_variables,
+        cone_jacobian=cone_jacobian,
+        cone_jacobian_inverse=cone_jacobian_inverse,
         cone_target=true # TODO this should only be true once at the beginning of the solve
     )
     return

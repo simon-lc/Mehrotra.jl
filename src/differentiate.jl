@@ -7,6 +7,7 @@ function differentiate!(solver)
     solution = solver.solution
     parameters = solver.parameters
     options = solver.options
+    κ = solver.central_paths
 
     # evaluate derivatives wrt to parameters
     Mehrotra.evaluate!(problem,
@@ -18,14 +19,15 @@ function differentiate!(solver)
         equality_jacobian_variables=true,
         equality_jacobian_parameters=true,
         cone_constraint=true,
-        cone_jacobian_variables=true,
+        cone_jacobian=true,
+        cone_jacobian_inverse=true,
     )
 
     # Here we only need to update
     # equality_jacobian_variables
     # equality_jacobian_parameters
     # cone_jacobian_variables
-    residual!(data, problem, indices, solution, parameters, [options.complementarity_tolerance])
+    residual!(data, problem, indices, solution, parameters, κ.tolerance_central_path)
 
     # # TODO: check if we can use current residual Jacobian w/o recomputing
     # # residual Jacobian wrt variables
@@ -43,7 +45,11 @@ function differentiate!(solver)
 
     # compute solution sensitivities
     fill!(solver.data.solution_sensitivity, 0.0)
-    data.solution_sensitivity .= - data.jacobian_variables \ data.jacobian_parameters #TODO
+    # data.solution_sensitivity .= - data.jacobian_variables \ data.jacobian_parameters #TODO
+    data.dense_jacobian_variables .= data.jacobian_variables
+    linear_solve!(solver.linear_solver, data.solution_sensitivity,
+        data.dense_jacobian_variables, data.jacobian_parameters, fact=true)
+    data.solution_sensitivity .*= -1.0
 
     # #TODO parallelize, make more efficient
     # for i in solver.indices.parameters
