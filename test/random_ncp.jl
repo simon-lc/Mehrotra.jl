@@ -29,6 +29,7 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/lcp_utils.j
             verbose=false,
             residual_tolerance=1e-6,
             complementarity_tolerance=1e-6,
+            compressed_search_direction=false,
             )
         )
 
@@ -67,6 +68,7 @@ end
             verbose=false,
             residual_tolerance=1e-6,
             complementarity_tolerance=1e-6,
+            compressed_search_direction=false,
             )
         )
 

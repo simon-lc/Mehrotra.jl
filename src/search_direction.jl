@@ -41,8 +41,14 @@ function search_direction!(solver::Solver228; compressed::Bool=false)
     else
         uncompressed_search_direction!(linear_solver, dimensions, data, residual, step)
     end
-
-    return
+    return nothing
+    # if compressed
+    #     cstep = compressed_search_direction!(linear_solver, dimensions, data, residual, step)
+    # else
+    #     ustep = uncompressed_search_direction!(linear_solver, dimensions, data, residual, step)
+    # end
+    #
+    # return cstep, ustep
 end
 
 function compressed_search_direction!(linear_solver::LUSolver{T},
@@ -63,14 +69,15 @@ function compressed_search_direction!(linear_solver::LUSolver{T},
     step.equality .*= -1.0
 
     # slack step
-    # step.slacks .= Zi * (residual.cone_product + S * step.duals) # -Z⁻¹ (cone_product + S * Δz)
+    step.slacks .= -Zi * (residual.cone_product + S * step.duals) # -Z⁻¹ (cone_product + S * Δz)
     # step.slacks .= residual.cone_product + S * step.duals # -Z⁻¹ (cone_product + S * Δz)
     # step.slacks .= step.duals # -Z⁻¹ (cone_product + S * Δz)
     # step.slacks .= S * step.slacks # -Z⁻¹ (cone_product + S * Δz)
     # step.slacks .+= residual.cone_product # -Z⁻¹ (cone_product + S * Δz)
     # step.slacks .= Zi * step.slacks # -Z⁻¹ (cone_product + S * Δz)
     # step.slacks .*= -1.0
-    return nothing
+    # return nothing
+    return deepcopy(step.all)
 end
 
 
@@ -86,7 +93,8 @@ function uncompressed_search_direction!(linear_solver::LUSolver{T},
     linear_solve!(linear_solver, step.all, data.dense_jacobian_variables, residual.all, fact=true)
     step.all .*= -1.0
 
-    return nothing
+    # return nothing
+    return deepcopy(step.all)
 end
 
 

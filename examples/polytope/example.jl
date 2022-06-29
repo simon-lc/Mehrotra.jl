@@ -48,6 +48,7 @@ function contact_solver(parameters; n1=0, n2=0, d=0,
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
         options=options,
+
         )
     return solver
 end
@@ -75,7 +76,7 @@ function contact_distance(solver, x1, q1, x2, q2)
     # yw is expressed in world frame
     y1w = x1 + z_rotation(q1) * y1
     y2w = x2 + z_rotation(q2) * y2
-    return norm(y1w - y2w), y1w, y2w,
+    return norm(y1w - y2w), y1w, y2w
 end
 
 # function contact_jacobian(x1, q1, x2, q2, A1, b1, A2, b2, δ)
@@ -138,7 +139,11 @@ set_polyhedron!(vis, x2, q2, name=:poly2)
 
 parameters = pack_contact_parameters(x1, q1, x2, q2, A1, b1, A2, b2, δ)
 solver = contact_solver(parameters, n1=size(A1)[1], n2=size(A2)[1], d=size(A1)[2])
-distance, y1w, y2w, y1, y2 = contact_distance(solver, x1, q1, x2, q2)
+distance, y1w, y2w = contact_distance(solver, x1, q1, x2, q2)
+
+
+solver.data
+solver.dimensions
 
 solver.solution
 A1*y1 - b1
@@ -158,7 +163,7 @@ setobject!(vis[:contact2],
 
 
 
-
+open(vis)
 
 
 

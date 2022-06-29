@@ -19,6 +19,7 @@ include("finite_difference_utils.jl")
             residual_tolerance=1e-8,
             complementarity_tolerance=1e-8,
             differentiate=true,
+            compressed_search_direction=false,
         ),
     )
 
@@ -59,6 +60,7 @@ end
             residual_tolerance=1e-8,
             complementarity_tolerance=1e-8,
             differentiate=true,
+            compressed_search_direction=false,
         ),
     )
 
@@ -121,6 +123,7 @@ end
             residual_tolerance=1e-10,
             complementarity_tolerance=1e-10,
             differentiate=true,
+            compressed_search_direction=true,
             ),
         )
 

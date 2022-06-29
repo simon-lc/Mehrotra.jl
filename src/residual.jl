@@ -82,7 +82,12 @@ function residual!(data::SolverData228, problem::ProblemData228, idx::Indices228
     data.residual.equality .= problem.equality_constraint
     data.jacobian_parameters[idx.equality, idx.parameters] .= problem.equality_jacobian_parameters # TODO
     if compressed
-        # data.compressed_jacobian_variables .= problem.equality_jacobian_variables[idx.equality, idx.equality] # TODO
+        # data.compressed_jacobian_variables .= problem.equality_jacobian_variables[:, idx.equality] # TODO
+        for (i, ii) in enumerate(idx.equality)
+            for (j, jj) in enumerate(idx.equality)
+                data.compressed_jacobian_variables[ii,jj] = problem.equality_jacobian_variables[ii,jj] # TODO
+            end
+        end
     else
         data.jacobian_variables[idx.equality, idx.variables] .= problem.equality_jacobian_variables # TODO
     end
@@ -99,12 +104,15 @@ function residual!(data::SolverData228, problem::ProblemData228, idx::Indices228
         data.cone_product_jacobian_inverse_slack .= Zi
         data.cone_product_jacobian_dual .= S
 
-        mul!(data.cone_product_jacobian_ratio, Zi, S) # -Z⁻¹ S
-        data.cone_product_jacobian_ratio .*= -1.0 # -Z⁻¹ S
-        data.compressed_jacobian_variables[idx.duals, idx.duals] .= data.cone_product_jacobian_ratio # -Z⁻¹ S
+        data.compressed_jacobian_variables[idx.duals, idx.duals] .+= -Zi * S # -Z⁻¹ S
+        # mul!(data.cone_product_jacobian_ratio, Zi, S) # -Z⁻¹ S
+        # data.cone_product_jacobian_ratio .*= -1.0 # -Z⁻¹ S
+        # data.compressed_jacobian_variables[idx.duals, idx.duals] .+= data.cone_product_jacobian_ratio # -Z⁻¹ S
 
-        mul!(data.residual.duals, Zi, data.residual.cone_product) # - Z⁻¹ cone_product
-        data.residual.duals .*= -1.0 # - Z⁻¹ cone_product
+
+        data.residual.duals .-= Zi * data.residual.cone_product # - Z⁻¹ cone_product
+        # mul!(data.residual.duals, Zi, -data.residual.cone_product) # - Z⁻¹ cone_product
+        # data.residual.duals .*= -1.0 # - Z⁻¹ cone_product
     else
         # Fill the jacobian
         data.jacobian_variables[idx.cone_product, idx.duals] .= problem.cone_product_jacobian_dual # TODO

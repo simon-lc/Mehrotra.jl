@@ -100,6 +100,9 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
         # affine line search
         affine_step_size = 1.0
         # cone search duals
+        # @show typeof(affine_step_size)
+        # @show typeof(z)
+        # @show typeof(Δz)
         affine_step_size = cone_search(affine_step_size, z, Δz,
             indices.cone_nonnegative, indices.cone_second_order;
             τ_nn=0.99, τ_soc=0.99, ϵ=1e-14)

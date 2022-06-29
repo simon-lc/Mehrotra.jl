@@ -12,7 +12,6 @@ idx_soc = [collect(6:8), collect(9:10)]
 
 # idx_nn = collect(1:10)
 # idx_soc = [collect(1:0)]
-idx_soc = []
 
 As = rand(num_primals, num_primals)
 A = As' * As
@@ -22,12 +21,15 @@ C = Cs * Cs'
 d = rand(num_cone)
 parameters = [vec(A); b; vec(C); d]
 
+variables = rand(30)
+
 solver = Solver(lcp_residual, num_primals, num_cone,
     parameters=parameters,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,
     options=Options228(
-        verbose=false,
+        verbose=true,
+        # verbose=false,
         differentiate=true,
         compressed_search_direction=true,
         )
@@ -38,16 +40,28 @@ solve!(solver)
 Main.@code_warntype solve!(solver)
 @benchmark $solve!($solver)
 
+cstep = search_direction!(solver, compressed=true)
+ustep = search_direction!(solver, compressed=false)
 
 
 
+α = 1.0
+second_order_cone_search(z, Δz, idx_soc[end], α)
+@benchmark $second_order_cone_search($z, $Δz, $idx_soc[end], $α)
 
 
-
-
-
-
-
+step_size = 1.0
+z = solver.solution.duals
+Δz = solver.data.step.duals
+affine_step_size = cone_search(step_size, z, Δz,
+    idx_nn, idx_soc;
+    τ_nn=0.99, τ_soc=0.99, ϵ=1e-14)
+Main.@code_warntype cone_search(step_size, z, Δz,
+    idx_nn, idx_soc;
+    τ_nn=0.99, τ_soc=0.99, ϵ=1e-14)
+@benchmark cone_search($step_size, $z, $Δz,
+        $idx_nn, $idx_soc;
+        τ_nn=0.99, τ_soc=0.99, ϵ=1e-14)
 
 
 

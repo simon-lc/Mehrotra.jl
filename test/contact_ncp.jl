@@ -33,9 +33,15 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/block_2d_ut
             verbose=false,
             residual_tolerance=1e-6,
             complementarity_tolerance=1e-6,
+            compressed_search_direction=false,
             )
         )
 
+    Mehrotra.solve!(solver)
+    @test norm(solver.data.residual.equality, Inf) <= solver.options.residual_tolerance
+    @test Mehrotra.cone_violation(solver) <= solver.options.residual_tolerance
+
+    solver.options.compressed_search_direction = true
     Mehrotra.solve!(solver)
     @test norm(solver.data.residual.equality, Inf) <= solver.options.residual_tolerance
     @test Mehrotra.cone_violation(solver) <= solver.options.residual_tolerance
@@ -75,9 +81,15 @@ end
             residual_tolerance=1e-6,
             complementarity_tolerance=1e-6,
             differentiate=false,
+            compressed_search_direction=false,
             )
         )
 
+    Mehrotra.solve!(solver)
+    @test norm(solver.data.residual.equality, Inf) <= solver.options.residual_tolerance
+    @test Mehrotra.cone_violation(solver) <= solver.options.residual_tolerance
+
+    solver.options.compressed_search_direction = true
     Mehrotra.solve!(solver)
     @test norm(solver.data.residual.equality, Inf) <= solver.options.residual_tolerance
     @test Mehrotra.cone_violation(solver) <= solver.options.residual_tolerance
