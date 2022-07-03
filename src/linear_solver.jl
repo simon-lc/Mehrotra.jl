@@ -57,8 +57,6 @@ function factorize!(s::LUSolver{T}, A::AbstractMatrix{T}) where T
     fill!(s.A, 0.0)
     fill!(s.ipiv, 0)
     s.lda = 0
-    @show size(s.A)
-    @show size(A)
     s.A .= A
     getrf!(s.A, s.ipiv, s.lda, s.info)
 end

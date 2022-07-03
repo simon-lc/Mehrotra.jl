@@ -1,15 +1,15 @@
 ################################################################################
 # residual
 ################################################################################
-function contact_residual(primals, duals, slacks, parameters; n1::Int=0, n2::Int=0, d::Int=0)
+function contact_residual(primals, duals, slacks, parameters; na::Int=0, nb::Int=0, d::Int=0)
 
-    x1, q1, x2, q2, A1, b1, A2, b2, δ = unpack_contact_parameters(parameters, n1=n1, n2=n2, d=d)
+    x1, q1, x2, q2, A1, b1, A2, b2, δ = unpack_contact_parameters(parameters, na=na, nb=nb, d=d)
 
     y, z, s = primals, duals, slacks
-    z1 = z[1:n1]
-    z2 = z[n1 .+ (1:n2)]
-    s1 = s[1:n1]
-    s2 = s[n1 .+ (1:n2)]
+    z1 = z[1:na]
+    z2 = z[na .+ (1:nb)]
+    s1 = s[1:na]
+    s2 = s[na .+ (1:nb)]
 
     # y1 is expressed in body1's frame
     y1 = y[1:d]
@@ -23,9 +23,7 @@ function contact_residual(primals, duals, slacks, parameters; n1::Int=0, n2::Int
 
     res = [
         (y1w - y2w) + z_rotation(q1) * (A1' * z1);
-        # (y1 - y2) + A1' * z1;
         (y2w - y1w) + z_rotation(q2) * (A2' * z2);
-        # (y2 - y1) + A2' * z2;
         s1 - (- A1 * y1 + b1);
         s2 - (- A2 * y2 + b2);
         # s1 .* z1;
@@ -37,7 +35,7 @@ end
 ################################################################################
 # parameters
 ################################################################################
-function unpack_contact_parameters(parameters; n1=1, n2=1, d=3)
+function unpack_contact_parameters(parameters; na=1, nb=1, d=3)
     off = 0
     # x1 = parameters[off .+ (1:d)]; off += d
     # q1 = Quaternion(parameters[off .+ (1:4)]...); off += 4
@@ -48,13 +46,13 @@ function unpack_contact_parameters(parameters; n1=1, n2=1, d=3)
     x2 = parameters[off .+ (1:d)]; off += d
     q2 = parameters[off .+ (1:3)]; off += 3 # MRP
 
-    A1 = parameters[off .+ (1:n1*d)]; off += n1*d
-    A1 = reshape(A1, (n1,d))
-    b1 = parameters[off .+ (1:n1)]; off += n1
+    A1 = parameters[off .+ (1:na*d)]; off += na*d
+    A1 = reshape(A1, (na,d))
+    b1 = parameters[off .+ (1:na)]; off += na
 
-    A2 = parameters[off .+ (1:n2*d)]; off += n2*d
-    A2 = reshape(A2, (n2,d))
-    b2 = parameters[off .+ (1:n2)]; off += n2
+    A2 = parameters[off .+ (1:nb*d)]; off += nb*d
+    A2 = reshape(A2, (nb,d))
+    b2 = parameters[off .+ (1:nb)]; off += nb
     δ = parameters[off + 1]; off += 1
 
     return x1, q1, x2, q2, A1, b1, A2, b2, δ
@@ -85,7 +83,7 @@ end
 # z_rotation([0,0,0.05]) * [1, 0, 0]
 
 # params0 = rand(45)
-# params1 = pack_contact_parameters(unpack_contact_parameters(params0, n1=4, n2=4, d=3)...)
+# params1 = pack_contact_parameters(unpack_contact_parameters(params0, na=4, nb=4, d=3)...)
 # norm(params0 - params1)
 
 #

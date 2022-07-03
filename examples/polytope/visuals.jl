@@ -9,6 +9,20 @@ function build_polyhedron!(vis::Visualizer, A::Matrix{T}, b::Vector{T};
     return nothing
 end
 
+function build_2d_polyhedron!(vis::Visualizer, A::Matrix{T}, b::Vector{T};
+        name::Symbol=:polyhedron,
+        color=RGBA(0.8, 0.8, 0.8, 1.0)) where T
+
+    n = size(A)[1]
+    Ae = [zeros(n) A]
+    Ae = [Ae;
+         -1 0 0;
+          1 0 0]
+    be = [b; 0.1; 00]
+    build_polyhedron!(vis, Ae, be, name=name, color=color)
+    return nothing
+end
+
 # function set_polyhedron!(vis::Visualizer, p::Vector{T}, q::Quaternion{T};
 function set_polyhedron!(vis::Visualizer, p::Vector{T}, q::Vector{T};
         name::Symbol=:polyhedron) where T
@@ -16,6 +30,18 @@ function set_polyhedron!(vis::Visualizer, p::Vector{T}, q::Vector{T};
     settransform!(vis[name], MeshCat.compose(
         MeshCat.Translation(p...),
         MeshCat.LinearMap(z_rotation(q)),
+        )
+    )
+    return nothing
+end
+
+function set_2d_polyhedron!(vis::Visualizer, p::Vector{T}, q::Vector{T};
+        name::Symbol=:polyhedron) where T
+    pe = [0; p]
+
+    settransform!(vis[name], MeshCat.compose(
+        MeshCat.Translation(SVector{3}(pe)),
+        MeshCat.LinearMap(rotationmatrix(RotX(q[1]))),
         )
     )
     return nothing

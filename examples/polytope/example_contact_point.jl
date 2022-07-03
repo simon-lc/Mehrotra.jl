@@ -31,17 +31,17 @@ set_background!(vis)
 ################################################################################
 # contact
 ################################################################################
-function contact_solver(parameters; n1=0, n2=0, d=0,
+function contact_solver(parameters; na=0, nb=0, d=0,
         options::Options228=Options228(max_iterations=30, verbose=true))
 
     num_primals = 2d
-    num_cone = n1 + n2
+    num_cone = na + nb
 
     idx_nn = collect(1:num_cone)
     idx_soc = [collect(1:0)]
 
     sized_contact_residual(primals, duals, slacks, parameters) = contact_residual(
-        primals, duals, slacks, parameters; n1=n1, n2=n2, d=d)
+        primals, duals, slacks, parameters; na=na, nb=nb, d=d)
 
     solver = Solver(sized_contact_residual, num_primals, num_cone,
         parameters=parameters,
@@ -138,7 +138,7 @@ set_polyhedron!(vis, x2, q2, name=:poly2)
 
 
 parameters = pack_contact_parameters(x1, q1, x2, q2, A1, b1, A2, b2, δ)
-solver = contact_solver(parameters, n1=size(A1)[1], n2=size(A2)[1], d=size(A1)[2])
+solver = contact_solver(parameters, na=size(A1)[1], nb=size(A2)[1], d=size(A1)[2])
 distance, y1w, y2w = contact_distance(solver, x1, q1, x2, q2)
 
 

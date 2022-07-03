@@ -5,13 +5,13 @@ function contact_residual(primals, duals, slacks, parameters)
 
     d = length(primals)
     np = length(parameters)
-    n1 = length(duals)
-    n2 = Int((np - n1*(d+1) - 1 - 2d - 2*4)/(d+1))
-    @show n2
-    @show n2
-    @show n2
-    @show n2
-    x1, q1, x2, q2, A1, b1, A2, b2, δ = unpack_contact_parameters(parameters, n1=n1, n2=n2, d=d)
+    na = length(duals)
+    nb = Int((np - na*(d+1) - 1 - 2d - 2*4)/(d+1))
+    @show nb
+    @show nb
+    @show nb
+    @show nb
+    x1, q1, x2, q2, A1, b1, A2, b2, δ = unpack_contact_parameters(parameters, na=na, nb=nb, d=d)
 
     # y1 is expressed in body1's frame
     y1, z, s = primals, duals, slacks
@@ -32,20 +32,20 @@ end
 ################################################################################
 # parameters
 ################################################################################
-function unpack_contact_parameters(parameters; n1=1, n2=1, d=3)
+function unpack_contact_parameters(parameters; na=1, nb=1, d=3)
     off = 0
     x1 = parameters[off .+ (1:d)]; off += d
     q1 = Quaternion(parameters[off .+ (1:4)]...); off += 4
     x2 = parameters[off .+ (1:d)]; off += d
     q2 = Quaternion(parameters[off .+ (1:4)]...); off += 4
 
-    A1 = parameters[off .+ (1:n1*d)]; off += n1*d
-    A1 = reshape(A1, (n1,d))
-    b1 = parameters[off .+ (1:n1)]; off += n1
+    A1 = parameters[off .+ (1:na*d)]; off += na*d
+    A1 = reshape(A1, (na,d))
+    b1 = parameters[off .+ (1:na)]; off += na
 
-    A2 = parameters[off .+ (1:n2*d)]; off += n2*d
-    A2 = reshape(A2, (n2,d))
-    b2 = parameters[off .+ (1:n2)]; off += n2
+    A2 = parameters[off .+ (1:nb*d)]; off += nb*d
+    A2 = reshape(A2, (nb,d))
+    b2 = parameters[off .+ (1:nb)]; off += nb
     δ = parameters[off + 1]; off += 1
 
     return x1, q1, x2, q2, A1, b1, A2, b2, δ
@@ -55,8 +55,8 @@ function pack_contact_parameters(x1, q1, x2, q2, A1, b1, A2, b2, δ)
     return [x1; vec(q1); x2; vec(q2); vec(A1); b1; vec(A2); b2; δ]
 end
 
-function num_contact_parameters(n1, n2, d)
-    2d + 2*4 + (n1 + n2) * (d+1) + 1
+function num_contact_parameters(na, nb, d)
+    2d + 2*4 + (na + nb) * (d+1) + 1
 end
 
 import Base.vec
@@ -65,7 +65,7 @@ function vec(q::Quaternion{T}) where T
 end
 
 # params0 = rand(47)
-# params1 = pack_contact_parameters(unpack_contact_parameters(params0, n1=4, n2=4, d=3)...)
+# params1 = pack_contact_parameters(unpack_contact_parameters(params0, na=4, nb=4, d=3)...)
 # norm(params0 - params1)
 
 #

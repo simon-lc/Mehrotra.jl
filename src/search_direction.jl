@@ -90,7 +90,15 @@ function uncompressed_search_direction!(linear_solver::LUSolver{T},
 
     # step.all .= (data.jacobian_variables + Diagonal([0.0*1e-8ones(ny); zeros(nz+ns)])) \ data.residual.all
     data.dense_jacobian_variables .= data.jacobian_variables
-    linear_solve!(linear_solver, step.all, data.dense_jacobian_variables, residual.all, fact=true)
+    ny = dimensions.primals
+    nz = dimensions.duals
+    ns = dimensions.slacks
+    linear_solve!(
+        linear_solver,
+        step.all,
+        data.dense_jacobian_variables + Diagonal([1.0*1e-8ones(ny); zeros(nz+ns)]),
+        residual.all,
+        fact=true)
     step.all .*= -1.0
 
     # return nothing
