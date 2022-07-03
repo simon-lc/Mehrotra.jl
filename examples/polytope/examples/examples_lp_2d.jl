@@ -58,8 +58,6 @@ qb2 = [-0.5]
 
 parameters = pack_lp_parameters(xa2, qa2, xb2, qb2, Aa, ba, Ab, bb)
 
-p1 = pack_lp_parameters(unpack_lp_parameters(parameters, na=na, nb=nb, d=d)...)
-
 
 num_primals = d + 1
 num_cone = na + nb
@@ -84,19 +82,17 @@ solver.options.max_iterations = 30
 # solver.options.verbose = false
 solve!(solver)
 
+J0 = Matrix(solver.data.jacobian_variables)
+plot(Gray.(abs.(J0)))
 
-# pa = solver.solution.primals[1:d]
-# l = solver.solution.primals[d .+ (1:1)]
-# # pw is expressed in world's frame
-# pw = xa2 + x_2d_rotation(qa2) * pa
 
 pw = solver.solution.primals[1:d]
-l = solver.solution.primals[d .+ (1:1)]
+ϕ = solver.solution.primals[d .+ (1:1)]
 
 build_2d_polyhedron!(vis, Aa, ba, color=RGBA(0.2,0.2,0.2,0.6), name=:polya)
 build_2d_polyhedron!(vis, Ab, bb, color=RGBA(0.8,0.8,0.8,0.6), name=:polyb)
-build_2d_polyhedron!(vis, Aa, ba .+ l, color=RGBA(0.2,0.2,0.2,0.6), name=:poly_exta)
-build_2d_polyhedron!(vis, Ab, bb .+ l, color=RGBA(0.8,0.8,0.8,0.6), name=:poly_extb)
+build_2d_polyhedron!(vis, Aa, ba .+ ϕ, color=RGBA(0.2,0.2,0.2,0.6), name=:poly_exta)
+build_2d_polyhedron!(vis, Ab, bb .+ ϕ, color=RGBA(0.8,0.8,0.8,0.6), name=:poly_extb)
 set_2d_polyhedron!(vis, xa2, qa2, name=:polya)
 set_2d_polyhedron!(vis, xb2, qb2, name=:polyb)
 set_2d_polyhedron!(vis, xa2, qa2, name=:poly_exta)
