@@ -50,10 +50,14 @@ function compressed_search_direction!(linear_solver::LUSolver{T},
 
     Zi = data.cone_product_jacobian_inverse_slack
     S = data.cone_product_jacobian_dual
-
+    # @show norm(S)
+    # @show norm(Zi)
+    # @show norm(data.compressed_jacobian_variables)
+    # @show norm(data.compressed_residual.equality)
     # primal dual step
     # step.equality .= data.compressed_jacobian_variables \ residual.equality
     data.dense_compressed_jacobian_variables .= data.compressed_jacobian_variables
+    # @show norm(data.dense_compressed_jacobian_variables)
 
     # data.residual.duals .-= Zi * data.residual.cone_product
     # data.compressed_residual.all .= data.residual.all
@@ -65,8 +69,6 @@ function compressed_search_direction!(linear_solver::LUSolver{T},
 
     # slack step
     step.slacks .= -Zi * (data.compressed_residual.cone_product + S * step.duals) # -Z⁻¹ (cone_product + S * Δz)
-
-    println(round.(step.all[1:4], digits=5))
     return nothing
 end
 
@@ -92,8 +94,6 @@ function uncompressed_search_direction!(linear_solver::LUSolver{T},
         data.residual.all,
         fact=true)
     step.all .*= -1.0
-
-    println(round.(step.all[1:4], digits=5))
     return nothing
 end
 
