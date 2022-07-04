@@ -52,10 +52,10 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
     # evaluate
     evaluate!(problem, methods, cone_methods, solution, parameters,
         equality_constraint=true,
-        equality_jacobian_variables=true,
+        # equality_jacobian_variables=true,
         cone_constraint=true,
-        cone_jacobian=true,
-        cone_jacobian_inverse=true,
+        # cone_jacobian=true,
+        # cone_jacobian_inverse=true,
     )
 
     # residual
@@ -95,14 +95,10 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
             κ.zero_central_path, compressed=compressed)
 
         # search direction
-        # unstructured_search_direction!(solver)
-        search_direction!(solver, compressed=compressed)
+        search_direction!(solver)
         # affine line search
         affine_step_size = 1.0
         # cone search duals
-        # @show typeof(affine_step_size)
-        # @show typeof(z)
-        # @show typeof(Δz)
         affine_step_size = cone_search(affine_step_size, z, Δz,
             indices.cone_nonnegative, indices.cone_second_order;
             τ_nn=0.99, τ_soc=0.99, ϵ=1e-14)
@@ -116,9 +112,9 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
         κ.target_central_path .= max(candidate_central_path, options.complementarity_tolerance)
 
         ## Corrector step
-        residual!(data, problem, indices, solution, parameters, κ.target_central_path)
-        # unstructured_search_direction!(solver)
-        search_direction!(solver, compressed=compressed)
+        residual!(data, problem, indices, solution, parameters, κ.target_central_path,
+            compressed=compressed)
+        search_direction!(solver)
 
         # line search
         step_size = 1.0
@@ -153,10 +149,10 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
             # evaluate candidate cone product constraint and target
             evaluate!(problem, methods, cone_methods, candidate, parameters,
                 equality_constraint=true,
-                equality_jacobian_variables=true,
+                # equality_jacobian_variables=true,
                 cone_constraint=true,
-                cone_jacobian=true,
-                cone_jacobian_inverse=true,
+                # cone_jacobian=true,
+                # cone_jacobian_inverse=true,
             )
 
             ## Predictor step

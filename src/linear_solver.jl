@@ -1,8 +1,3 @@
-using LinearAlgebra
-using BenchmarkTools
-using QDLDL
-using SparseArrays
-
 abstract type LinearSolver end
 
 
@@ -70,8 +65,8 @@ function linear_solve!(s::LUSolver{T}, x::AbstractVector{T}, A::Matrix{T},
     return nothing
 end
 
-function linear_solve!(s::LUSolver{T}, x::Matrix{T}, A::Matrix{T},
-    b::Matrix{T}; reg::T = 0.0, fact::Bool = true) where T
+function linear_solve!(s::LUSolver{T}, x::AbstractMatrix{T}, A::Matrix{T},
+    b::AbstractMatrix{T}; reg::T = 0.0, fact::Bool = true) where T
     fill!(x, 0.0)
     n, m = size(x)
     r_idx = 1:n
@@ -83,18 +78,21 @@ function linear_solve!(s::LUSolver{T}, x::Matrix{T}, A::Matrix{T},
     end
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
+# n = 5
+# m = 3
+# A = rand(n,n)
+# A = A'*A
+# linear_solver = lu_solver(A)
+#
+# X = rand(n,m)
+# B = rand(n,m)
+# Xv = view(X, Vector(1:n), Vector(1:2))
+# Bv = view(B, Vector(1:n), Vector(1:2))
+# # Xv = view(X, 1:n, 1:2)
+# # Bv = view(B, 1:n, 1:2)
+# my_linear_solve!(linear_solver, X, A, B)
+# my_linear_solve!(linear_solver, Xv, A, Bv)
+#
 
 
 

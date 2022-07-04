@@ -4,10 +4,12 @@ function differentiate!(solver)
     methods = solver.methods
     cone_methods = solver.cone_methods
     indices = solver.indices
+    dimensions = solver.dimensions
     solution = solver.solution
     parameters = solver.parameters
     options = solver.options
     κ = solver.central_paths
+    compressed = options.compressed_search_direction
 
     # evaluate derivatives wrt to parameters
     Mehrotra.evaluate!(problem,
@@ -27,7 +29,8 @@ function differentiate!(solver)
     # equality_jacobian_variables
     # equality_jacobian_parameters
     # cone_jacobian_variables
-    residual!(data, problem, indices, solution, parameters, κ.tolerance_central_path)
+    residual!(data, problem, indices, solution, parameters, κ.tolerance_central_path,
+        compressed=compressed)
 
     # # TODO: check if we can use current residual Jacobian w/o recomputing
     # # residual Jacobian wrt variables
@@ -46,11 +49,40 @@ function differentiate!(solver)
     # compute solution sensitivities
     fill!(solver.data.solution_sensitivity, 0.0)
     # data.solution_sensitivity .= - data.jacobian_variables \ data.jacobian_parameters #TODO
-    data.dense_jacobian_variables .= data.jacobian_variables
-    linear_solve!(solver.linear_solver, data.solution_sensitivity,
-        data.dense_jacobian_variables, data.jacobian_parameters, fact=true)
-    data.solution_sensitivity .*= -1.0
+    if compressed
+        Zi = data.cone_product_jacobian_inverse_slack
+        S = data.cone_product_jacobian_dual
 
+        # primal dual step
+        data.dense_compressed_jacobian_variables .= data.compressed_jacobian_variables
+        linear_solve!(solver.linear_solver,
+            # data.solution_sensitivity[indices.equality, :],
+            view(data.solution_sensitivity, 1:dimensions.equality, :),
+            data.dense_compressed_jacobian_variables,
+            # data.jacobian_parameters[indices.equality, :],
+            view(data.jacobian_parameters, 1:dimensions.equality, :),
+            fact=true)
+        data.solution_sensitivity .*= -1.0
+        # @show norm(data.solution_sensitivity)
+        # @show norm(Zi)
+        # @show norm(S)
+        # @show norm(data.residual.cone_product)
+        # for i = 1:dimensions.parameters
+        #     data.solution_sensitivity[indices.slacks, i] .=
+        #         -Zi * (data.jacobian_parameters[indices.cone_product, i] + S * data.solution_sensitivity[indices.duals, i]) # -Z⁻¹ (cone_product + S * Δz)
+        #     end
+
+        # slack step
+        data.solution_sensitivity[indices.slacks, :] .=
+            -Zi * (data.jacobian_parameters[indices.cone_product, :] + S * data.solution_sensitivity[indices.duals, :]) # -Z⁻¹ (cone_product + S * Δz)
+            # -Zi * (data.residual.cone_product .+ (S * data.solution_sensitivity[indices.duals, :])) # -Z⁻¹ (cone_product + S * Δz)
+            # -Zi * (hcat([data.residual.cone_product for i=1:dimensions.parameters]...) + (S * data.solution_sensitivity[indices.duals, :])) # -Z⁻¹ (cone_product + S * Δz)
+    else
+        data.dense_jacobian_variables .= data.jacobian_variables
+        linear_solve!(solver.linear_solver, data.solution_sensitivity,
+            data.dense_jacobian_variables, data.jacobian_parameters, fact=true)
+        data.solution_sensitivity .*= -1.0
+    end
     # #TODO parallelize, make more efficient
     # for i in solver.indices.parameters
     #     for k = 1:solver.dimensions.total
@@ -85,3 +117,14 @@ function differentiate!(solver)
 
     return
 end
+
+A = rand(5,5)
+view(A, 1:2, :)
+
+# data.residual.cone_product + S * data.jacobian_parameters[indices.duals, :]
+#
+a = [1,2,3,4,5]
+A = zeros(5,10)
+
+a .+ A
+hcat([a for i=1:10]...)

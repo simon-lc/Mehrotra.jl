@@ -12,16 +12,49 @@ include("../quaternion.jl")
 include("../rotate.jl")
 include("../contact_model/lp_2d.jl")
 
+
+# p0 = rand(35)
+# p1 = pack_contact_bundle(unpack_contact_bundle(p0)...)
+# norm(p0 - p1)
+
+function mask_contact_bundle(x, θ, indices::Indices228; na::Int=0, nb::Int=0, d::Int=0)
+
+    xa2, qa2, xb2, qb2, va15, ωa15, vb15, ωb15, u, timestep, mass, inertia, gravity, Aa, ba, Ab, bb =
+        unpack_lp_simulator_parameters(θ, na=na, nb=nb, d=d)
+    y, z, s = x[indices.primals], x[indices.duals], x[indices.slacks]
+
+    # primals
+    va25 = y[0 .+ (1:d)]
+    ωa25 = y[d .+ (1:1)]
+    vb25 = y[d+1 .+ (1:d)]
+    ωb25 = y[2d+1 .+ (1:1)]
+    xa3 = xa2 + timestep .* va25
+    qa3 = qa2 + timestep .* ωa25
+    xb3 = xb2 + timestep .* vb25
+    qb3 = qb2 + timestep .* ωb25
+
+    subparameters = pack_lp_parameters(xa3, qa3, xb3, qb3, Aa, ba, Ab, bb)
+    return subparameters
+end
+
 ################################################################################
 # residual
 ################################################################################
-function lp_simulator_residual(primals, duals, slacks, parameters, contact_solver::Solver228;
-        na::Int=0, nb::Int=0, d::Int=0)
+function composed_residual(x, θ, contact_solver::Solver228, indices::Indices228; na::Int=0, nb::Int=0, d::Int=0)
+
+    subparameters = mask_contact_bundle(x, θ, indices; na=na, nb=nb, d=d)
+    # contact bundle
+    ϕ, pa, pb, N, ∂pa, ∂pb = contact_bundle(contact_solver, subparameters, na=na, nb=nb, d=d)
+    xl = pack_contact_bundle(ϕ, pa, pb, N, ∂pa, ∂pb)
+
+    return composed_residual(x, xl, θ, contact_solver; na=na, nb=nb, d=d)
+end
+
+function composed_residual(x, xl, θ, contact_solver::Solver228; na::Int=0, nb::Int=0, d::Int=0)
 
     xa2, qa2, xb2, qb2, va15, ωa15, vb15, ωb15, u, timestep, mass, inertia, gravity, Aa, ba, Ab, bb =
-        unpack_lp_simulator_parameters(parameters, na=na, nb=nb, d=d)
-
-    y, z, s = primals, duals, slacks
+        unpack_lp_simulator_parameters(θ, na=na, nb=nb, d=d)
+    y, z, s = x[indices.primals], x[indices.duals], x[indices.slacks]
 
     # duals
     γ = z[1:1]
@@ -48,21 +81,199 @@ function lp_simulator_residual(primals, duals, slacks, parameters, contact_solve
     ub = u[d+1 .+ (1:d+1)]
 
     # contact bundle
-    ϕ, pa, pb, N, ∂pa, ∂pb = contact_bundle(contact_solver, xa3, qa3, xb3, qb3, na=na, nb=nb, d=d)
+    ϕ, pa, pb, N, ∂pa, ∂pb = unpack_contact_bundle(xl, d=d)
 
     # mass matrix
     Ma = Diagonal([mass; mass; inertia])
     Mb = Diagonal([mass; mass; inertia])
 
-    res = [
-        Ma * ([xa3; qa3] - 2*[xa2; qa2] + [xa1; qa1])/timestep[1] - timestep[1] * [0; mass .* gravity; 0] - ua * timestep[1];# - Na'*γ;
-        Mb * ([xb3; qb3] - 2*[xb2; qb2] + [xb1; qb1])/timestep[1] - timestep[1] * [0; mass .* gravity; 0] - ub * timestep[1];# - Nb'*γ;
+    e = [
+        Ma * ([xa3; qa3] - 2*[xa2; qa2] + [xa1; qa1])/timestep[1] - timestep[1] * [0; mass .* gravity; 0] - ua * timestep[1];
+        Mb * ([xb3; qb3] - 2*[xb2; qb2] + [xb1; qb1])/timestep[1] - timestep[1] * [0; mass .* gravity; 0] - ub * timestep[1];
         sγ - ϕ;
         # sγ .* γ;
     ]
-    res[1:2d+2] .+= -N'*γ
-    return res
+    e[1:2d+2] .+= -N'*γ
+    return e
 end
+
+
+function generate_composed_gradients(func::Function, mask::Function,# subfunc::Function,
+        num_variables, num_subvariables, num_parameters,
+        # dim::Dimensions228, ind::Indices228;
+        checkbounds=true,
+        threads=false)
+
+    x = Symbolics.variables(:x, 1:num_variables)
+    xl = Symbolics.variables(:xl, 1:num_subvariables)
+    θ = Symbolics.variables(:θ, 1:num_parameters)
+
+    m = num_parameters > 0 ?
+        mask(x, θ) :
+        mask(x)
+
+    f = num_parameters > 0 ?
+        func(x, xl, θ) :
+        func(x, xl)
+
+    mx = Symbolics.sparsejacobian(m, x)
+    mθ = Symbolics.sparsejacobian(m, θ)
+
+    fx = Symbolics.sparsejacobian(f, x)
+    fxl = Symbolics.sparsejacobian(f, xl)
+    fθ = Symbolics.sparsejacobian(f, θ)
+
+    mx_sparsity = collect(zip([findnz(mx)[1:2]...]...))
+    mθ_sparsity = collect(zip([findnz(mθ)[1:2]...]...))
+
+    fx_sparsity = collect(zip([findnz(fx)[1:2]...]...))
+    fxl_sparsity = collect(zip([findnz(fxl)[1:2]...]...))
+    fθ_sparsity = collect(zip([findnz(fθ)[1:2]...]...))
+
+
+    m_expr = Symbolics.build_function(m, x, θ,
+        parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+    mx_expr = Symbolics.build_function(mx.nzval, x, θ,
+        parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+    mθ_expr = Symbolics.build_function(mθ.nzval, x, θ,
+        parallel=((threads && num_parameters > 0) ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+
+    f_expr = Symbolics.build_function(f, x, xl, θ,
+        parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+    fx_expr = Symbolics.build_function(fx.nzval, x, xl, θ,
+        parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+    fxl_expr = Symbolics.build_function(fxl.nzval, x, xl, θ,
+        parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+    fθ_expr = Symbolics.build_function(fθ.nzval, x, xl, θ,
+        parallel=((threads && num_parameters > 0) ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+
+    return m_expr, mx_expr, mθ_expr,
+        f_expr, fx_expr, fxl_expr, fθ_expr,
+        mx_sparsity, mθ_sparsity,
+        fx_sparsity, fxl_sparsity, fθ_sparsity,
+        length(m),
+        length(f)
+end
+
+
+dimensions = solver.dimensions
+x = rand(dimensions.variables)
+θ = rand(dimensions.parameters)
+composed_residual(x, θ, contact_solver; indices, na=na, nb=nb, d=d)
+num_subvariables = 35
+sized_composed_residual(x, xl, θ) = composed_residual(x, xl, θ, contact_solver; na=na, nb=nb, d=d)
+sized_mask_contact_bundle(x, θ) = mask_contact_bundle(x, θ, indices; na=na, nb=nb, d=d)
+
+m_expr, mx_expr, mθ_expr,
+    e_expr, ex_expr, exl_expr, eθ_expr,
+    mx_sparsity, mθ_sparsity,
+    ex_sparsity, exl_sparsity, eθ_sparsity,
+    lm, le = generate_composed_gradients(
+        sized_composed_residual, sized_mask_contact_bundle,
+        dimensions.variables,
+        num_subvariables,
+        dimensions.parameters)
+
+
+function e_test(e, x, xl, θ, θl, m_expr, e_expr, subfunc::Function)
+    # m_expr(θl, x, θ)
+    subfunc(xl, θl)
+    # e_expr(e, x, xl, θ)
+    return nothing
+end
+
+num_subparameters = lm
+num_variables = solver.dimensions.variables
+num_equality = solver.dimensions.equality
+θl = zeros(num_subparameters)
+θ = rand(num_parameters)
+xl = zeros(num_subvariables)
+x = rand(num_variables)
+e = rand(num_equality)
+eee(x, xl, θ, θl, m_expr, e_expr)
+
+contact_solver.options.verbose = false
+subfunc(subvariables, subparameters) = contact_bundle(subvariables, subparameters, contact_solver; na=na, nb=nb, d=d)
+
+Main.@code_warntype e_test(e, x, xl, θ, θl, m_expr, e_expr, subfunc)
+@benchmark $e_test($e, $x, $xl, $θ, $θl, $m_expr, $e_expr, $subfunc)
+
+
+
+
+
+
+m_expr
+
+e, ex, eθ, ex_sparsity, eθ_sparsity = generate_gradients(equality, dim, idx)
+
+methods = ProblemMethods228(
+    e,
+    ex,
+    eθ,
+    zeros(length(ex_sparsity)),
+    zeros(length(eθ_sparsity)),
+    ex_sparsity,
+    eθ_sparsity,
+    # c, cx, cθ,
+    #     zeros(length(cx_sparsity)), zeros(length(cθ_sparsity)),
+    #     cx_sparsity, cθ_sparsity,
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+    v = variables [xa, qa, xb, qb]
+    ϕ = signed distance function
+    N = ∂ϕ∂v jacobian
+    pa = contact point on body a in world coordinates
+    pb = contact point on body b in world coordinates
+    ∂pa = ∂pa∂v jacobian, derivative of the contact point location not attached to body a
+    ∂pb = ∂pb∂v jacobian, derivative of the contact point location not attached to body a
+"""
+struct ContactBundle111{T}
+    name::Symbol
+    parent_id::Int
+    child_id::Int
+    ϕ::Vector{T}
+    N::Matrix{T}
+    pa::Vector{T}
+    pb::Vector{T}
+    ∂pa::Matrix{T}
+    ∂pb::Matrix{T}
+end
+
+
 
 function lp_simulator_residual_jacobian_variables(primals, duals, slacks, parameters, contact_solver;
         na::Int=0, nb::Int=0, d::Int=0)

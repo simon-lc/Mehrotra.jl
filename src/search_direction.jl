@@ -26,37 +26,27 @@
 
     solver: Solver228
 """
-function search_direction!(solver::Solver228; compressed::Bool=false)
+function search_direction!(solver::Solver228)
     dimensions = solver.dimensions
     linear_solver = solver.linear_solver
     data = solver.data
-    residual = data.residual
     step = data.step
-    ny = dimensions.primals
-    nz = dimensions.duals
-    ns = dimensions.slacks
+    compressed = solver.options.compressed_search_direction
 
     if compressed
-        compressed_search_direction!(linear_solver, dimensions, data, residual, step)
+        compressed_search_direction!(linear_solver, dimensions, data, step)
     else
-        uncompressed_search_direction!(linear_solver, dimensions, data, residual, step)
+        uncompressed_search_direction!(linear_solver, dimensions, data, step)
     end
     return nothing
-    # if compressed
-    #     cstep = compressed_search_direction!(linear_solver, dimensions, data, residual, step)
-    # else
-    #     ustep = uncompressed_search_direction!(linear_solver, dimensions, data, residual, step)
-    # end
-    #
-    # return cstep, ustep
 end
 
 function compressed_search_direction!(linear_solver::LUSolver{T},
         dimensions::Dimensions228,
         data::SolverData228{T},
-        residual::Point228{T},
         step::Point228{T},
         ) where T
+
 
     Zi = data.cone_product_jacobian_inverse_slack
     S = data.cone_product_jacobian_dual
@@ -64,45 +54,47 @@ function compressed_search_direction!(linear_solver::LUSolver{T},
     # primal dual step
     # step.equality .= data.compressed_jacobian_variables \ residual.equality
     data.dense_compressed_jacobian_variables .= data.compressed_jacobian_variables
+
+    # data.residual.duals .-= Zi * data.residual.cone_product
+    # data.compressed_residual.all .= data.residual.all
     linear_solve!(linear_solver, step.equality,
-        data.dense_compressed_jacobian_variables, residual.equality)
+        # data.dense_compressed_jacobian_variables, data.residual.equality)
+        data.dense_compressed_jacobian_variables, data.compressed_residual.equality)
     step.equality .*= -1.0
+    # data.residual.duals .+= Zi * data.residual.cone_product
 
     # slack step
-    step.slacks .= -Zi * (residual.cone_product + S * step.duals) # -Z⁻¹ (cone_product + S * Δz)
-    # step.slacks .= residual.cone_product + S * step.duals # -Z⁻¹ (cone_product + S * Δz)
-    # step.slacks .= step.duals # -Z⁻¹ (cone_product + S * Δz)
-    # step.slacks .= S * step.slacks # -Z⁻¹ (cone_product + S * Δz)
-    # step.slacks .+= residual.cone_product # -Z⁻¹ (cone_product + S * Δz)
-    # step.slacks .= Zi * step.slacks # -Z⁻¹ (cone_product + S * Δz)
-    # step.slacks .*= -1.0
-    # return nothing
-    return deepcopy(step.all)
-end
+    step.slacks .= -Zi * (data.compressed_residual.cone_product + S * step.duals) # -Z⁻¹ (cone_product + S * Δz)
 
+    println(round.(step.all[1:4], digits=5))
+    return nothing
+end
 
 function uncompressed_search_direction!(linear_solver::LUSolver{T},
         dimensions::Dimensions228,
         data::SolverData228{T},
-        residual::Point228{T},
         step::Point228{T},
         ) where T
 
-    # step.all .= (data.jacobian_variables + Diagonal([0.0*1e-8ones(ny); zeros(nz+ns)])) \ data.residual.all
+
     data.dense_jacobian_variables .= data.jacobian_variables
-    ny = dimensions.primals
-    nz = dimensions.duals
-    ns = dimensions.slacks
+    # ny = dimensions.primals
+    # nz = dimensions.duals
+    # ns = dimensions.slacks
+
+    all = - data.dense_jacobian_variables \ data.residual.all
+
     linear_solve!(
         linear_solver,
         step.all,
-        data.dense_jacobian_variables + Diagonal([1.0*1e-8ones(ny); zeros(nz+ns)]),
-        residual.all,
+        # data.dense_jacobian_variables + Diagonal([1.0*1e-8ones(ny); zeros(nz+ns)]),
+        data.dense_jacobian_variables,
+        data.residual.all,
         fact=true)
     step.all .*= -1.0
 
-    # return nothing
-    return deepcopy(step.all)
+    println(round.(step.all[1:4], digits=5))
+    return nothing
 end
 
 

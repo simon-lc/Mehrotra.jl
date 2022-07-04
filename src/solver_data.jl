@@ -1,5 +1,6 @@
 struct SolverData228{T}
     residual::Point228{T}
+    compressed_residual::Point228{T}
     jacobian_variables::SparseMatrixCSC{T,Int}
     dense_jacobian_variables::Matrix{T}
     compressed_jacobian_variables::SparseMatrixCSC{T,Int}
@@ -25,6 +26,7 @@ function SolverData(dim::Dimensions228, idx::Indices228;
     num_cone = dim.cone
 
     residual = Point(dim, idx)
+    compressed_residual = Point(dim, idx)
 
     jacobian_variables = spzeros(num_variables, num_variables)
     dense_jacobian_variables = zeros(num_variables, num_variables)
@@ -48,6 +50,7 @@ function SolverData(dim::Dimensions228, idx::Indices228;
 
     SolverData228(
         residual,
+        compressed_residual,
         jacobian_variables,
         dense_jacobian_variables,
         compressed_jacobian_variables,

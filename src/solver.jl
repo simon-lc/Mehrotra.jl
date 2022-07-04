@@ -32,7 +32,7 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     nonnegative_indices=collect(1:num_cone),
     second_order_indices=[collect(1:0)],
     custom=nothing,
-    # methods=nothing,
+    methods=nothing,
     options=Options228(),
     )
 
@@ -49,9 +49,7 @@ function Solver(equality, num_primals::Int, num_cone::Int;
         second_order=second_order_indices)
 
     # codegen methods
-    # @show (methods === nothing)
-    # (methods === nothing) && (methods = ProblemMethods(equality, dim, idx))
-    methods = ProblemMethods(equality, dim, idx)
+    (methods == nothing) && (methods = ProblemMethods(equality, dim, idx))
 
     # cone methods
     cone_methods = ConeMethods228(num_cone, nonnegative_indices, second_order_indices)
