@@ -88,7 +88,6 @@ function residual!(data::SolverData228, problem::ProblemData228, idx::Indices228
                 data.compressed_jacobian_variables[ii,jj] = problem.equality_jacobian_variables[ii,jj] # TODO
             end
         end
-        data.jacobian_variables[idx.equality, idx.variables] .= problem.equality_jacobian_variables # TODO USELESSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS
     else
         data.jacobian_variables[idx.equality, idx.variables] .= problem.equality_jacobian_variables # TODO
     end
@@ -105,16 +104,23 @@ function residual!(data::SolverData228, problem::ProblemData228, idx::Indices228
         data.cone_product_jacobian_inverse_slack .= Zi
         data.cone_product_jacobian_dual .= S
 
-        data.compressed_jacobian_variables[idx.duals, idx.duals] .+= -Zi * S # -Z⁻¹ S
-        # mul!(data.cone_product_jacobian_ratio, Zi, S) # -Z⁻¹ S
-        # data.cone_product_jacobian_ratio .*= -1.0 # -Z⁻¹ S
-        # data.compressed_jacobian_variables[idx.duals, idx.duals] .+= data.cone_product_jacobian_ratio # -Z⁻¹ S
+        # data.compressed_jacobian_variables[idx.duals, idx.duals] .+= -Zi * S # -Z⁻¹ S
+        mul!(data.cone_product_jacobian_ratio, Zi, S) # -Z⁻¹ S
+        data.cone_product_jacobian_ratio .*= -1.0 # -Z⁻¹ S
+        for (i,ii) in enumerate(idx.duals)
+            for (j,jj) in enumerate(idx.duals)
+                data.compressed_jacobian_variables[ii,jj] += data.cone_product_jacobian_ratio[i,j] # -Z⁻¹ S
+            end
+        end
 
         data.compressed_residual.all .= data.residual.all
-        data.compressed_residual.duals .-= Zi * data.residual.cone_product # - Z⁻¹ cone_product ######################################################################### uncomment
-        # data.residual.duals .-= Zi * data.residual.cone_product # - Z⁻¹ cone_product ######################################################################### uncomment
-        # # mul!(data.residual.duals, Zi, -data.residual.cone_product) # - Z⁻¹ cone_product
-        # # data.residual.duals .*= -1.0 # - Z⁻¹ cone_product
+        # data.compressed_residual.duals .-= Zi * data.residual.cone_product # - Z⁻¹ cone_product
+        mul!(data.point_temporary.duals, Zi, data.residual.cone_product) # - Z⁻¹ cone_product
+        data.point_temporary.duals .*= -1.0 # - Z⁻¹ cone_product
+        for (i,ii) in enumerate(idx.duals)
+            data.compressed_residual.duals[i] += data.point_temporary.duals[i] # - Z⁻¹ cone_product
+        end
+        data.point_temporary.all .= 0.0
     else
         # Fill the jacobian
         data.jacobian_variables[idx.cone_product, idx.duals] .= problem.cone_product_jacobian_dual # TODO
@@ -122,7 +128,6 @@ function residual!(data::SolverData228, problem::ProblemData228, idx::Indices228
     end
     return
 end
-
 
 # n = 5
 # A = rand(n,n)

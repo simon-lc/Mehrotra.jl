@@ -11,6 +11,7 @@ struct SolverData228{T}
     jacobian_parameters::Matrix{T}
     step::Point228{T}
     step_correction::Point228{T}
+    point_temporary::Point228{T}
     merit::Vector{T}
     merit_gradient::Vector{T}
     constraint_violation::Vector{T}
@@ -40,6 +41,7 @@ function SolverData(dim::Dimensions228, idx::Indices228;
 
     step = Point(dim, idx)
     step_correction = Point(dim, idx)
+    point_temporary = Point(dim, idx)
 
     merit = zeros(1)
     merit_gradient = zeros(num_variables)
@@ -61,6 +63,7 @@ function SolverData(dim::Dimensions228, idx::Indices228;
         jacobian_parameters,
         step,
         step_correction,
+        point_temporary,
         merit,
         merit_gradient,
         constraint_violation,

@@ -50,27 +50,25 @@ function compressed_search_direction!(linear_solver::LUSolver{T},
 
     Zi = data.cone_product_jacobian_inverse_slack
     S = data.cone_product_jacobian_dual
-    # @show norm(S)
-    # @show norm(Zi)
-    # @show norm(data.compressed_jacobian_variables)
-    # @show norm(data.compressed_residual.equality)
     # primal dual step
     # step.equality .= data.compressed_jacobian_variables \ residual.equality
     data.dense_compressed_jacobian_variables .= data.compressed_jacobian_variables
-    # @show norm(data.dense_compressed_jacobian_variables)
 
-    # data.residual.duals .-= Zi * data.residual.cone_product
-    # data.compressed_residual.all .= data.residual.all
     linear_solve!(linear_solver, step.equality,
-        # data.dense_compressed_jacobian_variables, data.residual.equality)
         data.dense_compressed_jacobian_variables, data.compressed_residual.equality)
     step.equality .*= -1.0
-    # data.residual.duals .+= Zi * data.residual.cone_product
 
     # slack step
-    step.slacks .= -Zi * (data.compressed_residual.cone_product + S * step.duals) # -Z⁻¹ (cone_product + S * Δz)
+    # step.slacks .= -Zi * (data.compressed_residual.cone_product + S * step.duals) # -Z⁻¹ (cone_product + S * Δz)
+    data.point_temporary.slacks .= 0.0
+    mul!(data.point_temporary.slacks, S, step.duals)
+    data.point_temporary.slacks .+= data.compressed_residual.cone_product
+    mul!(step.slacks, Zi, data.point_temporary.slacks)
+    step.slacks .*= -1.0
+    data.point_temporary.slacks .= 0.0
     return nothing
 end
+
 
 function uncompressed_search_direction!(linear_solver::LUSolver{T},
         dimensions::Dimensions228,
@@ -83,8 +81,6 @@ function uncompressed_search_direction!(linear_solver::LUSolver{T},
     # ny = dimensions.primals
     # nz = dimensions.duals
     # ns = dimensions.slacks
-
-    all = - data.dense_jacobian_variables \ data.residual.all
 
     linear_solve!(
         linear_solver,
