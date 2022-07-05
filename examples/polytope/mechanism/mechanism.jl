@@ -496,7 +496,6 @@ function evaluate!(e::Vector{T}, ex::Matrix{T}, eθ::Matrix{T},
     end
 end
 
-
 function mechanism_methods(bodies::Vector, contacts::Vector, dimensions::MechanismDimensions159)
     methods = Vector{NodeMethods159}()
 
@@ -514,66 +513,6 @@ function mechanism_methods(bodies::Vector, contacts::Vector, dimensions::Mechani
     return methods
 end
 
-################################################################################
-# demo
-################################################################################
-Ap = [
-     1.0  0.0;
-     0.0  1.0;
-    -1.0  0.0;
-     0.0 -1.0;
-    ] .- 0.10ones(4,2)
-bp = 0.5*[
-    +1,
-    +1,
-    +1,
-     2,
-    ]
-Ac = [
-     1.0  0.0;
-     0.0  1.0;
-    -1.0  0.0;
-     0.0 -1.0;
-    ] .+ 0.10ones(4,2)
-bc = 0.5*[
-     1,
-     1,
-     1,
-     1,
-    ]
-
-
-timestep = 0.01
-gravity = -9.81
-mass = 1.0
-inertia = 0.2 * ones(1,1)
-bodya = Body159(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
-bodyb = Body159(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
-bodies = [bodya, bodyb]
-contacts = [Contact159(bodies[1], bodies[2])]
-indexing!([bodies; contacts])
-
-
-θbody = get_parameters(bodya)
-θcontact = get_parameters(contacts[1])
-set_parameters!(bodya, θbody)
-set_parameters!(contacts[1], θcontact)
-
-# dimensions
-nq = 3 # in 2D
-nv = 3 # in 2D
-nx = 6 # in 2D
-nb = length(bodies)
-nc = length(contacts)
-nx = sum(variable_dimension.(bodies)) + sum(variable_dimension.(contacts))# + num_contacts
-nθ = sum(parameter_dimension.(bodies)) + sum(parameter_dimension.(contacts))# + num_contacts
-
-num_primals = sum(variable_dimension.(bodies))
-num_cone = Int(sum(variable_dimension.(contacts)) / 2)
-dim = MechanismDimensions159(nq, nv, nx, nb, nc, nx, nθ, num_primals, num_cone)
-
-
-
 struct ContactMethods159{T,C,SE,S,SX,Sθ} <: NodeMethods159
     contact_solver::C
     subvariables::Vector{T}
@@ -590,7 +529,10 @@ struct ContactMethods159{T,C,SE,S,SX,Sθ} <: NodeMethods159
 end
 
 function ContactMethods159(contact::Contact159, pbody::Body159, cbody::Body159,
-        dimensions::MechanismDimensions159)
+        dimensions::MechanismDimensions159;
+        checkbounds=true,
+        threads=false)
+
 
     contact_solver = ContactSolver(
         contact.A_parent_collider,
@@ -693,27 +635,89 @@ function evaluate!(e::Vector{T}, ex::Matrix{T}, eθ::Matrix{T},
 end
 
 
-contact_solver = ContactSolver(Ap, bp, Ac, bc)
-contact_methods = ContactMethods159(contacts[1], bodies..., nx, nθ)
+################################################################################
+# demo
+################################################################################
+Ap = [
+     1.0  0.0;
+     0.0  1.0;
+    -1.0  0.0;
+     0.0 -1.0;
+    ] .- 0.10ones(4,2)
+bp = 0.5*[
+    +1,
+    +1,
+    +1,
+     2,
+    ]
+Ac = [
+     1.0  0.0;
+     0.0  1.0;
+    -1.0  0.0;
+     0.0 -1.0;
+    ] .+ 0.10ones(4,2)
+bc = 0.5*[
+     1,
+     1,
+     1,
+     1,
+    ]
 
-xl0 = ones(num_subvariables)
-θl0 = ones(num_subparameters)
 
-evaluate!(e0, ex0, eθ0, x0, θ0, contact_methods)
-# Main.@profiler [evaluate!(e0, ex0, eθ0, x0, θ0, contact_methods) for i=1:3000]
-# @benchmark $evaluate!($e0, $ex0, $eθ0, $x0, $θ0, $contact_methods)
+timestep = 0.01
+gravity = -9.81
+mass = 1.0
+inertia = 0.2 * ones(1,1)
+bodya = Body159(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
+bodyb = Body159(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
+bodies = [bodya, bodyb]
+contacts = [Contact159(bodies[1], bodies[2])]
+indexing!([bodies; contacts])
 
-update_subvariables!(subvariables, subparameters, contact_solver)
-# Main.@code_warntype update_subvariables!(subvariables, subparameters, contact_solver)
-# @benchmark $update_subvariables!($subvariables, $subparameters, $contact_solver)
 
+θbody = get_parameters(bodya)
+θcontact = get_parameters(contacts[1])
+set_parameters!(bodya, θbody)
+set_parameters!(contacts[1], θcontact)
 
-methods0 = mechanism_methods(bodies, contacts, dim)
+# dimensions
+nq = 3 # in 2D
+nv = 3 # in 2D
+nx = 6 # in 2D
+nb = length(bodies)
+nc = length(contacts)
+nx = sum(variable_dimension.(bodies)) + sum(variable_dimension.(contacts))# + num_contacts
+nθ = sum(parameter_dimension.(bodies)) + sum(parameter_dimension.(contacts))# + num_contacts
+
+num_primals = sum(variable_dimension.(bodies))
+num_cone = Int(sum(variable_dimension.(contacts)) / 2)
+dim = MechanismDimensions159(nq, nv, nx, nb, nc, nx, nθ, num_primals, num_cone)
+
+x0 = rand(dim.variables)
+θ0 = rand(dim.parameters)
 e0 = zeros(dim.variables)
 ex0 = zeros(dim.variables, dim.variables)
 eθ0 = zeros(dim.variables, dim.parameters)
+
+contact_solver = ContactSolver(Ap, bp, Ac, bc)
+contact_methods = ContactMethods159(contacts[1], bodies..., dim)
+
+
+methods0 = mechanism_methods(bodies, contacts, dim)
 evaluate!(e0, ex0, eθ0, x0, θ0, methods0)
+Main.@profiler [evaluate!(e0, ex0, eθ0, x0, θ0, methods0) for i=1:5000]
 @benchmark $evaluate!($e0, $ex0, $eθ0, $x0, $θ0, $methods0)
+
+
+
+# evaluate!(e0, ex0, eθ0, x0, θ0, contact_methods)
+# Main.@profiler [evaluate!(e0, ex0, eθ0, x0, θ0, contact_methods) for i=1:3000]
+# @benchmark $evaluate!($e0, $ex0, $eθ0, $x0, $θ0, $contact_methods)
+
+# update_subvariables!(subvariables, subparameters, contact_solver)
+# Main.@code_warntype update_subvariables!(subvariables, subparameters, contact_solver)
+# @benchmark $update_subvariables!($subvariables, $subparameters, $contact_solver)
+
 
 
 

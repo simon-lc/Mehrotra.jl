@@ -126,6 +126,8 @@ struct ContactSolver253{S,F,NP,NC}
 end
 
 function ContactSolver(Ap::Matrix{T}, bp::Vector{T}, Ac::Matrix{T}, bc::Vector{T}; d::Int=2,
+        checkbounds=true,
+        threads=false,
         options::Options228=Options228(
             verbose=false,
             differentiate=true,
