@@ -67,7 +67,7 @@ end
 # solver
 ################################################################################
 function lp_contact_solver(Aa, ba, Ab, bb; d::Int=2,
-        options::Options228=Options228(compressed_search_direction=false))
+        options::Options228=Options228(differentiate=true, compressed_search_direction=false))
     na = length(ba)
     nb = length(bb)
 
@@ -103,75 +103,156 @@ function set_pose_parameters!(solver::Solver228, xa, qa, xb, qb; na::Int=0, nb::
     return nothing
 end
 
-################################################################################
-# contact bundle parameters
-################################################################################
-function contact_bundle(xl, parameters, solver::Solver228;
-        na::Int=0, nb::Int=0, d::Int=0)
-    # v = variables [xa, qa, xb, qb]
-    # ϕ = signed distance function
-    # N = ∂ϕ∂v jacobian
-    # pa = contact point on body a in world coordinates
-    # pb = contact point on body b in world coordinates
-    # vpa = ∂pa∂v jacobian, derivative of the contact point location not attached to body a
-    # vpb = ∂pb∂v jacobian, derivative of the contact point location not attached to body a
 
-    # solver.parameters .= parameters
-    # solver.options.differentiate = true
-    # solve!(solver)
-
-    # ϕ = solver.solution.primals[d .+ (1:1)]
-    # pa = solver.solution.primals[1:d]
-    # pb = solver.solution.primals[1:d]
-    # N = solver.data.solution_sensitivity[d .+ (1:1), 1:2d+2]
-    # vpa = solver.data.solution_sensitivity[1:d, 1:2d+2]
-    # vpb = solver.data.solution_sensitivity[1:d, 1:2d+2]
-    #
-    # return xl .= pack_contact_bundle(ϕ, pa, pb, N, vpa, vpb)
+function extract_subvariables!(xl::Vector{T}, solver::Solver228{T}) where T
+    extract_subvariables!(xl, solver.solution.all, solver.data.solution_sensitivity)
+    return
 end
 
-function contact_bundle_jacobian(jac, parameters, solver::Solver228;
-        na::Int=0, nb::Int=0, d::Int=0)
-    solver.parameters .= parameters
-    solver.options.differentiate = true
+function extract_subvariables!(xl::Vector{T}, solution::Vector{T}, solution_sensitivity::Matrix{T}) where T
+    ϕ = solution
+    xl .= [ϕ; p_parent; p_child; vec(N); vec(∂p_parent); vec(∂p_child)]
+    return nothing
+end
+
+# ################################################################################
+# # contact bundle parameters
+# ################################################################################
+# function contact_bundle(xl, parameters, solver::Solver228;
+#         na::Int=0, nb::Int=0, d::Int=0)
+#     # v = variables [xa, qa, xb, qb]
+#     # ϕ = signed distance function
+#     # N = ∂ϕ∂v jacobian
+#     # pa = contact point on body a in world coordinates
+#     # pb = contact point on body b in world coordinates
+#     # vpa = ∂pa∂v jacobian, derivative of the contact point location not attached to body a
+#     # vpb = ∂pb∂v jacobian, derivative of the contact point location not attached to body a
+#
+#     # solver.parameters .= parameters
+#     # solver.options.differentiate = true
+#     # solve!(solver)
+#
+#     # ϕ = solver.solution.primals[d .+ (1:1)]
+#     # pa = solver.solution.primals[1:d]
+#     # pb = solver.solution.primals[1:d]
+#     # N = solver.data.solution_sensitivity[d .+ (1:1), 1:2d+2]
+#     # vpa = solver.data.solution_sensitivity[1:d, 1:2d+2]
+#     # vpb = solver.data.solution_sensitivity[1:d, 1:2d+2]
+#     #
+#     # return xl .= pack_contact_bundle(ϕ, pa, pb, N, vpa, vpb)
+# end
+
+# function contact_bundle_jacobian(jac, parameters, solver::Solver228;
+#         na::Int=0, nb::Int=0, d::Int=0)
+#     solver.parameters .= parameters
+#     solver.options.differentiate = true
+#     solve!(solver)
+#
+#     ϕ = solver.solution.primals[d .+ (1:1)]
+#     pa = solver.solution.primals[1:d]
+#     pb = solver.solution.primals[1:d]
+#     ∂N = solver.data.solution_sensitivity[d .+ (1:1), 1:2d+2]
+#     ∂pa = solver.data.solution_sensitivity[1:d, 1:2d+2]
+#     ∂pb = solver.data.solution_sensitivity[1:d, 1:2d+2]
+#
+#     # ∂xl∂θl = ∂subvariables / ∂subparameters
+#     ∂xl∂θl = solver.data.solution_sensitivity
+#     return pack_contact_bundle(ϕ, pa, pb, N, ∂pa, ∂pb)
+# end
+#
+#
+#
+#
+# ################################################################################
+# # contact bundle parameters
+# ################################################################################
+# function unpack_contact_bundle(parameters; d::Int=0)
+#     off = 0
+#     ϕ = parameters[off .+ (1:1)]; off += 1
+#     pa = parameters[off .+ (1:d)]; off += d
+#     pb = parameters[off .+ (1:d)]; off += d
+#     N = parameters[off .+ (1:1*(2d+2))]; off += 1*(2d+2)
+#     N = reshape(N, (1,2d+2))
+#     vpa = parameters[off .+ (1:d*(2d+2))]; off += d*(2d+2)
+#     vpa = reshape(vpa, (d,2d+2))
+#     vpb = parameters[off .+ (1:d*(2d+2))]; off += d*(2d+2)
+#     vpb = reshape(vpb, (d,2d+2))
+#     return ϕ, pa, pb, N, vpa, vpb
+# end
+#
+# function pack_contact_bundle(ϕ, pa, pb, N, vpa, vpb)
+#     return [ϕ; pa; pb; vec(N); vec(vpa); vec(vpb)]
+# end
+#
+#
+
+struct ContactSolver152{S,F,NP,NC}
+    solver::S
+    set_subvariables!::F
+end
+
+function ContactSolver(Ap::Matrix{T}, bp::Vector{T}, Ac::Matrix{T}, bc::Vector{T}; d::Int=2,
+        options::Options228=Options228(
+            verbose=false,
+            differentiate=true,
+            compressed_search_direction=true)) where T
+
+    @assert d == 2
+    np = size(Ap,1)
+    nc = size(Ac,1)
+
+    solver = lp_contact_solver(Ap, bp, Ac, bc; d=d, options=options)
+    num_subparameters = solver.dimensions.parameters
+    num_variables = solver.dimensions.variables
+    nx = d+1
+    # ϕ, p_parent, p_child, N, ∂p_parent, ∂p_child
+    num_subvariables = 1 + d + d + 1*2nx + 2d*num_subparameters
+
+    solution = Symbolics.variables(:solution, 1:num_variables)
+    solution_sensitivity = Symbolics.variables(:solution_sensitivity,
+        1:num_variables, 1:num_subparameters)
+
+    p_parent = solution[1:d]
+    p_child = solution[1:d]
+    ϕ = solution[d .+ (1:1)]
+    N = solution_sensitivity[d .+ (1:1), 1:2d+2]
+    ∂p_parent = solution_sensitivity[1:d, 1:2d+2]
+    ∂p_child = solution_sensitivity[1:d, 1:2d+2]
+
+    f = [ϕ; p_parent; p_child; vec(N); vec(∂p_parent); vec(∂p_child)]
+
+    f_expr = Symbolics.build_function(f, solution, solution_sensitivity,
+        parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+    return ContactSolver152{typeof(solver),typeof(f_expr),np,nc}(solver, f_expr)
+end
+
+function update_subvariables!(subvariables::Vector{T}, subparameters::Vector{T},
+        contact_solver::ContactSolver152) where T
+    update_subvariables!(subvariables, subparameters, contact_solver.solver, contact_solver.set_subvariables!)
+end
+
+function update_subvariables!(subvariables::Vector{T}, subparameters::Vector{T},
+        solver::Solver228, method::E) where {T,E}
+
+    solver.parameters .= subparameters
     solve!(solver)
-
-    ϕ = solver.solution.primals[d .+ (1:1)]
-    pa = solver.solution.primals[1:d]
-    pb = solver.solution.primals[1:d]
-    ∂N = solver.data.solution_sensitivity[d .+ (1:1), 1:2d+2]
-    ∂pa = solver.data.solution_sensitivity[1:d, 1:2d+2]
-    ∂pb = solver.data.solution_sensitivity[1:d, 1:2d+2]
-
-    # ∂xl∂θl = ∂subvariables / ∂subparameters
-    ∂xl∂θl = solver.data.solution_sensitivity
-    return pack_contact_bundle(ϕ, pa, pb, N, ∂pa, ∂pb)
+    method(subvariables,
+        solver.solution.all,
+        solver.data.solution_sensitivity)
+    return nothing
 end
 
 
 
+contact_solver = ContactSolver(Ap, bp, Ac, bc)
+subvariables = rand(num_subvariables)
+subparameters = rand(num_subparameters)
 
-################################################################################
-# contact bundle parameters
-################################################################################
-function unpack_contact_bundle(parameters; d::Int=0)
-    off = 0
-    ϕ = parameters[off .+ (1:1)]; off += 1
-    pa = parameters[off .+ (1:d)]; off += d
-    pb = parameters[off .+ (1:d)]; off += d
-    N = parameters[off .+ (1:1*(2d+2))]; off += 1*(2d+2)
-    N = reshape(N, (1,2d+2))
-    vpa = parameters[off .+ (1:d*(2d+2))]; off += d*(2d+2)
-    vpa = reshape(vpa, (d,2d+2))
-    vpb = parameters[off .+ (1:d*(2d+2))]; off += d*(2d+2)
-    vpb = reshape(vpb, (d,2d+2))
-    return ϕ, pa, pb, N, vpa, vpb
-end
-
-function pack_contact_bundle(ϕ, pa, pb, N, vpa, vpb)
-    return [ϕ; pa; pb; vec(N); vec(vpa); vec(vpb)]
-end
-
+update_subvariables!(subvariables, subparameters, contact_solver)
+Main.@code_warntype update_subvariables!(subvariables, subparameters, contact_solver)
+@benchmark $update_subvariables!($subvariables, $subparameters, $contact_solver)
 
 
 
