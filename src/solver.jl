@@ -1,6 +1,8 @@
-struct Solver228{T,X,E,EX,EP,B,BX,P,PX,PXI,K}
+# struct Solver228{T,X,E,EX,EP,B,BX,P,PX,PXI,K}
+struct Solver228{T,X,B,BX,P,PX,PXI,K}
     problem::ProblemData228{T,X}
-    methods::ProblemMethods228{T,E,EX,EP}
+    # methods::ProblemMethods228{T,E,EX,EP}
+    methods::AbstractProblemMethods228{T}
     cone_methods::ConeMethods228{B,BX,P,PX,PXI,K}
     data::SolverData228{T}
 

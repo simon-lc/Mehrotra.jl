@@ -1,38 +1,38 @@
 
-# function step!(mechanism::Mechanism168{T}, x::Vector{T}, u::Vector{T}) where T
+# function step!(mechanism::Mechanism170{T}, x::Vector{T}, u::Vector{T}) where T
 # end
 #
-# function input_gradient(du, x, u, mechanism::Mechanism168{T})
+# function input_gradient(du, x, u, mechanism::Mechanism170{T})
 # end
 #
-# function state_gradient(dx, x, u, mechanism::Mechanism168{T})
+# function state_gradient(dx, x, u, mechanism::Mechanism170{T})
 # end
 #
-# function set_input!(mechanism::Mechanism168{T})
+# function set_input!(mechanism::Mechanism170{T})
 # end
 #
-# function set_current_state!(mechanism::Mechanism168{T})
+# function set_current_state!(mechanism::Mechanism170{T})
 # end
 #
-# function set_next_state!(mechanism::Mechanism168{T})
+# function set_next_state!(mechanism::Mechanism170{T})
 # end
 #
-# function get_current_state!(mechanism::Mechanism168{T})
+# function get_current_state!(mechanism::Mechanism170{T})
 # end
 #
-# function get_next_state!(mechanism::Mechanism168{T})
+# function get_next_state!(mechanism::Mechanism170{T})
 # end
 
 include("../contact_model/lp_2d.jl")
 
-mutable struct NodeIndices168
+mutable struct NodeIndices170
     e::Vector{Int}
     x::Vector{Int}
     θ::Vector{Int}
 end
 
-function NodeIndices168()
-    return NodeIndices168(
+function NodeIndices170()
+    return NodeIndices170(
         collect(1:0),
         collect(1:0),
         collect(1:0),
@@ -42,9 +42,9 @@ end
 ################################################################################
 # body
 ################################################################################
-struct Body168{T,D}
+struct Body170{T,D}
     name::Symbol
-    node_index::NodeIndices168
+    node_index::NodeIndices170
     pose::Vector{T}
     velocity::Vector{T}
     input::Vector{T}
@@ -56,17 +56,17 @@ struct Body168{T,D}
     b_colliders::Vector{Vector{T}} #polytope
 end
 
-function Body168(timestep, mass, inertia::Matrix,
+function Body170(timestep, mass, inertia::Matrix,
         A_colliders::Vector{Matrix{T}},
         b_colliders::Vector{Vector{T}};
         gravity=-9.81,
         name::Symbol=:body,
-        node_index::NodeIndices168=NodeIndices168()) where T
+        node_index::NodeIndices170=NodeIndices170()) where T
 
-    D = size(A_colliders[1])[2]
+    D = size(A_colliders[1],2)
     @assert D == 2
 
-    return Body168{T,D}(
+    return Body170{T,D}(
         name,
         node_index,
         zeros(D+1),
@@ -81,7 +81,7 @@ function Body168(timestep, mass, inertia::Matrix,
     )
 end
 
-function variable_dimension(body::Body168{T,D}) where {T,D}
+function variable_dimension(body::Body170{T,D}) where {T,D}
     if D == 2
         nv = 3 # velocity
         nx = nv
@@ -93,12 +93,7 @@ end
 
 equality_dimension(body) = variable_dimension(body)
 
-function unpack_body_variables(x::Vector{T}) where T
-    v = x
-    return v
-end
-
-function parameter_dimension(body::Body168{T,D}) where {T,D}
+function parameter_dimension(body::Body170{T,D}) where {T,D}
     if D == 2
         nq = 3 # configuration
         nv = 3 # velocity
@@ -114,7 +109,12 @@ function parameter_dimension(body::Body168{T,D}) where {T,D}
     return nθ
 end
 
-function get_parameters(body::Body168{T,D}) where {T,D}
+function unpack_body_variables(x::Vector{T}) where T
+    v = x
+    return v
+end
+
+function get_parameters(body::Body170{T,D}) where {T,D}
     @assert D == 2
     pose = body.pose
     velocity = body.velocity
@@ -128,7 +128,7 @@ function get_parameters(body::Body168{T,D}) where {T,D}
     return θ
 end
 
-function set_parameters!(body::Body168{T,D}, θ) where {T,D}
+function set_parameters!(body::Body170{T,D}, θ) where {T,D}
     @assert D == 2
     off = 0
     body.pose .= θ[off .+ (1:D+1)]; off += D+1
@@ -142,7 +142,7 @@ function set_parameters!(body::Body168{T,D}, θ) where {T,D}
     return nothing
 end
 
-function unpack_body_parameters(θ::Vector{T}; D::Int=2) where T
+function unpack_body_parameters(θ::Vector, body::Body170{T,D}) where {T,D}
     @assert D == 2
     off = 0
     pose = θ[off .+ (1:D+1)]; off += D+1
@@ -156,12 +156,12 @@ function unpack_body_parameters(θ::Vector{T}; D::Int=2) where T
     return pose, velocity, input, timestep, gravity, mass, inertia
 end
 
-function body_residual!(e, x, θ, body::Body168)
+function body_residual!(e, x, θ, body::Body170)
     node_index = body.node_index
     # variables = primals = velocity
     v25 = unpack_body_variables(x[node_index.x])
     # parameters
-    p2, v15, u, timestep, gravity, mass, inertia = unpack_body_parameters(θ[node_index.θ])
+    p2, v15, u, timestep, gravity, mass, inertia = unpack_body_parameters(θ[node_index.θ], body)
     # integrator
     p1 = p2 - timestep[1] * v15
     p3 = p2 + timestep[1] * v25
@@ -177,25 +177,26 @@ end
 ################################################################################
 # contact
 ################################################################################
-struct Contact168{T,D,NP,NC}
+struct Contact170{T,D,NP,NC}
     name::Symbol
-    node_index::NodeIndices168
+    node_index::NodeIndices170
     A_parent_collider::Matrix{T} #polytope
     b_parent_collider::Vector{T} #polytope
     A_child_collider::Matrix{T} #polytope
     b_child_collider::Vector{T} #polytope
 end
 
-function Contact168(A_parent_collider::Matrix{T},
+function Contact170(A_parent_collider::Matrix{T},
         b_parent_collider::Vector{T},
         A_child_collider::Matrix{T},
         b_child_collider::Vector{T};
         name::Symbol=:contact,
-        node_index::NodeIndices168=NodeIndices168(),) where {T}
-    D = size(A_parent_collider)[2]
-    NP = size(A_parent_collider)[1]
-    NC = size(A_child_collider)[1]
-    return Contact168{T,D,NP,NC}(
+        node_index::NodeIndices170=NodeIndices170()) where {T}
+
+    d = size(A_parent_collider, 2)
+    np = size(A_parent_collider, 1)
+    nc = size(A_child_collider, 1)
+    return Contact170{T,d,np,nc}(
         name,
         node_index,
         A_parent_collider,
@@ -205,8 +206,8 @@ function Contact168(A_parent_collider::Matrix{T},
     )
 end
 
-function Contact168(parent_body::Body168, child_body::Body168) where {T}
-    return Contact168(
+function Contact170(parent_body::Body170, child_body::Body170) where {T}
+    return Contact170(
         parent_body.A_colliders[1],
         parent_body.b_colliders[1],
         child_body.A_colliders[1],
@@ -214,7 +215,7 @@ function Contact168(parent_body::Body168, child_body::Body168) where {T}
     )
 end
 
-function variable_dimension(contact::Contact168{T,D}) where {T,D}
+function variable_dimension(contact::Contact170{T,D}) where {T,D}
     if D == 2
         nγ = 2*1 # impact (dual and slack)
         # nb = 2*2 # friction (dual and slack)
@@ -225,7 +226,7 @@ function variable_dimension(contact::Contact168{T,D}) where {T,D}
     return nx
 end
 
-function equality_dimension(contact::Contact168{T,D}) where {T,D}
+function equality_dimension(contact::Contact170{T,D}) where {T,D}
     if D == 2
         nγ = 1 # impact slackness equality constraint
         # nb = 2 # friction slackness equality constraints
@@ -236,7 +237,16 @@ function equality_dimension(contact::Contact168{T,D}) where {T,D}
     return nx
 end
 
-function subparameter_dimension(contact::Contact168{T,D,NP,NC}) where {T,D,NP,NC}
+function parameter_dimension(contact::Contact170{T,D}) where {T,D}
+    nAp = length(contact.A_parent_collider)
+    nbp = length(contact.b_parent_collider)
+    nAc = length(contact.A_child_collider)
+    nbc = length(contact.b_child_collider)
+    nθ = nAp + nbp + nAc + nbc
+    return nθ
+end
+
+function subparameter_dimension(contact::Contact170{T,D,NP,NC}) where {T,D,NP,NC}
     if D == 2
         nx = D+1
         # x_parent, x_child, Ap, bp, Ac, bc
@@ -247,7 +257,7 @@ function subparameter_dimension(contact::Contact168{T,D,NP,NC}) where {T,D,NP,NC
     return nθl
 end
 
-function subvariable_dimension(contact::Contact168{T,D,NP,NC}) where {T,D,NP,NC}
+function subvariable_dimension(contact::Contact170{T,D,NP,NC}) where {T,D,NP,NC}
     if D == 2
         nx = D+1
         nθl = subparameter_dimension(contact)
@@ -266,16 +276,7 @@ function unpack_contact_variables(x::Vector{T}) where T
     return γ, sγ
 end
 
-function parameter_dimension(contact::Contact168{T,D}) where {T,D}
-    nAp = length(contact.A_parent_collider)
-    nbp = length(contact.b_parent_collider)
-    nAc = length(contact.A_child_collider)
-    nbc = length(contact.b_child_collider)
-    nθ = nAp + nbp + nAc + nbc
-    return nθ
-end
-
-function get_parameters(contact::Contact168{T,D}) where {T,D}
+function get_parameters(contact::Contact170{T,D}) where {T,D}
     θ = [
         vec(contact.A_parent_collider); contact.b_parent_collider;
         vec(contact.A_child_collider); contact.b_child_collider;
@@ -283,7 +284,7 @@ function get_parameters(contact::Contact168{T,D}) where {T,D}
     return θ
 end
 
-function set_parameters!(contact::Contact168{T,D,NP,NC}, θ) where {T,D,NP,NC}
+function set_parameters!(contact::Contact170{T,D,NP,NC}, θ) where {T,D,NP,NC}
     off = 0
     contact.A_parent_collider .= reshape(θ[off .+ (1:NP*D)], (NP,D)); off += NP*D
     contact.b_parent_collider .= θ[off .+ (1:NP)]; off += NP
@@ -292,7 +293,7 @@ function set_parameters!(contact::Contact168{T,D,NP,NC}, θ) where {T,D,NP,NC}
     return nothing
 end
 
-function unpack_contact_parameters(θ::Vector, contact::Contact168{T,D,NP,NC}) where {T,D,NP,NC}
+function unpack_contact_parameters(θ::Vector, contact::Contact170{T,D,NP,NC}) where {T,D,NP,NC}
     @assert D == 2
     off = 0
     A_parent_collider = reshape(θ[off .+ (1:NP*D)], (NP,D)); off += NP*D
@@ -302,7 +303,7 @@ function unpack_contact_parameters(θ::Vector, contact::Contact168{T,D,NP,NC}) w
     return A_parent_collider, b_parent_collider, A_child_collider, b_child_collider
 end
 
-function unpack_contact_subvariables(xl::Vector, contact::Contact168{T,D,NP,NC}) where {T,D,NP,NC}
+function unpack_contact_subvariables(xl::Vector, contact::Contact170{T,D,NP,NC}) where {T,D,NP,NC}
     nθl = subparameter_dimension(contact)
 
     off = 0
@@ -315,14 +316,12 @@ function unpack_contact_subvariables(xl::Vector, contact::Contact168{T,D,NP,NC})
     return ϕ, p_parent, p_child, N, ∂p_parent, ∂p_child
 end
 
-function contact_residual!(e, x, xl, θ, contact::Contact168, pbody::Body168, cbody::Body168)
+function contact_residual!(e, x, xl, θ, contact::Contact170, pbody::Body170, cbody::Body170)
     # variables
     γ, sγ = unpack_contact_variables(x[contact.node_index.x])
     # subvariables
     ϕ, p_parent, p_child, N, ∂p_parent, ∂p_child = unpack_contact_subvariables(xl, contact)
 
-    # parameters
-    Ap, bp, Ac, bc = unpack_body_parameters(θ[contact.node_index.θ])
     # dynamics
     e[contact.node_index.e] .+= sγ - ϕ
     e[[pbody.node_index.e; cbody.node_index.e]] .+= -N'*γ
@@ -332,7 +331,7 @@ end
 ################################################################################
 # dimensions
 ################################################################################
-struct MechanismDimensions168
+struct MechanismDimensions170
     body_configuration::Int
     body_velocity::Int
     body_state::Int
@@ -345,7 +344,7 @@ struct MechanismDimensions168
     equality::Int
 end
 
-function MechanismDimensions168(bodies::Vector, contacts::Vector)
+function MechanismDimensions170(bodies::Vector, contacts::Vector)
     # dimensions
     nq = 3 # in 2D
     nv = 3 # in 2D
@@ -357,28 +356,28 @@ function MechanismDimensions168(bodies::Vector, contacts::Vector)
     num_primals = sum(variable_dimension.(bodies))
     num_cone = Int(sum(variable_dimension.(contacts)) / 2)
     num_equality = num_primals + num_cone
-    return MechanismDimensions168(nq, nv, nx, nb, nc, nx, nθ, num_primals, num_cone, num_equality)
+    return MechanismDimensions170(nq, nv, nx, nb, nc, nx, nθ, num_primals, num_cone, num_equality)
 end
 
 ################################################################################
 # mechanism
 ################################################################################
-struct Mechanism168{T,D,NB,NC}
+struct Mechanism170{T,D,NB,NC}
     variables::Vector{T}
     parameters::Vector{T}
     solver::Solver228{T}
-    bodies::Vector{Body168{T}}
-    contacts::Vector{Contact168{T}}
-    dimensions::MechanismDimensions168
+    bodies::Vector{Body170{T}}
+    contacts::Vector{Contact170{T}}
+    dimensions::MechanismDimensions170
     # equalities::Vector{Equality{T}}
     # inequalities::Vector{Inequality{T}}
 end
 
-function Mechanism168(bodies::Vector, contacts::Vector;
-        options::Options228=Options228()) where {T,D}
+function Mechanism170(bodies::Vector, contacts::Vector;
+        options::Options228{T}=Options228(), D::Int=2) where {T}
 
     # Dimensions
-    dim = MechanismDimensions168(bodies, contacts)
+    dim = MechanismDimensions170(bodies, contacts)
 
     # indexing
     indexing!([bodies; contacts])
@@ -402,7 +401,9 @@ function Mechanism168(bodies::Vector, contacts::Vector;
     variables = solver.solution.all
     parameters = solver.parameters
 
-    mechanism = Mechanism168{T,D,nb,nc}(
+    nb = length(bodies)
+    nc = length(contacts)
+    mechanism = Mechanism170{T,D,nb,nc}(
         variables,
         parameters,
         solver,
@@ -429,7 +430,119 @@ function indexing!(nodes::Vector)
 end
 
 
-Mechanism168(bodies, contacts)
+mech = Mechanism170(bodies, contacts)
+solver = mech.solver
+
+bodies[1].pose .= [+10,0,0.0]
+bodies[2].pose .= [-10,0,0.0]
+
+θb1 = get_parameters(bodies[1])
+θb2 = get_parameters(bodies[2])
+θc1 = get_parameters(contacts[1])
+parameters = [θb1; θb2; θc1]
+
+solver.parameters .= parameters
+evaluate!(solver.problem,
+    solver.methods,
+    solver.cone_methods,
+    solver.solution,
+    solver.parameters,
+    equality_constraint=true,
+    equality_jacobian_variables=true,
+    equality_jacobian_parameters=true,
+    cone_constraint=true,
+    cone_jacobian=true,
+    cone_jacobian_inverse=true,
+    )
+
+function residual(variables, parameters, bodies, contacts, contact_methods)
+    num_equality = 7
+    num_variables = length(variables)
+
+    x = variables
+    θ = parameters
+
+    e = zeros(num_equality)
+    for body in bodies
+        body_residual!(e, x, θ, body)
+    end
+    for contact in contacts
+        # update xl = [ϕ, pa, pb, N, ∂pa, ∂pb]
+        contact_solver = contact_methods[1].contact_solver
+        xl = contact_methods[1].subvariables
+        θl = contact_methods[1].subparameters
+        contact_methods[1].set_subparameters!(θl, x, θ)
+        update_subvariables!(xl, θl, contact_solver)
+        contact_residual!(e, x, xl, θ, contact, bodies[1], bodies[2])
+    end
+    return e
+end
+
+
+solver.solution.all .= [+0,0,0, -0,0,0, 1e-7, 10.5]
+evaluate!(solver.problem,
+    solver.methods,
+    solver.cone_methods,
+    solver.solution,
+    solver.parameters,
+    equality_constraint=true,
+    equality_jacobian_variables=true,
+    equality_jacobian_parameters=true,
+    cone_constraint=true,
+    cone_jacobian=true,
+    cone_jacobian_inverse=true,
+    )
+
+e0 = residual(solver.solution.all, solver.parameters, bodies, contacts, methods0[3:3])
+e1 = deepcopy(solver.problem.equality_constraint)
+e0
+e1
+norm(e0 - e1, Inf)
+
+J0 = FiniteDiff.finite_difference_jacobian(
+    variables -> residual(variables, solver.parameters, mech.bodies, mech.contacts,
+        methods0[3:3]), mech.solver.solution.all)
+J1 = deepcopy(mech.solver.problem.equality_jacobian_variables)
+norm(J0 - J1, Inf)
+
+mech.bodies[1].pose
+mech.bodies[2].pose
+
+
+using Plots
+plot(Gray.(1e3abs.(J0)))
+plot(Gray.(1e3abs.(J1)))
+plot(Gray.(1e3abs.(J1 - J0)))
+
+J0[3,:]
+J1[3,:]
+J0[6,:]
+J1[6,:]
+
+
+# function finite_diff_jacobian(solver)
+#     evaluate!(solver.problem,
+#         solver.methods,
+#         solver.cone_methods,
+#         solver.solution,
+#         solver.parameters,
+#         equality_constraint=true,
+#         equality_jacobian_variables=true,
+#         equality_jacobian_parameters=true,
+#         cone_constraint=true,
+#         cone_jacobian=true,
+#         cone_jacobian_inverse=true,
+#         )
+#
+#
+#     return
+
+parameter_dimension(bodies[1])
+parameter_dimension(contacts[1])
+mech.solver.options.verbose = false
+@benchmark $solve!($mech.solver)
+Main.@profiler [solve!(mech.solver) for i=1:1000]
+
 
 ################################################################################
 # methods
@@ -469,16 +582,14 @@ function generate_gradients(func::Function, num_equality::Int, num_variables::In
     return f_expr, fx_expr, fθ_expr, fx_sparsity, fθ_sparsity
 end
 
-struct DynamicsMethods168{T,E,EX,EP} <: AbstractMethods228{T,E,EX,EP}
-    methods::Vector{NodeMethods186}
-    t::T
-    e::E
-    eX::EX
-    eθ::EP
+abstract type NodeMethods170{T,E,EX,Eθ} end
+
+struct DynamicsMethods170{T} <: AbstractProblemMethods228{T}
+    methods::Vector{NodeMethods170}
+    α::T
 end
 
-abstract type NodeMethods168{T,E,EX,Eθ} end
-struct BodyMethods168{T,E,EX,Eθ} <: NodeMethods168{T,E,EX,Eθ}
+struct BodyMethods170{T,E,EX,Eθ} <: NodeMethods170{T,E,EX,Eθ}
     equality_constraint::E
     equality_jacobian_variables::EX
     equality_jacobian_parameters::Eθ
@@ -488,11 +599,11 @@ struct BodyMethods168{T,E,EX,Eθ} <: NodeMethods168{T,E,EX,Eθ}
     equality_jacobian_parameters_sparsity::Vector{Tuple{Int,Int}}
 end
 
-function BodyMethods168(body, dimensions::MechanismDimensions168)
+function BodyMethods170(body::Body170, dimensions::MechanismDimensions170)
     r!(e, x, θ) = body_residual!(e, x, θ, body)
     f, fx, fθ, fx_sparsity, fθ_sparsity = generate_gradients(r!, dimensions.equality,
         dimensions.variables, dimensions.parameters)
-    return BodyMethods168(
+    return BodyMethods170(
         f,
         fx,
         fθ,
@@ -503,24 +614,7 @@ function BodyMethods168(body, dimensions::MechanismDimensions168)
         )
 end
 
-function mechanism_methods(bodies::Vector, contacts::Vector, dimensions::MechanismDimensions168)
-    methods = Vector{NodeMethods168}()
-
-    # body
-    for body in bodies
-        push!(methods, BodyMethods168(body, dimensions))
-    end
-
-    # contact
-    for contact in contacts
-        # TODO here we need to avoid hardcoding body1 and body2 as paretn and child
-        push!(methods, ContactMethods168(contact, bodies[1], bodies[2], dimensions))
-    end
-
-    return methods
-end
-
-struct ContactMethods168{T,E,EX,Eθ,C,S} <: NodeMethods168{T,E,EX,Eθ}
+struct ContactMethods170{T,E,EX,Eθ,C,S} <: NodeMethods170{T,E,EX,Eθ}
     contact_solver::C
     subvariables::Vector{T}
     subparameters::Vector{T}
@@ -535,8 +629,8 @@ struct ContactMethods168{T,E,EX,Eθ,C,S} <: NodeMethods168{T,E,EX,Eθ}
     equality_jacobian_parameters_sparsity::Vector{Tuple{Int,Int}}
 end
 
-function ContactMethods168(contact::Contact168, pbody::Body168, cbody::Body168,
-        dimensions::MechanismDimensions168;
+function ContactMethods170(contact::Contact170, pbody::Body170, cbody::Body170,
+        dimensions::MechanismDimensions170;
         checkbounds=true,
         threads=false)
 
@@ -559,12 +653,19 @@ function ContactMethods168(contact::Contact168, pbody::Body168, cbody::Body168,
     # set_subparameters!
     x = Symbolics.variables(:x, 1:num_variables)
     θ = Symbolics.variables(:θ, 1:num_parameters)
-    x_parent = unpack_body_variables(x[pbody.node_index.x])
-    x_child = unpack_body_variables(x[cbody.node_index.x])
+    v25_parent = unpack_body_variables(x[pbody.node_index.x])
+    v25_child = unpack_body_variables(x[cbody.node_index.x])
+
+    x2_parent, _, _, timestep_parent = unpack_body_parameters(θ[pbody.node_index.θ])
+    x2_child, _, _, timestep_child = unpack_body_parameters(θ[cbody.node_index.θ])
+    x3_parent = x2_parent .+ timestep_parent[1] * v25_parent
+    x3_child = x2_child .+ timestep_child[1] * v25_child
+    @show x2_parent, timestep_parent, x3_parent, v25_parent
+
     Ap, bp, Ac, bc = unpack_contact_parameters(θ[contact.node_index.θ], contact)
 
     # θl = fct(x, θ)
-    θl = [x_parent; x_child; vec(Ap); bp; vec(Ac); bc]
+    θl = [x3_parent; x3_child; vec(Ap); bp; vec(Ac); bc]
 
     set_subparameters! = Symbolics.build_function(θl, x, θ,
         parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
@@ -603,7 +704,7 @@ function ContactMethods168(contact::Contact168, pbody::Body168, cbody::Body168,
         checkbounds=checkbounds,
         expression=Val{false})[2]
 
-    return ContactMethods168(
+    return ContactMethods170(
         contact_solver,
         subvariables,
         subparameters,
@@ -618,13 +719,29 @@ function ContactMethods168(contact::Contact168, pbody::Body168, cbody::Body168,
     )
 end
 
+function mechanism_methods(bodies::Vector, contacts::Vector, dimensions::MechanismDimensions170)
+    methods = Vector{NodeMethods170}()
+
+    # body
+    for body in bodies
+        push!(methods, BodyMethods170(body, dimensions))
+    end
+
+    # contact
+    for contact in contacts
+        # TODO here we need to avoid hardcoding body1 and body2 as paretn and child
+        push!(methods, ContactMethods170(contact, bodies[1], bodies[2], dimensions))
+    end
+
+    return DynamicsMethods170(methods, 1.0)
+end
 
 ################################################################################
 # evaluate
 ################################################################################
 
 # function evaluate!(e::Vector{T}, ex::Matrix{T}, eθ::Matrix{T},
-#         x::Vector{T}, θ::Vector{T}, methods::Vector{NodeMethods168}) where T
+#         x::Vector{T}, θ::Vector{T}, methods::Vector{NodeMethods170}) where T
 #     e .= 0.0
 #     ex .= 0.0
 #     eθ .= 0.0
@@ -634,7 +751,7 @@ end
 # end
 #
 # function evaluate!(e::Vector{T}, ex::Matrix{T}, eθ::Matrix{T},
-#         x::Vector{T}, θ::Vector{T}, methods::BodyMethods168{T,E,EX,Eθ}) where {T,E,EX,Eθ}
+#         x::Vector{T}, θ::Vector{T}, methods::BodyMethods170{T,E,EX,Eθ}) where {T,E,EX,Eθ}
 #
 #     methods.equality_constraint(e, e, x, θ)
 #     methods.equality_jacobian_variables(methods.equality_jacobian_variables_cache, x, θ)
@@ -649,7 +766,7 @@ end
 # end
 #
 # function evaluate!(e::Vector{T}, ex::Matrix{T}, eθ::Matrix{T},
-#         x::Vector{T}, θ::Vector{T}, methods::ContactMethods168{T,S}) where {T,S}
+#         x::Vector{T}, θ::Vector{T}, methods::ContactMethods170{T,S}) where {T,S}
 #
 #     contact_solver = methods.contact_solver
 #     xl = methods.subvariables
@@ -674,7 +791,8 @@ end
 
 function evaluate!(
         problem::ProblemData228{T},
-        methods::Vector{NodeMethods168},
+        # methods::Vector{NodeMethods170},
+        methods::DynamicsMethods170{T},
         cone_methods::ConeMethods228{B,BX,P,PX,PXI,TA},
         solution::Point228{T},
         parameters::Vector{T};
@@ -686,7 +804,7 @@ function evaluate!(
         cone_jacobian_inverse=false,
         ) where {T,B,BX,P,PX,PXI,TA}
 
-    # TODO this method allocates meory, need fix
+    # TODO this method allocates memory, need fix
 
     # reset
     problem.equality_constraint .= 0.0
@@ -694,7 +812,7 @@ function evaluate!(
     problem.equality_jacobian_parameters .= 0.0
 
     # apply all methods
-    for method in methods
+    for method in methods.methods
         evaluate!(problem, method, solution, parameters;
             equality_constraint=equality_constraint,
             equality_jacobian_variables=equality_jacobian_variables,
@@ -713,7 +831,7 @@ function evaluate!(
 end
 
 function evaluate!(problem::ProblemData228{T},
-        methods::BodyMethods168{T,E,EX,Eθ},
+        methods::BodyMethods170{T,E,EX,Eθ},
         solution::Point228{T},
         parameters::Vector{T};
         equality_constraint=false,
@@ -750,8 +868,8 @@ function evaluate!(problem::ProblemData228{T},
 end
 
 function evaluate!(problem::ProblemData228{T},
-        # methods::ContactMethods168{T,E,EX,Eθ},
-        methods::ContactMethods168{T,S},
+        # methods::ContactMethods170{T,E,EX,Eθ},
+        methods::ContactMethods170{T,S},
         solution::Point228{T},
         parameters::Vector{T};
         equality_constraint=false,
@@ -775,6 +893,11 @@ function evaluate!(problem::ProblemData228{T},
     θl = methods.subparameters
     methods.set_subparameters!(θl, x, θ)
     update_subvariables!(xl, θl, contact_solver)
+    # @show x[1:3]
+    # @show x[4:6]
+    # @show θl[1:3]
+    # @show θl[4:6]
+    # @show xl[1]
 
     # update equality constraint and its jacobiens
     (equality_constraint && ne > 0) && methods.equality_constraint(
@@ -827,15 +950,15 @@ bc = 0.5*[
 
 
 timestep = 0.01
-gravity = -9.81
+gravity = -0.0*9.81
 mass = 1.0
 inertia = 0.2 * ones(1,1)
-bodya = Body168(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
-bodyb = Body168(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
+bodya = Body170(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
+bodyb = Body170(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
 bodies = [bodya, bodyb]
-contacts = [Contact168(bodies[1], bodies[2])]
+contacts = [Contact170(bodies[1], bodies[2])]
 
-dim = MechanismDimensions168(bodies, contacts)
+dim = MechanismDimensions170(bodies, contacts)
 indexing!([bodies; contacts])
 
 θbody = get_parameters(bodya)
@@ -850,12 +973,13 @@ ex0 = zeros(dim.variables, dim.variables)
 eθ0 = zeros(dim.variables, dim.parameters)
 
 contact_solver = ContactSolver(Ap, bp, Ac, bc)
-contact_methods = ContactMethods168(contacts[1], bodies..., dim)
+contact_methods = ContactMethods170(contacts[1], bodies..., dim)
 
-methods0 = mechanism_methods(bodies, contacts, dim)
-evaluate!(e0, ex0, eθ0, x0, θ0, methods0)
+problem_methods0 = mechanism_methods(bodies, contacts, dim)
+methods0 = problem_methods0.methods
+# evaluate!(e0, ex0, eθ0, x0, θ0, methods0)
 # Main.@profiler [evaluate!(e0, ex0, eθ0, x0, θ0, methods0) for i=1:5000]
-@benchmark $evaluate!($e0, $ex0, $eθ0, $x0, $θ0, $methods0)
+# @benchmark $evaluate!($e0, $ex0, $eθ0, $x0, $θ0, $methods0)
 
 
 
@@ -873,11 +997,9 @@ parameters = ones(dim.parameters)
 body_method0 = methods0[1]
 contact_method0 = methods0[3]
 
-methods0
-methods1 = [methods0[1:2]...]
 evaluate!(
         problem,
-        methods0,
+        problem_methods0,
         cone_methods,
         solution,
         parameters,
@@ -890,7 +1012,7 @@ evaluate!(
         )
 Main.@code_warntype evaluate!(
         problem,
-        methods0,
+        problem_methods0,
         cone_methods,
         solution,
         parameters,
@@ -903,7 +1025,7 @@ Main.@code_warntype evaluate!(
         )
 @benchmark $evaluate!(
         $problem,
-        $methods0,
+        $problem_methods0,
         $cone_methods,
         $solution,
         $parameters,
@@ -958,12 +1080,6 @@ Main.@code_warntype evaluate!(problem,
         equality_constraint=true,
         equality_jacobian_variables=true,
         equality_jacobian_parameters=true)
-
-
-
-
-solver = mechanism_solver(bodies, contacts, dim)
-# mech = Mechanism168(bodies, contacts)
 
 
 
