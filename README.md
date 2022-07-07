@@ -34,6 +34,10 @@ using Mehrotra
 
 ## Remaining tasks
 - [ ] primals regualization for QP polytope collision detection
+- [ ] exploit sparsity
+- [ ] @turbo loop vectorization
+- [ ] in-place addition to a vector using symbolics
+- [ ] my sparse solver
 - [ ] custom residual methods to do nested optimization
 - [ ] improve upon compressed step
 - [ ] think about a general framework to handle QP, LP, DynamicsLCP, DynamicsNCP
@@ -52,7 +56,7 @@ using Mehrotra
 - [ ] add quaternion support
 - [x] differentiate solution
 
-###Name
+### Name
 
 complementarity solver
 conic
