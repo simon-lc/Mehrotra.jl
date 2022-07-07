@@ -7,7 +7,8 @@ function cone_violation(solver::Solver228)
     for i = 1:solver.dimensions.cone
         # the one part: avoid penalizing over-satisfaction of the cone constraints
         if cone_target[i] == 1
-            violation = max(violation, abs(max(0, cone_product[i])))
+            # violation = max(violation, abs(max(0, cone_product[i])))
+            violation = max(violation, abs(cone_product[i]))
         # the zero part
         else
             violation = max(violation, abs(cone_product[i]))

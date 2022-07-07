@@ -7,9 +7,9 @@ function Mehrotra.solve!(solver)
     !warm_start && initialize_slacks!(solver)
     !warm_start && initialize_interior_point!(solver)
 
-    ϵ = 1e-5
-    warm_start && (solver.solution.duals .= solver.solution.duals .+ ϵ)
-    warm_start && (solver.solution.slacks .= solver.solution.slacks .+ ϵ)
+    # ϵ = 1e-5
+    # warm_start && (solver.solution.duals .= solver.solution.duals .+ ϵ)
+    # warm_start && (solver.solution.slacks .= solver.solution.slacks .+ ϵ)
 
     # indices
     indices = solver.indices
@@ -59,10 +59,7 @@ function Mehrotra.solve!(solver)
     # evaluate
     evaluate!(problem, methods, cone_methods, solution, parameters,
         equality_constraint=true,
-        # equality_jacobian_variables=true,
         cone_constraint=true,
-        # cone_jacobian=true,
-        # cone_jacobian_inverse=true,
     )
 
     # residual
@@ -151,14 +148,11 @@ function Mehrotra.solve!(solver)
                 ŝ[i] = s[i] + α.step_size[i] * Δs[i]
             end
 
-            # evaluate candidate equality constraint & gradient
+            # evaluate candidate equality constraint
             # evaluate candidate cone product constraint and target
             evaluate!(problem, methods, cone_methods, candidate, parameters,
                 equality_constraint=true,
-                # equality_jacobian_variables=true,
                 cone_constraint=true,
-                # cone_jacobian=true,
-                # cone_jacobian_inverse=true,
             )
 
             ## Predictor step
