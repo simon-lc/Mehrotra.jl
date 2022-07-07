@@ -1,7 +1,7 @@
-function evaluate!(problem::ProblemData228{T},
-        methods::ProblemMethods228{T,E,EX,EP},
-        cone_methods::ConeMethods228{B,BX,P,PX,PXI,TA},
-        solution::Point228{T},
+function evaluate!(problem::ProblemData{T},
+        methods::ProblemMethods{T,E,EX,EP},
+        cone_methods::ConeMethods{B,BX,P,PX,PXI,TA},
+        solution::Point{T},
         parameters::Vector{T};
         equality_constraint=false,
         equality_jacobian_variables=false,

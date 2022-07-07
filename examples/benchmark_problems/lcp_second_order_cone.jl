@@ -30,7 +30,7 @@ solver = Solver(lcp_residual, num_primals, num_cone,
     parameters=parameters,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,
-    options=Options228(
+    options=Options(
         residual_tolerance=1e-12,
         complementarity_tolerance=1e-2,
         )
@@ -69,7 +69,7 @@ solver = Solver(lcp_residual, num_primals, num_cone,
     parameters=parameters,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,
-    options=Options228(
+    options=Options(
         residual_tolerance=1e-12,
         complementarity_tolerance=1e-2,
         complementarity_decoupling=true,

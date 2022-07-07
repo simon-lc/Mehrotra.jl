@@ -1,4 +1,4 @@
-struct Dimensions228
+struct Dimensions
     variables::Int
     primals::Int
     duals::Int
@@ -22,7 +22,7 @@ function Dimensions(num_primals, num_cone, num_parameters;
     num_variables = num_primals + num_duals + num_slacks
     num_equality = num_primals + num_slacks
 
-    Dimensions228(
+    Dimensions(
         num_variables,
         num_primals,
         num_duals,

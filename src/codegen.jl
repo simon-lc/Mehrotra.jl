@@ -1,4 +1,4 @@
-function generate_gradients(func::Function, dim::Dimensions228, ind::Indices228;
+function generate_gradients(func::Function, dim::Dimensions, ind::Indices;
         checkbounds=true,
         threads=false)
 

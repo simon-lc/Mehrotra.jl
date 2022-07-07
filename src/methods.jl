@@ -1,6 +1,6 @@
-abstract type AbstractProblemMethods228{T}
+abstract type AbstractProblemMethods{T}
 end
-struct ProblemMethods228{T,E,EX,EP} <: AbstractProblemMethods228{T}
+struct ProblemMethods{T,E,EX,EP} <: AbstractProblemMethods{T}
     equality_constraint::E                             # e
     equality_jacobian_variables::EX                    # ex
     equality_jacobian_parameters::EP                   # eθ
@@ -17,11 +17,11 @@ struct ProblemMethods228{T,E,EX,EP} <: AbstractProblemMethods228{T}
     # cone_jacobian_parameters_sparsity::Vector{Tuple{Int,Int}}
 end
 
-function ProblemMethods(equality::Function, dim::Dimensions228, idx::Indices228)
+function ProblemMethods(equality::Function, dim::Dimensions, idx::Indices)
     e, ex, eθ, ex_sparsity, eθ_sparsity = generate_gradients(equality, dim, idx)
     # c, cx, cθ, cx_sparsity, cθ_sparsity = generate_gradients(cone, dim, idx)
 
-    methods = ProblemMethods228(
+    methods = ProblemMethods(
         e,
         ex,
         eθ,

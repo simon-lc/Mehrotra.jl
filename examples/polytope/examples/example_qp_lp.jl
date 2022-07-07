@@ -32,7 +32,7 @@ set_background!(vis)
 # contact
 ################################################################################
 function contact_solver(parameters; na=0, nb=0, d=0,
-        options::Options228=Options228(max_iterations=30, verbose=true))
+        options::Options=Options(max_iterations=30, verbose=true))
 
     num_primals = 2d
     num_cone = na + nb
@@ -53,7 +53,7 @@ function contact_solver(parameters; na=0, nb=0, d=0,
     return solver
 end
 
-function set_poses!(solver::Solver228, x1, q1, x2, q2)
+function set_poses!(solver::Solver, x1, q1, x2, q2)
     d = length(x1)
     off = 0
     solver.parameters[off .+ (1:d)] .= x1; off += d

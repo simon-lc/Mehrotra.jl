@@ -1,4 +1,4 @@
-Base.@kwdef mutable struct Options228{T}
+Base.@kwdef mutable struct Options{T}
     residual_norm::T=1.0
     constraint_norm::T=1.0
     max_iterations::Int=30 ###############################

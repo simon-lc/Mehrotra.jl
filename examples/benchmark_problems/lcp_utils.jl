@@ -41,7 +41,7 @@ end
 
 function random_lcp(; num_primals::Int=2, num_cone::Int=3,
         cone_type::Symbol=:non_negative_cone,
-        options::Mehrotra.Options228=Mehrotra.Options228(),
+        options::Mehrotra.Options=Mehrotra.Options(),
         seed::Int=1,
         )
     Random.seed!(seed)

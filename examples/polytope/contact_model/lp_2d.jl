@@ -67,7 +67,7 @@ end
 # solver
 ################################################################################
 function lp_contact_solver(Aa, ba, Ab, bb; d::Int=2,
-        options::Options228=Options228(differentiate=true, compressed_search_direction=false))
+        options::Options=Options(differentiate=true, compressed_search_direction=false))
     na = length(ba)
     nb = length(bb)
 
@@ -97,7 +97,7 @@ function lp_contact_solver(Aa, ba, Ab, bb; d::Int=2,
     return solver
 end
 
-function set_pose_parameters!(solver::Solver228, xa, qa, xb, qb; na::Int=0, nb::Int=0, d::Int=0)
+function set_pose_parameters!(solver::Solver, xa, qa, xb, qb; na::Int=0, nb::Int=0, d::Int=0)
     _, _, _, _, Aa, ba, Ab, bb = unpack_lp_parameters(solver.parameters, na=na, nb=nb, d=d)
     solver.parameters .= pack_lp_parameters(xa, qa, xb, qb, Aa, ba, Ab, bb)
     return nothing
@@ -107,7 +107,7 @@ end
 ################################################################################
 # ContactSolver
 ################################################################################
-function extract_subvariables!(xl::Vector{T}, solver::Solver228{T}) where T
+function extract_subvariables!(xl::Vector{T}, solver::Solver{T}) where T
     extract_subvariables!(xl, solver.solution.all, solver.data.solution_sensitivity)
     return
 end
@@ -128,7 +128,7 @@ end
 function ContactSolver(Ap::Matrix{T}, bp::Vector{T}, Ac::Matrix{T}, bc::Vector{T}; d::Int=2,
         checkbounds=true,
         threads=false,
-        options::Options228=Options228(
+        options::Options=Options(
             verbose=false,
             differentiate=true,
             compressed_search_direction=true)) where T
@@ -274,7 +274,7 @@ end
 # set_2d_polyhedron!(vis, xb2, qb2, name=:polyb)
 #
 # contact_solver = lp_contact_solver(Aa, ba, Ab, bb; d=2,
-#     options=Options228(verbose=true, compressed_search_direction=true, differentiate=true))
+#     options=Options(verbose=true, compressed_search_direction=true, differentiate=true))
 # set_pose_parameters!(contact_solver, xa2, qa2, xb2, qb2, na=na, nb=nb, d=d)
 #
 # solve!(contact_solver)
@@ -282,7 +282,7 @@ end
 # # Main.@profiler [solve!(contact_solver) for i=1:1000]
 #
 #
-# function search_direction!(solver::Solver228; compressed::Bool=false)
+# function search_direction!(solver::Solver; compressed::Bool=false)
 #     dimensions = solver.dimensions
 #     linear_solver = solver.linear_solver
 #     data = solver.data
@@ -298,9 +298,9 @@ end
 # end
 #
 # contact_solver_c = lp_contact_solver(Aa, ba, Ab, bb; d=2,
-#     options=Options228(verbose=true, differentiate=true, compressed_search_direction=true))
+#     options=Options(verbose=true, differentiate=true, compressed_search_direction=true))
 # contact_solver_u = lp_contact_solver(Aa, ba, Ab, bb; d=2,
-#     options=Options228(verbose=true, differentiate=true, compressed_search_direction=false))
+#     options=Options(verbose=true, differentiate=true, compressed_search_direction=false))
 #
 #
 # solve!(contact_solver_c)
@@ -404,7 +404,7 @@ end
 # # ################################################################################
 # # # contact bundle parameters
 # # ################################################################################
-# # function contact_bundle(xl, parameters, solver::Solver228;
+# # function contact_bundle(xl, parameters, solver::Solver;
 # #         na::Int=0, nb::Int=0, d::Int=0)
 # #     # v = variables [xa, qa, xb, qb]
 # #     # ϕ = signed distance function
@@ -428,7 +428,7 @@ end
 # #     # return xl .= pack_contact_bundle(ϕ, pa, pb, N, vpa, vpb)
 # # end
 #
-# # function contact_bundle_jacobian(jac, parameters, solver::Solver228;
+# # function contact_bundle_jacobian(jac, parameters, solver::Solver;
 # #         na::Int=0, nb::Int=0, d::Int=0)
 # #     solver.parameters .= parameters
 # #     solver.options.differentiate = true

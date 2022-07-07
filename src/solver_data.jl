@@ -1,6 +1,6 @@
-struct SolverData228{T}
-    residual::Point228{T}
-    compressed_residual::Point228{T}
+struct SolverData{T}
+    residual::Point{T}
+    compressed_residual::Point{T}
     jacobian_variables::SparseMatrixCSC{T,Int}
     dense_jacobian_variables::Matrix{T}
     compressed_jacobian_variables::SparseMatrixCSC{T,Int}
@@ -9,16 +9,16 @@ struct SolverData228{T}
     cone_product_jacobian_dual::Matrix{T}
     cone_product_jacobian_ratio::Matrix{T}
     jacobian_parameters::Matrix{T}
-    step::Point228{T}
-    step_correction::Point228{T}
-    point_temporary::Point228{T}
+    step::Point{T}
+    step_correction::Point{T}
+    point_temporary::Point{T}
     merit::Vector{T}
     merit_gradient::Vector{T}
     constraint_violation::Vector{T}
     solution_sensitivity::Matrix{T}
 end
 
-function SolverData(dim::Dimensions228, idx::Indices228;
+function SolverData(dim::Dimensions, idx::Indices;
     T=Float64)
 
     num_variables = dim.variables
@@ -50,7 +50,7 @@ function SolverData(dim::Dimensions228, idx::Indices228;
 
     solution_sensitivity = zeros(num_variables, num_parameters)
 
-    SolverData228(
+    SolverData(
         residual,
         compressed_residual,
         jacobian_variables,

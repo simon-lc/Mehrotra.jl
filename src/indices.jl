@@ -1,4 +1,4 @@
-struct Indices228
+struct Indices
     variables::Vector{Int}
     primals::Vector{Int}
     duals::Vector{Int}
@@ -26,7 +26,7 @@ function Indices(num_primals, num_cone, num_parameters;
 
     parameters = collect(1:num_parameters)
 
-    return Indices228(
+    return Indices(
         variables,
         primals,
         duals,

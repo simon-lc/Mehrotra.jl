@@ -1,4 +1,4 @@
-function cone_violation(solver::Solver228)
+function cone_violation(solver::Solver)
     cone_target = solver.problem.cone_target
     cone_product = solver.data.residual.cone_product
     complementarity_tolerance = solver.options.complementarity_tolerance

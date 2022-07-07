@@ -1,4 +1,4 @@
-struct ProblemData228{T,X}
+struct ProblemData{T,X}
     equality_constraint::Vector{T}
     equality_jacobian_variables::Matrix{T}
     equality_jacobian_parameters::Matrix{T}
@@ -31,7 +31,7 @@ function ProblemData(num_variables, num_parameters, num_equality, num_cone;
     # cone_jacobian_variables = zeros(num_cone, num_variables)
     # cone_jacobian_parameters = zeros(num_cone, num_parameters)
 
-    ProblemData228(
+    ProblemData(
         equality_constraint,
         equality_jacobian_variables,
         equality_jacobian_parameters,

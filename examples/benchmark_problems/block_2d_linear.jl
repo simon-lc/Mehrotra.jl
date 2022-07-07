@@ -38,7 +38,7 @@ solver = Solver(linear_block_2d_residual, num_primals, num_cone,
     parameters=parameters,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,
-    options=Options228(max_iterations=30, verbose=true)
+    options=Options(max_iterations=30, verbose=true)
     )
 solve!(solver)
 

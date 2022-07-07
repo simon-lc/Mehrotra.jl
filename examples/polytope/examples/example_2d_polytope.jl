@@ -97,7 +97,7 @@ solver = Solver(
         parameters=parameters,
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
-        options=Options228(),
+        options=Options(),
         )
 
 solver.options.compressed_search_direction = false
@@ -278,7 +278,7 @@ function ProblemMethods(equality::Function, equality_jacobian_variables::Functio
     ex_sparsity = collect(zip([findnz(ex)[1:2]...]...))
     eθ_sparsity = collect(zip([findnz(eθ)[1:2]...]...))
 
-    methods = ProblemMethods228(
+    methods = ProblemMethods(
         equality_constraint,
         equality_jacobian_variables,
         equality_jacobian_parameters,
@@ -304,7 +304,7 @@ solver = Solver(linear_block_2d_residual, num_primals, num_cone,
     parameters=parameters,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,
-    options=Options228(max_iterations=30, verbose=true)
+    options=Options(max_iterations=30, verbose=true)
     )
 solve!(solver)
 

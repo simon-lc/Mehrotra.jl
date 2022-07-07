@@ -88,7 +88,7 @@ solver = Solver(
         parameters=parameters,
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
-        options=Options228(),
+        options=Options(),
         )
 
 solver.options.compressed_search_direction = false

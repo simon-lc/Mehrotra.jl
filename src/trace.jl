@@ -1,7 +1,7 @@
-mutable struct Trace228{T}
+mutable struct Trace{T}
     iterations::Int
 end
 
-function Trace228()
-    return Trace228{Float64}(0)
+function Trace()
+    return Trace{Float64}(0)
 end

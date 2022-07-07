@@ -14,7 +14,7 @@ include("finite_difference_utils.jl")
         num_cone=3,
         cone_type=:non_negative_cone,
         seed=1,
-        options=Mehrotra.Options228(
+        options=Mehrotra.Options(
             verbose=false,
             residual_tolerance=1e-8,
             complementarity_tolerance=1e-8,
@@ -55,7 +55,7 @@ end
         num_cone=3,
         cone_type=:second_order_cone,
         seed=1,
-        options=Mehrotra.Options228(
+        options=Mehrotra.Options(
             verbose=false,
             residual_tolerance=1e-8,
             complementarity_tolerance=1e-8,
@@ -118,7 +118,7 @@ end
         parameters=parameters,
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
-        options=Mehrotra.Options228(
+        options=Mehrotra.Options(
             verbose=false,
             residual_tolerance=1e-10,
             complementarity_tolerance=1e-10,

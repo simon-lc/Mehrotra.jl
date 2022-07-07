@@ -1,5 +1,5 @@
-# function residual!(data::SolverData228, problem::ProblemData228, idx::Indices228,
-#         solution::Point228, parameters, central_path)
+# function residual!(data::SolverData, problem::ProblemData, idx::Indices,
+#         solution::Point, parameters, central_path)
 #     x = solution.all
 #     y = solution.primals
 #     z = solution.duals
@@ -57,17 +57,17 @@
         |C -Z⁻¹S |×|Δz| = |-slack_equality + Z⁻¹ cone_product|
         Δs = -Z⁻¹ (cone_product + S * Δz)
 
-    data: SolverData228
-    problem: ProblemData228
-    idx: Indices228
-    solution: Point228
+    data: SolverData
+    problem: ProblemData
+    idx: Indices
+    solution: Point
     parameters: Vector{T}
     central_path: Vector{T}
     compressed: Bool
 
 """
-function residual!(data::SolverData228, problem::ProblemData228, idx::Indices228,
-        solution::Point228, parameters, central_path; compressed::Bool=false)
+function residual!(data::SolverData, problem::ProblemData, idx::Indices,
+        solution::Point, parameters, central_path; compressed::Bool=false)
     x = solution.all
     y = solution.primals
     z = solution.duals

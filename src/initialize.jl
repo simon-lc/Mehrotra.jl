@@ -1,5 +1,5 @@
 # solver
-function initialize!(solver::Solver228, variables)
+function initialize!(solver::Solver, variables)
     # variables
     solver.solution.all .= variables
     return

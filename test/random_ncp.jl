@@ -25,7 +25,7 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/lcp_utils.j
         parameters=parameters,
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
-        options=Mehrotra.Options228(
+        options=Mehrotra.Options(
             verbose=false,
             residual_tolerance=1e-6,
             complementarity_tolerance=1e-6,
@@ -64,7 +64,7 @@ end
         parameters=parameters,
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
-        options=Mehrotra.Options228(
+        options=Mehrotra.Options(
             verbose=false,
             residual_tolerance=1e-6,
             complementarity_tolerance=1e-6,
@@ -100,7 +100,7 @@ end
 #     parameters=parameters,
 #     nonnegative_indices=idx_nn,
 #     second_order_indices=idx_soc,
-#     options=Mehrotra.Options228(
+#     options=Mehrotra.Options(
 #         verbose=false,
 #         residual_tolerance=1e-6,
 #         complementarity_tolerance=1e-6,

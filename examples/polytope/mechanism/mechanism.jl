@@ -377,7 +377,7 @@ end
 struct Mechanism170{T,D,NB,NC}
     variables::Vector{T}
     parameters::Vector{T}
-    solver::Solver228{T}
+    solver::Solver{T}
     bodies::Vector{Body170{T}}
     contacts::Vector{Contact170{T}}
     dimensions::MechanismDimensions170
@@ -386,7 +386,7 @@ struct Mechanism170{T,D,NB,NC}
 end
 
 function Mechanism170(bodies::Vector, contacts::Vector;
-        options::Options228{T}=Options228(), D::Int=2) where {T}
+        options::Options{T}=Options(), D::Int=2) where {T}
 
     # Dimensions
     dim = MechanismDimensions170(bodies, contacts)
@@ -481,7 +481,7 @@ end
 
 abstract type NodeMethods170{T,E,EX,Eθ} end
 
-struct DynamicsMethods170{T} <: AbstractProblemMethods228{T}
+struct DynamicsMethods170{T} <: AbstractProblemMethods{T}
     methods::Vector{NodeMethods170}
     α::T
 end
@@ -687,11 +687,11 @@ end
 # end
 
 function evaluate!(
-        problem::ProblemData228{T},
+        problem::ProblemData{T},
         # methods::Vector{NodeMethods170},
         methods::DynamicsMethods170{T},
-        cone_methods::ConeMethods228{B,BX,P,PX,PXI,TA},
-        solution::Point228{T},
+        cone_methods::ConeMethods{B,BX,P,PX,PXI,TA},
+        solution::Point{T},
         parameters::Vector{T};
         equality_constraint=false,
         equality_jacobian_variables=false,
@@ -727,9 +727,9 @@ function evaluate!(
     return nothing
 end
 
-function evaluate!(problem::ProblemData228{T},
+function evaluate!(problem::ProblemData{T},
         methods::BodyMethods170{T,E,EX,Eθ},
-        solution::Point228{T},
+        solution::Point{T},
         parameters::Vector{T};
         equality_constraint=false,
         equality_jacobian_variables=false,
@@ -764,10 +764,10 @@ function evaluate!(problem::ProblemData228{T},
     return
 end
 
-function evaluate!(problem::ProblemData228{T},
+function evaluate!(problem::ProblemData{T},
         # methods::ContactMethods170{T,E,EX,Eθ},
         methods::ContactMethods170{T,S},
-        solution::Point228{T},
+        solution::Point{T},
         parameters::Vector{T};
         equality_constraint=false,
         equality_jacobian_variables=false,
@@ -886,7 +886,7 @@ index_solver = Indices(dim.primals, dim.cone, dim.parameters)
 problem = ProblemData(dim.variables, dim.parameters, dim.equality, dim.cone)
 idx_nn = collect(1:dim.cone)
 idx_soc = [collect(1:0)]
-cone_methods = ConeMethods228(dim.cone, idx_nn, idx_soc)
+cone_methods = ConeMethods(dim.cone, idx_nn, idx_soc)
 solution = Point(dim_solver, index_solver)
 solution.all .= 1.0
 parameters = ones(dim.parameters)

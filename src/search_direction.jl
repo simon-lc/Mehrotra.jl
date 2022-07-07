@@ -24,9 +24,9 @@
         |C -Z⁻¹S |×|Δz| = |-slack_equality + Z⁻¹ cone_product|
         Δs = -Z⁻¹ (cone_product + S * Δz)
 
-    solver: Solver228
+    solver: Solver
 """
-function search_direction!(solver::Solver228)
+function search_direction!(solver::Solver)
     dimensions = solver.dimensions
     linear_solver = solver.linear_solver
     data = solver.data
@@ -42,9 +42,9 @@ function search_direction!(solver::Solver228)
 end
 
 function compressed_search_direction!(linear_solver::LUSolver{T},
-        dimensions::Dimensions228,
-        data::SolverData228{T},
-        step::Point228{T},
+        dimensions::Dimensions,
+        data::SolverData{T},
+        step::Point{T},
         ) where T
 
 
@@ -71,9 +71,9 @@ end
 
 
 function uncompressed_search_direction!(linear_solver::LUSolver{T},
-        dimensions::Dimensions228,
-        data::SolverData228{T},
-        step::Point228{T},
+        dimensions::Dimensions,
+        data::SolverData{T},
+        step::Point{T},
         ) where T
 
 

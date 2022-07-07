@@ -1,5 +1,5 @@
-function centering!(central_path::Vector{T}, solution::Point228{T}, step::Point228{T},
-        affine_step_size::Vector{T}, indices::Indices228; options::Options228=Options228()) where T
+function centering!(central_path::Vector{T}, solution::Point{T}, step::Point{T},
+        affine_step_size::Vector{T}, indices::Indices; options::Options=Options()) where T
     z = solution.duals
     s = solution.slacks
 

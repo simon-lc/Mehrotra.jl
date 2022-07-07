@@ -64,7 +64,7 @@ solver = Solver(lcp_residual, num_primals, num_cone,
     parameters=parameters,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,
-    options=Options228(complementarity_decoupling=true),
+    options=Options(complementarity_decoupling=true),
     )
 
 # solve

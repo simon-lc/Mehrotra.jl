@@ -32,7 +32,7 @@ set_background!(vis)
 # contact
 ################################################################################
 function contact_solver(parameters; na=0, nb=0, d=0,
-        options::Options228=Options228(max_iterations=30, verbose=true))
+        options::Options=Options(max_iterations=30, verbose=true))
 
     num_primals = 2d
     num_cone = na + nb
@@ -53,7 +53,7 @@ function contact_solver(parameters; na=0, nb=0, d=0,
     return solver
 end
 
-function set_poses!(solver::Solver228, xa, qa, xb, qb)
+function set_poses!(solver::Solver, xa, qa, xb, qb)
     d = length(xa)
     off = 0
     solver.parameters[off .+ (1:d)] .= xa; off += d
@@ -262,7 +262,7 @@ function ProblemMethods(equality::Function, equality_jacobian_variables::Functio
     ex_sparsity = collect(zip([findnz(ex)[1:2]...]...))
     eθ_sparsity = collect(zip([findnz(eθ)[1:2]...]...))
 
-    methods = ProblemMethods228(
+    methods = ProblemMethods(
         equality_constraint,
         equality_jacobian_variables,
         equality_jacobian_parameters,
@@ -288,7 +288,7 @@ solver = Solver(linear_block_2d_residual, num_primals, num_cone,
     parameters=parameters,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,
-    options=Options228(max_iterations=30, verbose=true)
+    options=Options(max_iterations=30, verbose=true)
     )
 solve!(solver)
 

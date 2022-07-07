@@ -1,23 +1,23 @@
-# struct Solver228{T,X,E,EX,EP,B,BX,P,PX,PXI,K}
-struct Solver228{T,X,B,BX,P,PX,PXI,K}
-    problem::ProblemData228{T,X}
-    # methods::ProblemMethods228{T,E,EX,EP}
-    methods::AbstractProblemMethods228{T}
-    cone_methods::ConeMethods228{B,BX,P,PX,PXI,K}
-    data::SolverData228{T}
+# struct Solver{T,X,E,EX,EP,B,BX,P,PX,PXI,K}
+struct Solver{T,X,B,BX,P,PX,PXI,K}
+    problem::ProblemData{T,X}
+    # methods::ProblemMethods{T,E,EX,EP}
+    methods::AbstractProblemMethods{T}
+    cone_methods::ConeMethods{B,BX,P,PX,PXI,K}
+    data::SolverData{T}
 
-    solution::Point228{T}
-    candidate::Point228{T}
+    solution::Point{T}
+    candidate::Point{T}
     parameters::Vector{T}
 
-    indices::Indices228
-    dimensions::Dimensions228
+    indices::Indices
+    dimensions::Dimensions
 
     # linear_solver::LDLSolver{T,Int}
     linear_solver::LUSolver{T}
 
-    step_sizes::StepSize228{T}
-    central_paths::CentralPath228{T}
+    step_sizes::StepSize{T}
+    central_paths::CentralPath{T}
     fraction_to_boundary::Vector{T}
     penalty::Vector{T}
     dual::Vector{T}
@@ -26,8 +26,8 @@ struct Solver228{T,X,B,BX,P,PX,PXI,K}
     primal_regularization_last::Vector{T}
     dual_regularization::Vector{T}
 
-    options::Options228{T}
-    trace::Trace228{T}
+    options::Options{T}
+    trace::Trace{T}
 end
 
 function Solver(equality, num_primals::Int, num_cone::Int;
@@ -36,7 +36,7 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     second_order_indices=[collect(1:0)],
     custom=nothing,
     methods=nothing,
-    options=Options228(),
+    options=Options(),
     )
 
     num_parameters = length(parameters)
@@ -55,7 +55,7 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     (methods == nothing) && (methods = ProblemMethods(equality, dim, idx))
 
     # cone methods
-    cone_methods = ConeMethods228(num_cone, nonnegative_indices, second_order_indices)
+    cone_methods = ConeMethods(num_cone, nonnegative_indices, second_order_indices)
 
     # problem data
     p_data = ProblemData(dim.variables, num_parameters, dim.equality, num_cone;
@@ -69,8 +69,8 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     candidate = Point(dim, idx)
 
     # interior-point
-    step_sizes = StepSize228(num_cone)
-    central_paths = CentralPath228(nonnegative_indices,
+    step_sizes = StepSize(num_cone)
+    central_paths = CentralPath(nonnegative_indices,
         second_order_indices, options.complementarity_tolerance)
     fraction_to_boundary = max.(0.99, 1.0 .- central_paths.central_path)
 
@@ -106,9 +106,9 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     primal_regularization_last = [0.0]
     dual_regularization = [0.0]
 
-    trace = Trace228()
+    trace = Trace()
 
-    Solver228(
+    Solver(
         p_data,
         methods,
         cone_methods,

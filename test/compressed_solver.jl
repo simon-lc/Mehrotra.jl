@@ -23,7 +23,7 @@
         parameters=parameters,
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
-        options=Mehrotra.Options228(
+        options=Mehrotra.Options(
             verbose=false,
             residual_tolerance=1e-6,
             complementarity_tolerance=1e-6,
@@ -36,7 +36,7 @@
         parameters=parameters,
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
-        options=Mehrotra.Options228(
+        options=Mehrotra.Options(
             verbose=false,
             residual_tolerance=1e-6,
             complementarity_tolerance=1e-6,
@@ -92,7 +92,7 @@ end
 #     parameters=parameters,
 #     nonnegative_indices=idx_nn,
 #     second_order_indices=idx_soc,
-#     options=Mehrotra.Options228(
+#     options=Mehrotra.Options(
 #         verbose=true,
 #         residual_tolerance=1e-6,
 #         complementarity_tolerance=1e-6,
@@ -106,7 +106,7 @@ end
 #     parameters=parameters,
 #     nonnegative_indices=idx_nn,
 #     second_order_indices=idx_soc,
-#     options=Mehrotra.Options228(
+#     options=Mehrotra.Options(
 #         verbose=true,
 #         max_iterations=8,
 #         residual_tolerance=1e-6,

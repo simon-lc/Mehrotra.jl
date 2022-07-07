@@ -15,7 +15,7 @@ include("../contact_model/lp_2d.jl")
 ################################################################################
 # residual
 ################################################################################
-function lp_simulator_residual(primals, duals, slacks, parameters, contact_solver::Solver228;
+function lp_simulator_residual(primals, duals, slacks, parameters, contact_solver::Solver;
         na::Int=0, nb::Int=0, d::Int=0)
 
     xa2, qa2, xb2, qb2, va15, ωa15, vb15, ωb15, u, timestep, mass, inertia, gravity, Aa, ba, Ab, bb =
@@ -83,7 +83,7 @@ function lp_simulator_residual_jacobian_parameters(primals, duals, slacks, param
 end
 
 function generate_problem_methods(equality_constraint, equality_jacobian_variables,
-        equality_jacobian_parameters, dimensions::Dimensions228, indices::Indices228)
+        equality_jacobian_parameters, dimensions::Dimensions, indices::Indices)
 
     function e(v, x, θ)
         primals = x[indices.primals]
@@ -115,7 +115,7 @@ function generate_problem_methods(equality_constraint, equality_jacobian_variabl
     ex_sparsity = collect(zip([findnz(ones(dimensions.equality, dimensions.variables))[1:2]...]...))
     eθ_sparsity = collect(zip([findnz(ones(dimensions.equality, dimensions.parameters))[1:2]...]...))
 
-    methods = ProblemMethods228(
+    methods = ProblemMethods(
         e,
         ex,
         eθ,
@@ -278,7 +278,7 @@ na = length(ba)
 nb = length(bb)
 d = 2
 
-contact_solver = lp_contact_solver(Aa, ba, Ab, bb; d=d, options=Options228(verbose=false))
+contact_solver = lp_contact_solver(Aa, ba, Ab, bb; d=d, options=Options(verbose=false))
 
 xa2 = [1,3.0]
 xb2 = [0,4.0]
@@ -333,7 +333,7 @@ solver = Solver(nothing, num_primals, num_cone,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,
     methods=lp_simulator_methods,
-    options=Options228(max_iterations=30, verbose=true)
+    options=Options(max_iterations=30, verbose=true)
     )
 
 solve!(solver)
