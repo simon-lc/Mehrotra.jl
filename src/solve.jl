@@ -1,10 +1,15 @@
-function Mehrotra.solve!(solver; initialization::Bool=true)
+function Mehrotra.solve!(solver)
     # initialize
     solver.trace.iterations = 0
-    initialization && initialize_primals!(solver)
-    initialization && initialize_duals!(solver)
-    initialization && initialize_slacks!(solver)
-    initialization && initialize_interior_point!(solver)
+    warm_start = solver.options.warm_start
+    !warm_start && initialize_primals!(solver)
+    !warm_start && initialize_duals!(solver)
+    !warm_start && initialize_slacks!(solver)
+    !warm_start && initialize_interior_point!(solver)
+
+    ϵ = 1e-5
+    warm_start && (solver.solution.duals .= solver.solution.duals .+ ϵ)
+    warm_start && (solver.solution.slacks .= solver.solution.slacks .+ ϵ)
 
     # indices
     indices = solver.indices
@@ -39,12 +44,14 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
     cone_methods = solver.cone_methods
 
     # barrier + augmented Lagrangian
+    α = solver.step_sizes
     κ = solver.central_paths
     τ = solver.fraction_to_boundary
 
     # options
     options = solver.options
     compressed = options.compressed_search_direction
+    decoupling = options.complementarity_decoupling
 
     # info
     options.verbose && solver_info(solver)
@@ -97,19 +104,18 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
         # search direction
         search_direction!(solver)
         # affine line search
-        affine_step_size = 1.0
+        α.affine_step_size .= 1.0
         # cone search duals
-        affine_step_size = cone_search(affine_step_size, z, Δz,
+        cone_search!(α.affine_step_size, z, Δz,
             indices.cone_nonnegative, indices.cone_second_order;
-            τ_nn=0.99, τ_soc=0.99, ϵ=1e-14)
+            τ_nn=0.99, τ_soc=0.99, ϵ=1e-14, decoupling=decoupling)
         # cone search slacks
-        affine_step_size = cone_search(affine_step_size, s, Δs,
+        cone_search!(α.affine_step_size, s, Δs,
             indices.cone_nonnegative, indices.cone_second_order;
-            τ_nn=0.99, τ_soc=0.99, ϵ=1e-14)
+            τ_nn=0.99, τ_soc=0.99, ϵ=1e-14, decoupling=decoupling)
 
         # centering
-        candidate_central_path = centering(solution, step, affine_step_size, indices)
-        κ.target_central_path .= max(candidate_central_path, options.complementarity_tolerance)
+        centering!(κ.target_central_path, solution, step, α.affine_step_size, indices, options=options)
 
         ## Corrector step
         residual!(data, problem, indices, solution, parameters, κ.target_central_path,
@@ -117,15 +123,15 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
         search_direction!(solver)
 
         # line search
-        step_size = 1.0
+        α.step_size .= 1.0
         # cone search duals
-        step_size = cone_search(step_size, z, Δz,
+        cone_search!(α.step_size, z, Δz,
             indices.cone_nonnegative, indices.cone_second_order;
-            τ_nn=0.99, τ_soc=0.99, ϵ=1e-14)
+            τ_nn=0.99, τ_soc=0.99, ϵ=1e-14, decoupling=decoupling)
         # cone search slacks
-        step_size = cone_search(step_size, s, Δs,
+        cone_search!(α.step_size, s, Δs,
             indices.cone_nonnegative, indices.cone_second_order;
-            τ_nn=0.99, τ_soc=0.99, ϵ=1e-14)
+            τ_nn=0.99, τ_soc=0.99, ϵ=1e-14, decoupling=decoupling)
 
         # violations
         residual!(data, problem, indices, solution, parameters,
@@ -136,13 +142,13 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
         for i = 1:options.max_iteration_line_search
             # update candidate
             for i = 1:solver.dimensions.primals
-                ŷ[i] = y[i] + step_size * Δy[i]
+                ŷ[i] = y[i] + minimum(α.step_size) * Δy[i]
             end
             for i = 1:solver.dimensions.duals
-                ẑ[i] = z[i] + step_size * Δz[i]
+                ẑ[i] = z[i] + α.step_size[i] * Δz[i]
             end
             for i = 1:solver.dimensions.slacks
-                ŝ[i] = s[i] + step_size * Δs[i]
+                ŝ[i] = s[i] + α.step_size[i] * Δs[i]
             end
 
             # evaluate candidate equality constraint & gradient
@@ -172,7 +178,7 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
             end
 
             # decrease step size
-            step_size = options.scaling_line_search * step_size
+            α.step_size .= options.scaling_line_search .* α.step_size
 
             i == options.max_iteration_line_search && (options.verbose && (@warn "line search failure"); break)
         end
@@ -194,7 +200,7 @@ function Mehrotra.solve!(solver; initialization::Bool=true)
             equality_violation,
             cone_product_violation,
             κ.target_central_path[1],
-            step_size)
+            minimum(α.step_size))
     end
 
     # failure

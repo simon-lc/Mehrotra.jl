@@ -16,6 +16,7 @@ struct Solver228{T,X,B,BX,P,PX,PXI,K}
     # linear_solver::LDLSolver{T,Int}
     linear_solver::LUSolver{T}
 
+    step_sizes::StepSize228{T}
     central_paths::CentralPath228{T}
     fraction_to_boundary::Vector{T}
     penalty::Vector{T}
@@ -68,7 +69,9 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     candidate = Point(dim, idx)
 
     # interior-point
-    central_paths = CentralPath228(num_cone, options.complementarity_tolerance)
+    step_sizes = StepSize228(num_cone)
+    central_paths = CentralPath228(nonnegative_indices,
+        second_order_indices, options.complementarity_tolerance)
     fraction_to_boundary = max.(0.99, 1.0 .- central_paths.central_path)
 
     # augmented Lagrangian
@@ -116,6 +119,7 @@ function Solver(equality, num_primals::Int, num_cone::Int;
         idx,
         dim,
         linear_solver,
+        step_sizes,
         central_paths,
         fraction_to_boundary,
         penalty,

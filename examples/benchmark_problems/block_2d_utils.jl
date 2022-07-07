@@ -173,27 +173,32 @@ function linear_block_2d_residual(primals, duals, slacks, parameters)
 end
 
 function simulate_block_2d(solver, p2, θ2, v15, ω15, u; timestep=0.01, mass=1.0,
-        inertia=0.1, friction_coefficient=0.2, gravity=-9.81, side=0.5)
+        inertia=0.1, friction_coefficient=0.2, gravity=-9.81, side=0.5, warm_start::Bool=false)
+
+    solver.options.verbose = false
+    solver.options.warm_start = warm_start
+
     H = length(u)
     p = []
     θ = []
     v = []
     ω = []
     iterations = Vector{Int}()
+    guess = deepcopy(solver.solution.all)
 
     for i = 1:H
+        @show i
         push!(p, p2)
         push!(θ, θ2)
         push!(v, v15)
         push!(ω, ω15)
         parameters = [p2; θ2; v15; ω15; u[i]; timestep; mass; inertia; gravity; friction_coefficient; side]
-        push!(v, v15)
-        push!(ω, ω15)
-        parameters = [p2; θ2; v15; ω15; u[i]; timestep; mass; inertia; gravity; friction_coefficient; side]
         solver.parameters .= parameters
 
-        solver.options.verbose = false
+        warm_start && (solver.solution.all .= guess)
         solve!(solver)
+        guess = deepcopy(solver.solution.all)
+
         push!(iterations, solver.trace.iterations)
 
         v15 .= solver.solution.primals[1:2]

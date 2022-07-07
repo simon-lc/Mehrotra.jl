@@ -1,35 +1,81 @@
-function centering(solution::Point228{T}, step::Point228{T}, affine_step_size::T,
-        indices::Indices228) where T
+function centering!(central_path::Vector{T}, solution::Point228{T}, step::Point228{T},
+        affine_step_size::Vector{T}, indices::Indices228; options::Options228=Options228()) where T
     z = solution.duals
     s = solution.slacks
 
     Δz = step.duals
     Δs = step.slacks
 
-    cone_degree = length(indices.cone_nonnegative) + length(indices.cone_second_order)
+    if options.complementarity_decoupling
+        # non negative cone
+        for (i,ii) in enumerate(indices.cone_nonnegative)
+            cone_degree = 1
+            ν = dot(z[ii], s[ii]) / cone_degree
+            ν_affine = (
+                dot(z[ii], s[ii]) +
+                affine_step_size[ii] * dot(Δz[ii], s[ii]) +
+                affine_step_size[ii] * dot(z[ii], Δs[ii]) +
+                affine_step_size[ii]^2 * dot(Δz[ii], Δs[ii])
+                ) / cone_degree
+            σ = clamp(ν_affine / ν, 0.0, 1.0)^3
+            candidate_central_path = ν * σ
+            central_path[ii] = max(candidate_central_path, options.complementarity_tolerance)
+        end
 
-    ν = dot(z, s) / cone_degree
-    ν_affine = (
-        dot(z, s) +
-        affine_step_size * dot(Δz, s) +
-        affine_step_size * dot(z, Δs) +
-        dot(Δz, Δs)
-        ) / cone_degree
+        # non negative cone
+        for ind in indices.cone_second_order
+            (length(ind) == 0) && continue
+            cone_degree = 1
+            ν = 0.0
+            ν_affine = 0.0
+            for i in ind
+                ν += (z[i] * s[i]) / cone_degree
+                ν_affine += (
+                    z[i] * s[i] +
+                    affine_step_size[i] * Δz[i] * s[i] +
+                    affine_step_size[i] * z[i] * Δs[i] +
+                    affine_step_size[i]^2 * Δz[i] * Δs[i]
+                    ) / cone_degree
+            end
 
-    σ = clamp(ν_affine / ν, 0.0, 1.0)^3
-    central_path_candidate = ν * σ
-    return central_path_candidate
+            σ = clamp(ν_affine / ν, 0.0, 1.0)^3
+            candidate_central_path = ν * σ
+            central_path[ind[1]] = max(candidate_central_path, options.complementarity_tolerance)
+        end
+
+    else
+        cone_degree = length(indices.cone_nonnegative) + length(indices.cone_second_order)
+        num_cone = length(indices.duals)
+
+        ν = dot(z, s) / cone_degree
+        ν_affine = 0.0
+        for i = 1:num_cone
+            ν_affine += z[i] * s[i]
+            ν_affine += affine_step_size[i] * Δz[i] * s[i]
+            ν_affine += affine_step_size[i] * z[i] * Δs[i]
+            ν_affine += affine_step_size[i]^2 * Δz[i] * Δs[i]
+        end
+        ν_affine /= cone_degree
+
+        σ = clamp(ν_affine / ν, 0.0, 1.0)^3
+        candidate_central_path = ν * σ
+        central_path .= max(candidate_central_path, options.complementarity_tolerance)
+    end
+
+    return nothing
 end
 
-
-
-
+# solver.indices
+#
+# central_path = solver.central_paths.target_central_path
 # solution = solver.solution
 # step = solver.data.step
-# affine_step_size = 0.1
+# affine_step_size = solver.step_sizes.affine_step_size
 # indices = solver.indices
+# options = solver.options
+#
 # using BenchmarkTools
 #
-# centering(solution, step, affine_step_size, indices)
-# Main.@code_warntype centering(solution, step, affine_step_size, indices)
-# @benchmark $centering($solution, $step, $affine_step_size, $indices)
+# centering!(central_path, solution, step, affine_step_size, indices, options=options)
+# Main.@code_warntype centering!(central_path, solution, step, affine_step_size, indices, options=options)
+# @benchmark $centering!($central_path, $solution, $step, $affine_step_size, $indices, options=$options)

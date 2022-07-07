@@ -1,6 +1,8 @@
 using Mehrotra
 using MeshCat
 using StaticArrays
+using Plots
+using Random
 
 include("block_2d_utils.jl")
 
@@ -24,7 +26,7 @@ timestep = 0.01
 mass = 1.0
 inertia = 0.1
 gravity = -9.81
-friction_coefficient = 0.8
+friction_coefficient = 0.2
 side = 0.5
 parameters = [p2; θ2; v15; ω15; u; timestep; inertia; mass; gravity; friction_coefficient; side]
 
@@ -44,26 +46,96 @@ solve!(solver)
 ################################################################################
 # simulation
 ################################################################################
+# begin
 H = 1000
 p2 = [1,1.0]
-θ2 = [3.0]
-v15 = [-3.0,0.0]
-ω15 = [20.0]
-U = [zeros(3) for i=1:H]
-p, θ, v, ω, iterations = simulate_block_2d(solver, p2, θ2, v15, ω15, U;
+θ2 = [6.0]
+v15 = [-5.0,-5.0]*1e-2/timestep
+ω15 = [20.0]*1e-2/timestep
+Random.seed!(0)
+U = [0*5.0*1e-2*[rand(2) .- 0.5; 0] ./ timestep for i=1:H]
+solver.options.complementarity_decoupling = false
+p, θ, v, ω, cold_iterations = simulate_block_2d(solver, p2, θ2, v15, ω15, U;
     timestep=timestep,
     mass=mass,
     inertia=inertia,
     friction_coefficient=friction_coefficient,
     gravity=gravity,
-    side=side)
+    side=side,
+    warm_start=false)
+
+H = 1000
+p2 = [1,1.0]
+θ2 = [6.0]
+v15 = [-5.0,-5.0]*1e-2/timestep
+ω15 = [20.0]*1e-2/timestep
+Random.seed!(0)
+U = [0*5.0*1e-2*[rand(2) .- 0.5; 0] ./ timestep for i=1:H]
+solver.options.complementarity_decoupling = true
+p, θ, v, ω, cold_iterations_decoupled = simulate_block_2d(solver, p2, θ2, v15, ω15, U;
+    timestep=timestep,
+    mass=mass,
+    inertia=inertia,
+    friction_coefficient=friction_coefficient,
+    gravity=gravity,
+    side=side,
+    warm_start=false)
+
+H = 1000
+p2 = [1,1.0]
+θ2 = [6.0]
+v15 = [-5.0,-5.0]*1e-2/timestep
+ω15 = [20.0]*1e-2/timestep
+Random.seed!(0)
+U = [0*5.0*1e-2*[rand(2) .- 0.5; 0] ./ timestep for i=1:H]
+solver.options.complementarity_decoupling = false
+p, θ, v, ω, warm_iterations = simulate_block_2d(solver, p2, θ2, v15, ω15, U;
+    timestep=timestep,
+    mass=mass,
+    inertia=inertia,
+    friction_coefficient=friction_coefficient,
+    gravity=gravity,
+    side=side,
+    warm_start=true)
+
+H = 1000
+p2 = [1,1.0]
+θ2 = [6.0]
+v15 = [-5.0,-5.0]*1e-2/timestep
+ω15 = [20.0]*1e-2/timestep
+Random.seed!(0)
+U = [0*5.0*1e-2*[rand(2) .- 0.5; 0] ./ timestep for i=1:H]
+solver.options.complementarity_decoupling = true
+p, θ, v, ω, warm_iterations_decoupled = simulate_block_2d(solver, p2, θ2, v15, ω15, U;
+    timestep=timestep,
+    mass=mass,
+    inertia=inertia,
+    friction_coefficient=friction_coefficient,
+    gravity=gravity,
+    side=side,
+    warm_start=true)
+# end
+
+
+scatter(cold_iterations, color=:blue, markersize=7.0, ylims=(0,Inf))
+scatter!(cold_iterations_decoupled, color=:blue, markersize=7.0, marker=:square)
+scatter!(warm_iterations, color=:red, markersize=7.0)
+scatter!(warm_iterations_decoupled, color=:red, markersize=7.0, marker=:square)
+
+scatter(cold_iterations_decoupled - cold_iterations, color=:blue, markersize=7.0, marker=:square)
+scatter(warm_iterations_decoupled - warm_iterations, color=:red, markersize=7.0, marker=:square)
+mean(cold_iterations)
+mean(cold_iterations_decoupled)
+mean(warm_iterations)
+mean(warm_iterations_decoupled)
+mean(warm_iterations_decoupled)
 
 
 ################################################################################
 # visualization
 ################################################################################
 setobject!(vis[:particle], HyperRectangle(Vec(-side/2, -side/2, -side/2), Vec(side, side, side)))
-anim = MeshCat.Animation(100)
+anim = MeshCat.Animation(Int(floor(1/timestep)))
 
 for i = 1:H
     atframe(anim, i) do
@@ -74,3 +146,5 @@ for i = 1:H
     end
 end
 MeshCat.setanimation!(vis, anim)
+
+render(vis)

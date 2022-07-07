@@ -27,10 +27,16 @@ function initialize_slacks!(solver)
 end
 
 function initialize_interior_point!(solver)
-    solver.central_paths.central_path .= solver.options.central_path_initial
-    solver.fraction_to_boundary .= max.(0.99, 1.0 .- solver.central_paths.central_path)
+    options = solver.options
+    central_paths = solver.central_paths
+    central_paths.central_path .= options.central_path_initial .* central_paths.neutral_central_path
+    central_paths.target_central_path .= options.central_path_initial .* central_paths.neutral_central_path
+    central_paths.tolerance_central_path .= options.complementarity_tolerance .* central_paths.neutral_central_path
+    solver.fraction_to_boundary .= max.(0.99, 1.0 .- central_paths.central_path)
     return
 end
+
+
 
 # solver
 # variables = ones(solver.dimensions.variables)
