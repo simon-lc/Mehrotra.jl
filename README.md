@@ -33,24 +33,43 @@ using Mehrotra
 ```
 
 ## Remaining tasks
-- primals regualization for QP polytope collision detection
-- fix compressed steps
-- custom residual methods to do nested optimization
-- improve upon compressed step
-- think about a general framework to handle QP, LP, DynamicsLCP, DynamicsNCP
-- add quaternions
+- [ ] primals regualization for QP polytope collision detection
+- [ ] exploit sparsity
+- [ ] @turbo loop vectorization
+- [ ] in-place addition to a vector using symbolics
+- [ ] my sparse solver
+- [ ] custom residual methods to do nested optimization
+- [ ] improve upon compressed step
+- [ ] think about a general framework to handle QP, LP, DynamicsLCP, DynamicsNCP
+- [ ] warm-starting strategy (add user-provided slacks initialization method s = F(z) in general)
+- [ ] consistency logic for efficient dynamics query
+- [ ] exploit structure of the symmetric problems
+- [ ] sparse allocation-free linear solve
+- [x] allocation-free implementation
+- [ ] experiment with different relaxation scheduling strategies
+- [x] interface to provide your own function evaluations and gradients
+- [x] provide your own linear system solver
+- [x] implement different benchmark problems 
+- [x] add tests
+- [ ] add documentation
+- [ ] register package
+- [ ] add quaternion support
+- [x] differentiate solution
 
-- warm-starting strategy (add user-provided slacks initialization method s = F(z) in general)
-- consistency logic for efficient dynamics query
-- exploit structure of the symmetric problems
-- allocation-free linear solve
-- allocation-free implementation
-- experiment with different relaxation scheduling strategies
-- interface to provide your own function evaluations and gradients
-- provide your own linear system solver
-- implement different benchmark problems 
-- add tests
-- add documentation
-- register package
-- add quaternion support
-- differentiate solution
+### Name
+
+complementarity solver
+conic
+predictor corrector
+mehrotra
+primal dual 
+interior point method
+warm start
+differentiable
+smooth
+LP
+QP
+LCP
+NCP
+
+
