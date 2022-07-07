@@ -33,6 +33,7 @@ vis = Visualizer()
 render(vis)
 
 include("../contact_model/lp_2d.jl")
+include("../polytope.jl")
 include("../visuals.jl")
 include("../rotate.jl")
 include("../quaternion.jl")
@@ -553,8 +554,8 @@ function ContactMethods170(contact::Contact170, pbody::Body170, cbody::Body170,
     v25_parent = unpack_body_variables(x[pbody.node_index.x])
     v25_child = unpack_body_variables(x[cbody.node_index.x])
 
-    x2_parent, _, _, timestep_parent = unpack_body_parameters(θ[pbody.node_index.θ])
-    x2_child, _, _, timestep_child = unpack_body_parameters(θ[cbody.node_index.θ])
+    x2_parent, _, _, timestep_parent = unpack_body_parameters(θ[pbody.node_index.θ], pbody)
+    x2_child, _, _, timestep_child = unpack_body_parameters(θ[cbody.node_index.θ], cbody)
     x3_parent = x2_parent .+ timestep_parent[1] * v25_parent
     x3_child = x2_child .+ timestep_child[1] * v25_child
     @show x2_parent, timestep_parent, x3_parent, v25_parent
@@ -1114,7 +1115,7 @@ Main.@profiler [solve!(mech.solver) for i=1:1000]
 ################################################################################
 
 mech = Mechanism170(bodies, contacts)
-mech.solver.methods.methods[3].contact_solver.solver.options.complementarity_tolerance=1e-2
+mech.solver.methods.methods[3].contact_solver.solver.options.complementarity_tolerance=3e-6
 mech.solver.methods.methods[3].contact_solver.solver.options.residual_tolerance=1e-10
 # mech.solver.methods.methods[3].contact_solver.solver.options.verbose=true
 Xa2 = [[+1,1,0.0]]
@@ -1125,7 +1126,7 @@ Pp = []
 Pc = []
 iter = []
 
-H = 60
+H = 100
 for i = 1:H
     mech.bodies[1].pose .= Xa2[end]
     mech.bodies[1].velocity .= Va15[end]
@@ -1153,6 +1154,7 @@ for i = 1:H
     push!(iter, mech.solver.trace.iterations)
 end
 
+using Plots
 scatter(iter)
 
 ################################################################################
@@ -1162,8 +1164,8 @@ set_floor!(vis)
 set_background!(vis)
 set_light!(vis)
 
-build_2d_polyhedron!(vis, Ap, bp, name=:polya, color=RGBA(0.2,0.2,0.2,0.7))
-build_2d_polyhedron!(vis, Ac, bc, name=:polyb, color=RGBA(0.9,0.9,0.9,0.7))
+build_2d_polytope!(vis, Ap, bp, name=:polya, color=RGBA(0.2,0.2,0.2,0.7))
+build_2d_polytope!(vis, Ac, bc, name=:polyb, color=RGBA(0.9,0.9,0.9,0.7))
 
 setobject!(vis[:contact],
     HyperSphere(GeometryBasics.Point(0,0,0.), 0.05),
@@ -1172,8 +1174,8 @@ setobject!(vis[:contact],
 anim = MeshCat.Animation(Int(floor(1/timestep)))
 for i = 1:H
     atframe(anim, i) do
-        set_2d_polyhedron!(vis, Xa2[i][1:2], Xa2[i][3:3], name=:polya)
-        set_2d_polyhedron!(vis, Xb2[i][1:2], Xb2[i][3:3], name=:polyb)
+        set_2d_polytope!(vis, Xa2[i][1:2], Xa2[i][3:3], name=:polya)
+        set_2d_polytope!(vis, Xb2[i][1:2], Xb2[i][3:3], name=:polyb)
         settransform!(vis[:contact], MeshCat.Translation(SVector{3}(0, Pp[i]...)))
     end
 end

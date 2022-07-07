@@ -65,7 +65,7 @@ end
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
         options=Mehrotra.Options(
-            verbose=false,
+            verbose=true,
             residual_tolerance=1e-6,
             complementarity_tolerance=1e-6,
             compressed_search_direction=false,

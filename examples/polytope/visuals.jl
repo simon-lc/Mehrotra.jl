@@ -1,5 +1,5 @@
-function build_polyhedron!(vis::Visualizer, A::Matrix{T}, b::Vector{T};
-        name::Symbol=:polyhedron,
+function build_polytope!(vis::Visualizer, A::Matrix{T}, b::Vector{T};
+        name::Symbol=:polytope,
         color=RGBA(0.8, 0.8, 0.8, 1.0)) where T
 
     h = hrep(A, b)
@@ -9,8 +9,8 @@ function build_polyhedron!(vis::Visualizer, A::Matrix{T}, b::Vector{T};
     return nothing
 end
 
-function build_2d_polyhedron!(vis::Visualizer, A::Matrix{T}, b::Vector{T};
-        name::Symbol=:polyhedron,
+function build_2d_polytope!(vis::Visualizer, A::Matrix{T}, b::Vector{T};
+        name::Symbol=:polytope,
         color=RGBA(0.8, 0.8, 0.8, 1.0)) where T
 
     n = size(A)[1]
@@ -19,13 +19,13 @@ function build_2d_polyhedron!(vis::Visualizer, A::Matrix{T}, b::Vector{T};
          -1 0 0;
           1 0 0]
     be = [b; 0.1; 00]
-    build_polyhedron!(vis, Ae, be, name=name, color=color)
+    build_polytope!(vis, Ae, be, name=name, color=color)
     return nothing
 end
 
-# function set_polyhedron!(vis::Visualizer, p::Vector{T}, q::Quaternion{T};
-function set_polyhedron!(vis::Visualizer, p::Vector{T}, q::Vector{T};
-        name::Symbol=:polyhedron) where T
+# function set_polytope!(vis::Visualizer, p::Vector{T}, q::Quaternion{T};
+function set_polytope!(vis::Visualizer, p::Vector{T}, q::Vector{T};
+        name::Symbol=:polytope) where T
 
     settransform!(vis[name], MeshCat.compose(
         MeshCat.Translation(p...),
@@ -35,8 +35,8 @@ function set_polyhedron!(vis::Visualizer, p::Vector{T}, q::Vector{T};
     return nothing
 end
 
-function set_2d_polyhedron!(vis::Visualizer, p::Vector{T}, q::Vector{T};
-        name::Symbol=:polyhedron) where T
+function set_2d_polytope!(vis::Visualizer, p::Vector{T}, q::Vector{T};
+        name::Symbol=:polytope) where T
     pe = [0; p]
 
     settransform!(vis[name], MeshCat.compose(
@@ -58,7 +58,7 @@ function plot_halfspace(plt, a, b)
     return plt
 end
 
-function plot_polyhedron(p, θ, poly::Polyhedron{T,N,D};
+function plot_polytope(p, θ, poly::Polytope{T,N,D};
         xlims=(-1,1), ylims=(-1,1), S::Int=100) where {T,N,D}
 
     X = range(xlims..., length=S)
