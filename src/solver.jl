@@ -36,6 +36,7 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     second_order_indices=[collect(1:0)],
     custom=nothing,
     methods=nothing,
+    method_type::Symbol=:symbolic, #:finite_difference
     options=Options(),
     )
 
@@ -52,7 +53,13 @@ function Solver(equality, num_primals::Int, num_cone::Int;
         second_order=second_order_indices)
 
     # codegen methods
-    (methods == nothing) && (methods = ProblemMethods(equality, dim, idx))
+    if methods == nothing
+        if method_type == :symbolic
+            methods = symbolics_methods(equality, dim, idx)
+        elseif method_type == :finite_difference
+            methods = finite_difference_methods(equality, dim, idx)
+        end
+    end
 
     # cone methods
     cone_methods = ConeMethods(num_cone, nonnegative_indices, second_order_indices)

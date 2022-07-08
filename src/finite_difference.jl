@@ -2,9 +2,9 @@ function finite_difference_methods(equality::Function, dim::Dimensions, idx::Ind
 
     # in-place evaluation
     function equality_constraint(out, x, θ)
-        primals = x[indices.primals]
-        duals = x[indices.duals]
-        slacks = x[indices.slacks]
+        primals = x[idx.primals]
+        duals = x[idx.duals]
+        slacks = x[idx.slacks]
         parameters = θ
         out .= equality(primals, duals, slacks, parameters)
     end
