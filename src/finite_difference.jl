@@ -42,40 +42,40 @@ end
 
 
 
-
-include("../examples/benchmark_problems/lcp_utils.jl")
-
-num_primals = 10
-num_cone = 10
-num_parameters = num_primals^2 + num_primals + num_cone^2 + num_cone
-
-idx_nn = collect(1:num_cone)
-idx_soc = [collect(1:0)]
-
-As = rand(num_primals, num_primals)
-A = As' * As
-b = rand(num_primals)
-Cs = rand(num_cone, num_cone)
-C = Cs * Cs'
-d = rand(num_cone)
-parameters = [vec(A); b; vec(C); d]
-
-function lcp_residual(primals, duals, slacks, parameters)
-    y, z, s = primals, duals, slacks
-    num_primals = length(primals)
-    num_cone = length(duals)
-    A, b, C, d = unpack_lcp_second_order_cone_parameters(parameters, num_primals, num_cone)
-
-    res = [
-        A * y + b;
-        s - C * z + d;
-        # z .* s .- κ[1];
-        ]
-    return res
-end
-
-
-
+#
+# include("../examples/benchmark_problems/lcp_utils.jl")
+#
+# num_primals = 10
+# num_cone = 10
+# num_parameters = num_primals^2 + num_primals + num_cone^2 + num_cone
+#
+# idx_nn = collect(1:num_cone)
+# idx_soc = [collect(1:0)]
+#
+# As = rand(num_primals, num_primals)
+# A = As' * As
+# b = rand(num_primals)
+# Cs = rand(num_cone, num_cone)
+# C = Cs * Cs'
+# d = rand(num_cone)
+# parameters = [vec(A); b; vec(C); d]
+#
+# function lcp_residual(primals, duals, slacks, parameters)
+#     y, z, s = primals, duals, slacks
+#     num_primals = length(primals)
+#     num_cone = length(duals)
+#     A, b, C, d = unpack_lcp_second_order_cone_parameters(parameters, num_primals, num_cone)
+#
+#     res = [
+#         A * y + b;
+#         s - C * z + d;
+#         # z .* s .- κ[1];
+#         ]
+#     return res
+# end
+#
+#
+#
 # dimensions = Dimensions(num_primals, num_cone, num_parameters)
 # indices = Indices(num_primals, num_cone, num_parameters)
 # finite_difference_methods(lcp_residual, dimensions, indices)
@@ -95,8 +95,8 @@ end
 #     )
 #
 # Mehrotra.solve!(solver)
-# @benchmark $Mehrotra.solve!($solver)
-#
+# # @benchmark $Mehrotra.solve!($solver)
+# solver.trace.iterations
 #
 #
 #
@@ -114,4 +114,6 @@ end
 #     )
 #
 # Mehrotra.solve!(solver)
-# @benchmark $solve!($solver)
+# # @benchmark $solve!($solver)
+# solver.trace.iterations
+#
