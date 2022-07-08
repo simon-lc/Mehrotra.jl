@@ -108,20 +108,19 @@ end
 # ContactSolver
 ################################################################################
 function extract_subvariables!(xl::Vector{T}, solver::Solver{T}) where T
-    extract_subvariables!(xl, solver.solution.all, solver.data.solution_sensitivity)
+    extract_subvariables!(xl, solver.solution.all, solver.data.solution_sensitivity, solver.dimensions.parameters)
     return
 end
 
-function extract_subvariables!(xl::Vector, solution::Vector, solution_sensitivity::Matrix; d::Int=2)
+function extract_subvariables!(xl::Vector, solution::Vector, solution_sensitivity::Matrix,
+        num_parameters; d::Int=2)
     p_parent = solution[1:d]
     p_child = solution[1:d]
     ϕ = solution[d .+ (1:1)]
     N = solution_sensitivity[d .+ (1:1), 1:2d+2]
-    ∂p_parent = solution_sensitivity[1:d, 1:2d+2]
-    ∂p_child = solution_sensitivity[1:d, 1:2d+2]
+    ∂p_parent = solution_sensitivity[1:d, 1:num_parameters]
+    ∂p_child = solution_sensitivity[1:d, 1:num_parameters]
 
-    @show size(xl)
-    @show size([ϕ; p_parent; p_child; vec(N); vec(∂p_parent); vec(∂p_child)])
     xl .= [ϕ; p_parent; p_child; vec(N); vec(∂p_parent); vec(∂p_child)]
     return nothing
 end
@@ -157,7 +156,7 @@ function ContactSolver(Ap::Matrix{T}, bp::Vector{T}, Ac::Matrix{T}, bc::Vector{T
     solution_sensitivity = Symbolics.variables(:solution_sensitivity,
         1:num_variables, 1:num_subparameters)
 
-    extract_subvariables!(xl, solution, solution_sensitivity, d=d)
+    extract_subvariables!(xl, solution, solution_sensitivity, num_subparameters, d=d)
     f_expr = Symbolics.build_function(xl, solution, solution_sensitivity,
         parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
         checkbounds=checkbounds,
@@ -173,7 +172,8 @@ end
 
 function update_subvariables!(subvariables::Vector{T}, subparameters::Vector{T},
         contact_solver::ContactSolver253) where T
-    update_subvariables!(subvariables, subparameters, contact_solver.solver, contact_solver.extract_subvariables!)
+    update_subvariables!(subvariables, subparameters, contact_solver.solver,
+        contact_solver.extract_subvariables!)
 end
 
 function update_subvariables!(subvariables::Vector{T}, subparameters::Vector{T},
@@ -183,7 +183,8 @@ function update_subvariables!(subvariables::Vector{T}, subparameters::Vector{T},
     solve!(solver)
     func(subvariables,
         solver.solution.all,
-        solver.data.solution_sensitivity)
+        solver.data.solution_sensitivity,
+        length(subparameters))
     return nothing
 end
 #

@@ -49,9 +49,43 @@ bodyb = Body170(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:body
 bodies = [bodya, bodyb]
 contacts = [Contact170(bodies[1], bodies[2])]
 
-contact_solver = ContactSolver(Ap, bp, Ac, bc)
+contact_solver = ContactSolver(Ap, bp, Ac, bc,
+    options=Options(
+        complementarity_tolerance=1e-6,
+        residual_tolerance=1e-8))
 xl = zeros(subvariable_dimension(contacts[1]))
-extract_subvariables!(xl, contact_solver.solver)
+xa = [+0.44,0.0]
+qa = [0.0]
+xb = [-0.44,0.0]
+qb = [-0.00]
+θl = pack_lp_parameters(xa, qa, xb, qb, Ap, bp, Ac, bc)
+
+using MeshCat
+using Plots
+# vis = Visualizer()
+render(vis)
+build_2d_polytope!(vis, Ap, bp, name=:polyp)
+build_2d_polytope!(vis, Ac, bc, name=:polyc, color=RGBA(0.2,0.2,0.2,1))
+setobject!(vis[:contact],
+    HyperSphere(GeometryBasics.Point(0,0,0.), 0.05),
+    MeshPhongMaterial(color=RGBA(1,0,0,1.0)))
+
+set_2d_polytope!(vis, xa, qa, name=:polyp)
+set_2d_polytope!(vis, xb, qb, name=:polyc)
+update_subvariables!(xl, θl, contact_solver)
+ϕ = xl[1]
+p_parent = xl[2:3]
+p_child = xl[4:5]
+N = xl[6:8]
+∂p_parent = reshape(xl[11 .+ (1:30*2)], (2,30))
+∂p_child = reshape(xl[11 + 60  .+ (1:30*2)], (2,30))
+
+
+
+
+
+settransform!(vis[:contact], MeshCat.Translation(SVector{3}(0, p_parent[1], p_parent[2])))
+
 
 lp_contact_solver(Aa, ba, Ab, bb; d::Int=2,
     options=Options(

@@ -336,8 +336,8 @@ function contact_residual!(e, x, xl, θ, contact::Contact170, pbody::Body170, cb
     ϕ, p_parent, p_child, N, ∂p_parent, ∂p_child = unpack_contact_subvariables(xl, contact)
 
     # dynamics
-    e[contact.node_index.e] .+= sγ - ϕ
-    e[[pbody.node_index.e; cbody.node_index.e]] .+= -N'*γ
+    e[contact.node_index.e] .+= sγ - (ϕ .- 0.1)
+    e[[pbody.node_index.e; cbody.node_index.e]] .+= -Nq2'*γ
     return nothing
 end
 
@@ -564,6 +564,7 @@ function ContactMethods170(contact::Contact170, pbody::Body170, cbody::Body170,
 
     # θl = fct(x, θ)
     θl = [x3_parent; x3_child; vec(Ap); bp; vec(Ac); bc]
+    θl2 = [x2_parent; x2_child; vec(Ap); bp; vec(Ac); bc]
 
     set_subparameters! = Symbolics.build_function(θl, x, θ,
         parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
@@ -689,7 +690,6 @@ end
 
 function evaluate!(
         problem::ProblemData{T},
-        # methods::Vector{NodeMethods170},
         methods::DynamicsMethods170{T},
         cone_methods::ConeMethods{B,BX,P,PX,PXI,TA},
         solution::Point{T},
@@ -1115,7 +1115,7 @@ Main.@profiler [solve!(mech.solver) for i=1:1000]
 ################################################################################
 
 mech = Mechanism170(bodies, contacts)
-mech.solver.methods.methods[3].contact_solver.solver.options.complementarity_tolerance=3e-6
+mech.solver.methods.methods[3].contact_solver.solver.options.complementarity_tolerance=1e-2
 mech.solver.methods.methods[3].contact_solver.solver.options.residual_tolerance=1e-10
 # mech.solver.methods.methods[3].contact_solver.solver.options.verbose=true
 Xa2 = [[+1,1,0.0]]
@@ -1126,7 +1126,7 @@ Pp = []
 Pc = []
 iter = []
 
-H = 100
+H = 200
 for i = 1:H
     mech.bodies[1].pose .= Xa2[end]
     mech.bodies[1].velocity .= Va15[end]
