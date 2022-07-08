@@ -29,6 +29,7 @@ include("solver_data.jl")
 include("trace.jl")
 include("step_size.jl")
 include("central_path.jl")
+include("finite_difference.jl")
 
 include("cones/methods.jl")
 include("cones/codegen.jl")
