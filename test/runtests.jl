@@ -14,3 +14,4 @@ using Mehrotra
 @testset "linear solver"              verbose=true begin include("linear_solver.jl") end
 @testset "compressed solver"          verbose=true begin include("compressed_solver.jl") end
 @testset "relaxed complmentarity"     verbose=true begin include("relaxed_complementarity.jl") end
+@testset "decoupling"                 verbose=true begin include("decoupling.jl") end

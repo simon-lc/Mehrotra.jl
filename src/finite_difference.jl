@@ -76,42 +76,42 @@ end
 
 
 
-dimensions = Dimensions(num_primals, num_cone, num_parameters)
-indices = Indices(num_primals, num_cone, num_parameters)
-finite_difference_methods(lcp_residual, dimensions, indices)
-
-
-solver = Mehrotra.Solver(nothing, num_primals, num_cone,
-    parameters=parameters,
-    nonnegative_indices=idx_nn,
-    second_order_indices=idx_soc,
-    methods=finite_difference_methods(lcp_residual, dimensions, indices),
-    options=Mehrotra.Options(
-        verbose=false,
-        residual_tolerance=1e-6,
-        complementarity_tolerance=1e-6,
-        compressed_search_direction=false,
-        )
-    )
-
-Mehrotra.solve!(solver)
-@benchmark $Mehrotra.solve!($solver)
-
-
-
-
-solver = Mehrotra.Solver(lcp_residual, num_primals, num_cone,
-    parameters=parameters,
-    nonnegative_indices=idx_nn,
-    second_order_indices=idx_soc,
-    # methods=FiniteDifferenceMethods(lcp_residual),
-    options=Mehrotra.Options(
-        verbose=false,
-        residual_tolerance=1e-6,
-        complementarity_tolerance=1e-6,
-        compressed_search_direction=false,
-        )
-    )
-
-Mehrotra.solve!(solver)
-@benchmark $solve!($solver)
+# dimensions = Dimensions(num_primals, num_cone, num_parameters)
+# indices = Indices(num_primals, num_cone, num_parameters)
+# finite_difference_methods(lcp_residual, dimensions, indices)
+#
+#
+# solver = Mehrotra.Solver(nothing, num_primals, num_cone,
+#     parameters=parameters,
+#     nonnegative_indices=idx_nn,
+#     second_order_indices=idx_soc,
+#     methods=finite_difference_methods(lcp_residual, dimensions, indices),
+#     options=Mehrotra.Options(
+#         verbose=false,
+#         residual_tolerance=1e-6,
+#         complementarity_tolerance=1e-6,
+#         compressed_search_direction=false,
+#         )
+#     )
+#
+# Mehrotra.solve!(solver)
+# @benchmark $Mehrotra.solve!($solver)
+#
+#
+#
+#
+# solver = Mehrotra.Solver(lcp_residual, num_primals, num_cone,
+#     parameters=parameters,
+#     nonnegative_indices=idx_nn,
+#     second_order_indices=idx_soc,
+#     # methods=FiniteDifferenceMethods(lcp_residual),
+#     options=Mehrotra.Options(
+#         verbose=false,
+#         residual_tolerance=1e-6,
+#         complementarity_tolerance=1e-6,
+#         compressed_search_direction=false,
+#         )
+#     )
+#
+# Mehrotra.solve!(solver)
+# @benchmark $solve!($solver)
