@@ -34,6 +34,7 @@ using Mehrotra
 
 ## Remaining tasks
 - [ ] primals regualization for QP polytope collision detection
+- [ ] interface so that we can provide equality residual only and the solver builds methods internally with FiniteDiff, ForwardDiff etc
 - [ ] exploit sparsity
 - [ ] @turbo loop vectorization
 - [ ] in-place addition to a vector using symbolics
