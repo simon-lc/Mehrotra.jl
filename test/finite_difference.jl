@@ -18,12 +18,15 @@ include("../examples/benchmark_problems/lcp_utils.jl")
     d = rand(num_cone)
     parameters = [vec(A); b; vec(C); d]
 
+    dimensions = Dimensions(num_primals, num_cone, num_parameters)
+    indices = Indices(num_primals, num_cone, num_parameters)
+
     # finite difference
     solver = Mehrotra.Solver(nothing, num_primals, num_cone,
         parameters=parameters,
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
-        methods=finite_difference_methods(lcp_residual, dimensions, indices),
+        methods=Mehrotra.finite_difference_methods(lcp_residual, dimensions, indices),
         options=Mehrotra.Options(
             verbose=false,
             residual_tolerance=1e-6,
