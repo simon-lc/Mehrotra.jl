@@ -1,6 +1,6 @@
 
 
-function body_residual!(e, x, θ, body::Body170)
+function body_residual!(e, x, θ, body::Body171)
     node_index = body.node_index
     # variables = primals = velocity
     v25 = unpack_body_variables(x[node_index.x])
@@ -18,7 +18,7 @@ function body_residual!(e, x, θ, body::Body170)
 end
 
 
-function contact_residual!(e, x, xl2, xl3, θ, contact::Contact170, pbody::Body170, cbody::Body170)
+function contact_residual!(e, x, xl2, xl3, θ, contact::Contact171, pbody::Body171, cbody::Body171)
     # variables
     γ, sγ = unpack_contact_variables(x[contact.node_index.x])
     # subvariables
@@ -98,10 +98,10 @@ timestep = 0.01
 gravity = -0.0*9.81
 mass = 1.0
 inertia = 0.2 * ones(1,1)
-bodya = Body170(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
-bodyb = Body170(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
+bodya = Body171(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
+bodyb = Body171(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
 bodies = [bodya, bodyb]
-contacts = [Contact170(bodies[1], bodies[2])]
+contacts = [Contact171(bodies[1], bodies[2])]
 indexing!([bodies; contacts])
 contact_solver = ContactSolver(Ap, bp, Ac, bc,
     options=Options(

@@ -1,128 +1,176 @@
-using Polyhedra
-using MeshCat
-using RobotVisualizer
-using StaticArrays
-using Quaternions
-
-
-vis = Visualizer()
-render(vis)
-
-include("../contact_model/lp_2d.jl")
-include("../polytope.jl")
-include("../visuals.jl")
-include("../rotate.jl")
-include("../quaternion.jl")
-
-
-Ap = [
-     1.0  0.0;
-     0.0  1.0;
-    -1.0  0.0;
-     0.0 -1.0;
-    ] .- 0.10ones(4,2)
-bp = 0.5*[
-    +1,
-    +1,
-    +1,
-     2,
-    ]
-Ac = [
-     1.0  0.0;
-     0.0  1.0;
-    -1.0  0.0;
-     0.0 -1.0;
-    ] .+ 0.10ones(4,2)
-bc = 0.5*[
-     1,
-     1,
-     1,
-     1,
-    ]
-
-timestep = 0.01
-gravity = -0.0*9.81
-mass = 1.0
-inertia = 0.2 * ones(1,1)
-bodya = Body170(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
-bodyb = Body170(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
-bodies = [bodya, bodyb]
-contacts = [Contact170(bodies[1], bodies[2])]
-
-contact_solver = ContactSolver(Ap, bp, Ac, bc,
-    options=Options(
-        complementarity_tolerance=1e-6,
-        residual_tolerance=1e-8))
-xl = zeros(subvariable_dimension(contacts[1]))
-xa = [+0.44,0.0]
-qa = [0.0]
-xb = [-0.44,0.0]
-qb = [-0.00]
-θl = pack_lp_parameters(xa, qa, xb, qb, Ap, bp, Ac, bc)
-
-using MeshCat
-using Plots
-# vis = Visualizer()
-render(vis)
-build_2d_polytope!(vis, Ap, bp, name=:polyp)
-build_2d_polytope!(vis, Ac, bc, name=:polyc, color=RGBA(0.2,0.2,0.2,1))
-setobject!(vis[:contact],
-    HyperSphere(GeometryBasics.Point(0,0,0.), 0.05),
-    MeshPhongMaterial(color=RGBA(1,0,0,1.0)))
-
-set_2d_polytope!(vis, xa, qa, name=:polyp)
-set_2d_polytope!(vis, xb, qb, name=:polyc)
-update_subvariables!(xl, θl, contact_solver)
-ϕ = xl[1]
-p_parent = xl[2:3]
-p_child = xl[4:5]
-N = xl[6:8]
-∂p_parent = reshape(xl[11 .+ (1:30*2)], (2,30))
-∂p_child = reshape(xl[11 + 60  .+ (1:30*2)], (2,30))
-
-
-
-
-
-settransform!(vis[:contact], MeshCat.Translation(SVector{3}(0, p_parent[1], p_parent[2])))
-
-
-lp_contact_solver(Aa, ba, Ab, bb; d::Int=2,
-    options=Options(
-        residual_tolerance=1e-10,
-        complentarity_tolerance=1e-3,
-        differentiate=true,
-        compressed_search_direction=false))
-
-
-
-bodya = Body170(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
-bodyb = Body170(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
-contacts = [Contact170(bodies[1], bodies[2])]
-
-
-
-
-
-
-set_floor!(vis)
-set_background!(vis)
-set_light!(vis)
-
-build_2d_polytope!(vis, Ap, bp, name=:polya, color=RGBA(0.2,0.2,0.2,0.7))
-build_2d_polytope!(vis, Ac, bc, name=:polyb, color=RGBA(0.9,0.9,0.9,0.7))
-
-setobject!(vis[:contact],
-    HyperSphere(GeometryBasics.Point(0,0,0.), 0.05),
-    MeshPhongMaterial(color=RGBA(1,0,0,1.0)))
-
-anim = MeshCat.Animation(Int(floor(1/timestep)))
-for i = 1:H
-    atframe(anim, i) do
-        set_2d_polytope!(vis, Xa2[i][1:2], Xa2[i][3:3], name=:polya)
-        set_2d_polytope!(vis, Xb2[i][1:2], Xb2[i][3:3], name=:polyb)
-        settransform!(vis[:contact], MeshCat.Translation(SVector{3}(0, Pp[i]...)))
-    end
+################################################################################
+# contact
+################################################################################
+struct Contact171{T,D,NP,NC}
+    name::Symbol
+    node_index::NodeIndices171
+    contact_solver::ContactSolver171
+    A_parent_collider::Matrix{T} #polytope
+    b_parent_collider::Vector{T} #polytope
+    A_child_collider::Matrix{T} #polytope
+    b_child_collider::Vector{T} #polytope
 end
-MeshCat.setanimation!(vis, anim)
-render(vis)
+
+function Contact171(
+        Ap::Matrix{T},
+        bp::Vector{T},
+        Ac::Matrix{T},
+        bc::Vector{T};
+        name::Symbol=:contact,
+        node_index::NodeIndices171=NodeIndices171()) where {T}
+
+    contact_solver = ContactSolver(Ap, bp, Ac, bc)
+    d = size(Ap, 2)
+    np = size(Ap, 1)
+    nc = size(Ac, 1)
+    return Contact171{T,d,np,nc}(
+        name,
+        node_index,
+        contact_solver,
+        Ap,
+        bp,
+        Ac,
+        bc,
+    )
+end
+
+function Contact171(parent_body::Body171, child_body::Body171) where {T}
+    return Contact171(
+        parent_body.A_colliders[1],
+        parent_body.b_colliders[1],
+        child_body.A_colliders[1],
+        child_body.b_colliders[1],
+    )
+end
+
+function variable_dimension(contact::Contact171{T,D}) where {T,D}
+    if D == 2
+        nγ = 2*1 # impact (dual and slack)
+        # nb = 2*2 # friction (dual and slack)
+        nx = nγ# + nb
+    else
+        error("no 3D yet")
+    end
+    return nx
+end
+
+function equality_dimension(contact::Contact171{T,D}) where {T,D}
+    if D == 2
+        nγ = 1 # impact slackness equality constraint
+        # nb = 2 # friction slackness equality constraints
+        ne = nγ# + nb
+    else
+        error("no 3D yet")
+    end
+    return ne
+end
+
+function parameter_dimension(contact::Contact171{T,D}) where {T,D}
+    nAp = length(contact.A_parent_collider)
+    nbp = length(contact.b_parent_collider)
+    nAc = length(contact.A_child_collider)
+    nbc = length(contact.b_child_collider)
+    nθ = nAp + nbp + nAc + nbc
+    return nθ
+end
+
+function subparameter_dimension(contact::Contact171{T,D,NP,NC}) where {T,D,NP,NC}
+    nθl = contact.contact_solver.num_parameters
+    return nθl
+end
+
+function subvariable_dimension(contact::Contact171{T,D,NP,NC}) where {T,D,NP,NC}
+    nxl = contact.contact_solver.num_outparameters
+    return nxl
+end
+
+function unpack_contact_variables(x::Vector{T}) where T
+    off = 0
+    γ = x[off .+ (1:1)]; off += 1
+    sγ = x[off .+ (1:1)]; off += 1
+    return γ, sγ
+end
+
+function get_parameters(contact::Contact171{T,D}) where {T,D}
+    θ = [
+        vec(contact.A_parent_collider); contact.b_parent_collider;
+        vec(contact.A_child_collider); contact.b_child_collider;
+        ]
+    return θ
+end
+
+function set_parameters!(contact::Contact171{T,D,NP,NC}, θ) where {T,D,NP,NC}
+    off = 0
+    contact.A_parent_collider .= reshape(θ[off .+ (1:NP*D)], (NP,D)); off += NP*D
+    contact.b_parent_collider .= θ[off .+ (1:NP)]; off += NP
+    contact.A_child_collider .= reshape(θ[off .+ (1:NC*D)], (NC,D)); off += NC*D
+    contact.b_child_collider .= θ[off .+ (1:NC)]; off += NC
+    return nothing
+end
+
+function unpack_contact_parameters(θ::Vector, contact::Contact171{T,D,NP,NC}) where {T,D,NP,NC}
+    @assert D == 2
+    off = 0
+    A_parent_collider = reshape(θ[off .+ (1:NP*D)], (NP,D)); off += NP*D
+    b_parent_collider = θ[off .+ (1:NP)]; off += NP
+    A_child_collider = reshape(θ[off .+ (1:NC*D)], (NC,D)); off += NC*D
+    b_child_collider = θ[off .+ (1:NC)]; off += NC
+    return A_parent_collider, b_parent_collider, A_child_collider, b_child_collider
+end
+
+function unpack_contact_subvariables(xl::Vector, contact::Contact171{T,D,NP,NC}) where {T,D,NP,NC}
+    nθl = subparameter_dimension(contact)
+
+    off = 0
+    ϕ = xl[off .+ (1:1)]; off += 1
+    p_parent = xl[off .+ (1:D)]; off += D
+    p_child = xl[off .+ (1:D)]; off += D
+    N = reshape(xl[off .+ (1:2D+2)], (1,2D+2)); off += 2D+2
+    ∂p_parent = reshape(xl[off .+ (1:D*nθl)], (D,nθl)); off += D*nθl
+    ∂p_child = reshape(xl[off .+ (1:D*nθl)], (D,nθl)); off += D*nθl
+    return ϕ, p_parent, p_child, N, ∂p_parent, ∂p_child
+end
+
+function contact_residual!(e, x, xl, θ, contact::Contact171, pbody::Body171, cbody::Body171)
+    # variables
+    γ, sγ = unpack_contact_variables(x[contact.node_index.x])
+    # subvariables
+    ϕ, p_parent, p_child, N, ∂p_parent, ∂p_child = unpack_contact_subvariables(xl, contact)
+
+    # dynamics
+    e[contact.node_index.e] .+= sγ - (ϕ .- 0.1)
+    e[[pbody.node_index.e; cbody.node_index.e]] .+= -Nq2'*γ
+    return nothing
+end
+
+function contact_residual!(e, x, θ, contact::Contact171, pbody::Body171, cbody::Body171)
+
+    contact_solver = contact.contact_solver
+
+    xp2, vp15, up2, timestep_p = unpack_body_parameters(θ[pbody.node_index.θ], pbody)
+    xc2, vc15, uc2, timestep_c = unpack_body_parameters(θ[cbody.node_index.θ], cbody)
+    vp25 = unpack_body_variables(x[pbody.node_index.x])
+    vc25 = unpack_body_variables(x[cbody.node_index.x])
+    xp3 = xp2 + timestep_p[1] * vp25
+    xc3 = xc2 + timestep_c[1] * vc25
+
+    # subvariables
+    set_pose_parameters!(contact_solver.solver, xp2, xc2)
+    update_outvariables!(contact_solver, contact_solver.solver.parameters)
+    ϕ2, p2_parent, p2_child, N2, ∂p2_parent, ∂p2_child =
+        unpack_contact_subvariables(contact_solver.outvariables, contact)
+
+    # subvariables
+    set_pose_parameters!(contact_solver.solver, xp3, xc3)
+    update_outvariables!(contact_solver, contact_solver.solver.parameters)
+    ϕ3, p3_parent, p3_child, N3, ∂p3_parent, ∂p3_child =
+        unpack_contact_subvariables(contact_solver.outvariables, contact)
+
+    # variables
+    γ, sγ = unpack_contact_variables(x[contact.node_index.x])
+
+    # dynamics
+    e[contact.node_index.e] .+= sγ - (ϕ3 .- 0.0)
+    e[[pbody.node_index.e; cbody.node_index.e]] .+= -N2'*γ
+    return nothing
+end

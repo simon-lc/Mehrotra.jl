@@ -1,31 +1,31 @@
 ################################################################################
 # residual
 ################################################################################
-function lp_residual(primals, duals, slacks, parameters; na::Int=0, nb::Int=0, d::Int=0)
+function lp_contact_residual(primals, duals, slacks, parameters; np::Int=0, nc::Int=0, d::Int=0)
 
-    xa, qa, xb, qb, Aa, ba, Ab, bb = unpack_lp_parameters(parameters, na=na, nb=nb, d=d)
+    xp, xc, Ap, bp, Ac, bc = unpack_lp_contact_parameters(parameters, np=np, nc=nc, d=d)
 
     y, z, s = primals, duals, slacks
-    za = z[1:na]
-    zb = z[na .+ (1:nb)]
-    sa = s[1:na]
-    sb = s[na .+ (1:nb)]
+    zp = z[1:np]
+    zc = z[np .+ (1:nc)]
+    sp = s[1:np]
+    sc = s[np .+ (1:nc)]
 
     # pw is expressed in world's frame
-    pw = y[1:d] + (xa + xb) ./ 2
+    pw = y[1:d] + (xp[1:2] + xc[1:2]) ./ 2
     ϕ = y[d .+ (1:1)]
-    # pa is expressed in bodya's frame
-    pa = x_2d_rotation(qa)' * (pw - xa)
-    # pb is expressed in bodyb's frame
-    pb = x_2d_rotation(qb)' * (pw - xb)
+    # pp is expressed in pbody's frame
+    pp = x_2d_rotation(xp[3:3])' * (pw - xp[1:2])
+    # pc is expressed in cbody's frame
+    pc = x_2d_rotation(xc[3:3])' * (pw - xc[1:2])
 
     res = [
-        x_2d_rotation(qa) * Aa' * za + x_2d_rotation(qb) * Ab' * zb;
-        1 - sum(za) - sum(zb);
-        sa - (- Aa * pa + ba + ϕ .* ones(na));
-        sb - (- Ab * pb + bb + ϕ .* ones(nb));
-        # sa .* za;
-        # sb .* zb;
+        x_2d_rotation(xp[3:3]) * Ap' * zp + x_2d_rotation(xc[3:3]) * Ac' * zc;
+        1 - sum(zp) - sum(zc);
+        sp - (- Ap * pp + bp + ϕ .* ones(np));
+        sc - (- Ac * pc + bc + ϕ .* ones(nc));
+        # sp .* zp;
+        # sc .* zc;
     ]
     return res
 end
@@ -41,52 +41,53 @@ end
 ################################################################################
 # parameters
 ################################################################################
-function unpack_lp_parameters(parameters; na=0, nb=0, d=0)
+function unpack_lp_contact_parameters(parameters; np=0, nc=0, d=0)
     off = 0
-    xa = parameters[off .+ (1:d)]; off += d
-    qa = parameters[off .+ (1:1)]; off += 1
-    xb = parameters[off .+ (1:d)]; off += d
-    qb = parameters[off .+ (1:1)]; off += 1
+    xp = parameters[off .+ (1:d+1)]; off += d+1
+    xc = parameters[off .+ (1:d+1)]; off += d+1
 
-    Aa = parameters[off .+ (1:na*d)]; off += na*d
-    Aa = reshape(Aa, (na,d))
-    ba = parameters[off .+ (1:na)]; off += na
+    Ap = parameters[off .+ (1:np*d)]; off += np*d
+    Ap = reshape(Ap, (np,d))
+    bp = parameters[off .+ (1:np)]; off += np
 
-    Ab = parameters[off .+ (1:nb*d)]; off += nb*d
-    Ab = reshape(Ab, (nb,d))
-    bb = parameters[off .+ (1:nb)]; off += nb
+    Ac = parameters[off .+ (1:nc*d)]; off += nc*d
+    Ac = reshape(Ac, (nc,d))
+    bc = parameters[off .+ (1:nc)]; off += nc
 
-    return xa, qa, xb, qb, Aa, ba, Ab, bb
+    return xp, xc, Ap, bp, Ac, bc
 end
 
-function pack_lp_parameters(xa, qa, xb, qb, Aa, ba, Ab, bb)
-    return [xa; qa; xb; qb; vec(Aa); ba; vec(Ab); bb]
+function pack_lp_contact_parameters(xp, xc, Ap, bp, Ac, bc)
+    return [xp; xc; vec(Ap); bp; vec(Ac); bc]
 end
 
 ################################################################################
 # solver
 ################################################################################
-function lp_contact_solver(Aa, ba, Ab, bb; d::Int=2,
-        options::Options=Options(differentiate=true, compressed_search_direction=false))
-    na = length(ba)
-    nb = length(bb)
+function lp_contact_solver(Ap, bp, Ac, bc; d::Int=2,
+        options::Options=Options(
+            complementarity_tolerance=1e-2,
+            residual_tolerance=1e-6,
+            differentiate=true,
+            compressed_search_direction=false))
 
-    xa2 = zeros(d)
-    xb2 = zeros(d)
-    qa2 = zeros(1)
-    qb2 = zeros(1)
+    np = length(bp)
+    nc = length(bc)
 
-    parameters = pack_lp_parameters(xa2, qa2, xb2, qb2, Aa, ba, Ab, bb)
+    xp2 = zeros(d+1)
+    xc2 = zeros(d+1)
+
+    parameters = pack_lp_contact_parameters(xp2, xc2, Ap, bp, Ac, bc)
     num_primals = d + 1
-    num_cone = na + nb
+    num_cone = np + nc
     idx_nn = collect(1:num_cone)
     idx_soc = [collect(1:0)]
 
-    sized_lp_residual(primals, duals, slacks, parameters) =
-        lp_residual(primals, duals, slacks, parameters; na=na, nb=nb, d=d)
+    sized_residual(primals, duals, slacks, parameters) =
+        lp_contact_residual(primals, duals, slacks, parameters; np=np, nc=nc, d=d)
 
     solver = Solver(
-            sized_lp_residual,
+            sized_residual,
             num_primals,
             num_cone,
             parameters=parameters,
@@ -97,39 +98,37 @@ function lp_contact_solver(Aa, ba, Ab, bb; d::Int=2,
     return solver
 end
 
-function set_pose_parameters!(solver::Solver, xa, qa, xb, qb; na::Int=0, nb::Int=0, d::Int=0)
-    _, _, _, _, Aa, ba, Ab, bb = unpack_lp_parameters(solver.parameters, na=na, nb=nb, d=d)
-    solver.parameters .= pack_lp_parameters(xa, qa, xb, qb, Aa, ba, Ab, bb)
+
+################################################################################
+# utils
+################################################################################
+function set_pose_parameters!(solver::Solver, xp, xc)
+    d = length(xp) - 1
+    solver.parameters[1:d+1] .= xp
+    solver.parameters[d+1 .+ (1:d+1)] .= xc
     return nothing
 end
+
+function set_parameters!(solver::Solver, xp, xc, Ap, bp, Ac, bc)
+    solver.parameters .= pack_lp_contact_parameters(xp, xc, Ap, bp, Ac, bc)
+    return nothing
+end
+
 
 
 ################################################################################
 # ContactSolver
 ################################################################################
-function extract_subvariables!(xl::Vector{T}, solver::Solver{T}) where T
-    extract_subvariables!(xl, solver.solution.all, solver.data.solution_sensitivity, solver.dimensions.parameters)
-    return
-end
-
-function extract_subvariables!(xl::Vector, solution::Vector, solution_sensitivity::Matrix,
-        num_parameters; d::Int=2)
-    p_parent = solution[1:d]
-    p_child = solution[1:d]
-    ϕ = solution[d .+ (1:1)]
-    N = solution_sensitivity[d .+ (1:1), 1:2d+2]
-    ∂p_parent = solution_sensitivity[1:d, 1:num_parameters]
-    ∂p_child = solution_sensitivity[1:d, 1:num_parameters]
-
-    xl .= [ϕ; p_parent; p_child; vec(N); vec(∂p_parent); vec(∂p_child)]
-    return nothing
-end
-
-struct ContactSolver253{S,F,NP,NC}
+struct ContactSolver171{T,S,NP,NC,FO,Fϕ,FP,FC,FN}
     solver::S
-    extract_subvariables!::F
-    num_subparameters::Int
-    num_subvariables::Int
+    get_outvariables::FO
+    get_ϕ::Fϕ
+    get_p_parent::FP
+    get_p_child::FC
+    get_N::FN
+    outvariables::Vector{T}
+    num_parameters::Int
+    num_outvariables::Int
 end
 
 function ContactSolver(Ap::Matrix{T}, bp::Vector{T}, Ac::Matrix{T}, bc::Vector{T}; d::Int=2,
@@ -137,58 +136,99 @@ function ContactSolver(Ap::Matrix{T}, bp::Vector{T}, Ac::Matrix{T}, bc::Vector{T
         threads=false,
         options::Options=Options(
             verbose=false,
+            complementarity_tolerance=1e-2,
+            residual_tolerance=1e-6,
             differentiate=true,
             compressed_search_direction=true)) where T
 
     @assert d == 2
-    np = size(Ap,1)
-    nc = size(Ac,1)
+    np = size(Ap, 1)
+    nc = size(Ac, 1)
+    nx = d + 1
 
     solver = lp_contact_solver(Ap, bp, Ac, bc; d=d, options=options)
-    num_subparameters = solver.dimensions.parameters
+    num_parameters = solver.dimensions.parameters
     num_variables = solver.dimensions.variables
-    nx = d+1
-    # ϕ, p_parent, p_child, N, ∂p_parent, ∂p_child
-    num_subvariables = 1 + d + d + 1*2nx + 2d*num_subparameters
 
-    xl = Symbolics.variables(:xl, 1:num_subvariables)
     solution = Symbolics.variables(:solution, 1:num_variables)
     solution_sensitivity = Symbolics.variables(:solution_sensitivity,
-        1:num_variables, 1:num_subparameters)
+        1:num_variables, 1:num_parameters)
 
-    extract_subvariables!(xl, solution, solution_sensitivity, num_subparameters, d=d)
-    f_expr = Symbolics.build_function(xl, solution, solution_sensitivity,
+    xl = get_outvariables(solution, solution_sensitivity, d=d, merged=true)
+    num_outvariables = length(xl)
+    ϕ, p_parent, p_child, N, ∂p_parent, ∂p_child = get_outvariables(
+        solution, solution_sensitivity, d=d, merged=false)
+
+    xl_expr = Symbolics.build_function(xl, solution, solution_sensitivity,
         parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
         checkbounds=checkbounds,
         expression=Val{false})[2]
 
-    return ContactSolver253{typeof(solver),typeof(f_expr),np,nc}(
-        solver,
-        f_expr,
-        num_subparameters,
-        num_subvariables,
-        )
+    ϕ_expr = Symbolics.build_function(ϕ, solution, solution_sensitivity,
+        parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+
+    p_parent_expr = Symbolics.build_function(p_parent, solution, solution_sensitivity,
+        parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+
+    p_child_expr = Symbolics.build_function(p_child, solution, solution_sensitivity,
+        parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+
+    N_child_expr = Symbolics.build_function(N, solution, solution_sensitivity,
+        parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+
+    exprs = [xl_expr; ϕ_expr; p_parent_expr; p_child_expr; N_child_expr]
+
+    return ContactSolver171{T, typeof(solver), np, nc, typeof.(exprs)...}(
+        solver, exprs..., zeros(num_outvariables), num_parameters, num_outvariables)
 end
 
-function update_subvariables!(subvariables::Vector{T}, subparameters::Vector{T},
-        contact_solver::ContactSolver253) where T
-    update_subvariables!(subvariables, subparameters, contact_solver.solver,
-        contact_solver.extract_subvariables!)
+function get_outvariables(solver::Solver{T}; d::Int=2, merged::Bool=true) where T
+    get_outvariables(solver.solution.all, solver.data.solution_sensitivity, merged=merged)
 end
 
-function update_subvariables!(subvariables::Vector{T}, subparameters::Vector{T},
-        solver::S, func::F) where {T,S,F}
+function get_outvariables(solution::Vector, solution_sensitivity::Matrix; d::Int=2, merged::Bool=true)
 
-    solver.parameters .= subparameters
+    p_parent = solution[1:d]
+    p_child = solution[1:d]
+    ϕ = solution[d .+ (1:1)]
+    N = solution_sensitivity[d .+ (1:1), 1:2d+2]
+    ∂p_parent = solution_sensitivity[1:d, :]
+    ∂p_child = solution_sensitivity[1:d, :]
+
+    merged && return [ϕ; p_parent; p_child; vec(N); vec(∂p_parent); vec(∂p_child)]
+    return ϕ, p_parent, p_child, N, ∂p_parent, ∂p_child
+end
+
+
+function update_outvariables!(contact_solver::ContactSolver171, parameters::Vector{T}) where T
+    update_outvariables!(
+        contact_solver.outvariables,
+        parameters,
+        contact_solver.solver,
+        contact_solver.get_outvariables)
+end
+
+function update_outvariables!(outvariables::Vector{T}, parameters::Vector{T},
+        solver::S, get_outvariables::F) where {T,S,F}
+
+    solver.parameters .= parameters
     solve!(solver)
-    func(subvariables,
-        solver.solution.all,
-        solver.data.solution_sensitivity,
-        length(subparameters))
+    get_outvariables(outvariables, solver.solution.all, solver.data.solution_sensitivity)
     return nothing
 end
-#
-#
+
+
+
+
+
 # Ap = [
 #      1.0  0.0;
 #      0.0  1.0;
@@ -215,9 +255,13 @@ end
 #     ]
 #
 # contact_solver = ContactSolver(Ap, bp, Ac, bc)
-# subvariables = rand(num_subvariables)
-# subparameters = rand(num_subparameters)
+# outvariables = rand(contact_solver.num_outvariables)
+# parameters = deepcopy(contact_solver.solver.parameters)
 #
+# update_outvariables!(outvariables, parameters, contact_solver)
+# get_outvariables(contact_solver.solver, merged=false)
+
+
 # update_subvariables!(subvariables, subparameters, contact_solver)
 # Main.@code_warntype update_subvariables!(subvariables, subparameters, contact_solver)
 # @benchmark $update_subvariables!($subvariables, $subparameters, $contact_solver)
@@ -233,51 +277,51 @@ end
 # render(vis)
 # set_floor!(vis)
 # set_light!(vis)
-# set_background!(vis)
+# set_bpckground!(vis)
 #
-# Aa = [
+# Ap = [
 #      1.0  0.0;
 #      0.0  1.0;
 #     -1.0  0.0;
 #      0.0 -1.0;
 #     ] .- 0.10ones(4,2)
-# ba = 0.5*[
+# bp = 0.5*[
 #     +1,
 #     +1,
 #     +1,
 #      2,
 #     ]
 #
-# Ab = [
+# Ac = [
 #      1.0  0.0;
 #      0.0  1.0;
 #     -1.0  0.0;
 #      0.0 -1.0;
 #     ] .+ 0.10ones(4,2)
-# bb = 0.5*[
+# bc = 0.5*[
 #      1,
 #      1,
 #      1,
 #      1,
 #     ]
-# na = length(ba)
-# nb = length(bb)
+# np = length(bp)
+# nc = length(bc)
 # d = 2
 #
-# build_2d_polyhedron!(vis, Aa, ba, color=RGBA(0.2,0.2,0.2,0.6), name=:polya)
-# build_2d_polyhedron!(vis, Ab, bb, color=RGBA(0.8,0.8,0.8,0.6), name=:polyb)
+# build_2d_polyhedron!(vis, Ap, bp, color=RGBA(0.2,0.2,0.2,0.6), npme=:polya)
+# build_2d_polyhedron!(vis, Ac, bc, color=RGBA(0.8,0.8,0.8,0.6), npme=:polyb)
 #
-# xa2 = [0.4,3.0]
-# xb2 = [0,4.0]
+# xp2 = [0.4,3.0]
+# xc2 = [0,4.0]
 # qa2 = [+0.5]
 # qb2 = [-0.5]
 #
-# set_2d_polyhedron!(vis, xa2, qa2, name=:polya)
-# set_2d_polyhedron!(vis, xb2, qb2, name=:polyb)
+# set_2d_polyhedron!(vis, xp2, qa2, npme=:polya)
+# set_2d_polyhedron!(vis, xc2, qb2, npme=:polyb)
 #
-# contact_solver = lp_contact_solver(Aa, ba, Ab, bb; d=2,
+# contact_solver = lp_contact_solver(Ap, bp, Ac, bc; d=2,
 #     options=Options(verbose=true, compressed_search_direction=true, differentiate=true))
-# set_pose_parameters!(contact_solver, xa2, qa2, xb2, qb2, na=na, nb=nb, d=d)
+# set_pose_parameters!(contact_solver, xp2, qa2, xc2, qb2, np=np, nc=nc, d=d)
 #
 # solve!(contact_solver)
 # # @benchmark $solve!($contact_solver)
@@ -299,9 +343,9 @@ end
 #     return step
 # end
 #
-# contact_solver_c = lp_contact_solver(Aa, ba, Ab, bb; d=2,
+# contact_solver_c = lp_contact_solver(Ap, bp, Ac, bc; d=2,
 #     options=Options(verbose=true, differentiate=true, compressed_search_direction=true))
-# contact_solver_u = lp_contact_solver(Aa, ba, Ab, bb; d=2,
+# contact_solver_u = lp_contact_solver(Ap, bp, Ac, bc; d=2,
 #     options=Options(verbose=true, differentiate=true, compressed_search_direction=false))
 #
 #
@@ -395,10 +439,10 @@ end
 # ϕ = contact_solver.solution.primals[d+1]
 #
 # setobject!(vis[:contacta],
-#     HyperSphere(GeometryBasics.Point(0, ((xa2+xb2)/2 .+ p)...), 0.05),
+#     HyperSphere(GeometryBasics.Point(0, ((xp2+xc2)/2 .+ p)...), 0.05),
 #     MeshPhongMaterial(color=RGBA(1,0,0,1.0)))
 #
-# contact_bundle(contact_solver, xa2, qa2, xb2, qb2; na=na, nb=nb, d=d, differentiate=true)
+# contact_bundle(contact_solver, xp2, qa2, xc2, qb2; np=np, nc=nc, d=d, differentiate=true)
 #
 #
 #
@@ -407,12 +451,12 @@ end
 # # # contact bundle parameters
 # # ################################################################################
 # # function contact_bundle(xl, parameters, solver::Solver;
-# #         na::Int=0, nb::Int=0, d::Int=0)
-# #     # v = variables [xa, qa, xb, qb]
+# #         np::Int=0, nc::Int=0, d::Int=0)
+# #     # v = variables [xp, qa, xc, qb]
 # #     # ϕ = signed distance function
 # #     # N = ∂ϕ∂v jacobian
-# #     # pa = contact point on body a in world coordinates
-# #     # pb = contact point on body b in world coordinates
+# #     # pa = contact point on body a in world coordinptes
+# #     # pb = contact point on body b in world coordinptes
 # #     # vpa = ∂pa∂v jacobian, derivative of the contact point location not attached to body a
 # #     # vpb = ∂pb∂v jacobian, derivative of the contact point location not attached to body a
 # #
@@ -431,7 +475,7 @@ end
 # # end
 #
 # # function contact_bundle_jacobian(jac, parameters, solver::Solver;
-# #         na::Int=0, nb::Int=0, d::Int=0)
+# #         np::Int=0, nc::Int=0, d::Int=0)
 # #     solver.parameters .= parameters
 # #     solver.options.differentiate = true
 # #     solve!(solver)
