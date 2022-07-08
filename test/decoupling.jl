@@ -4,7 +4,7 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/lcp_utils.j
 @testset "complementarity decoupling: random NCP (non negative cone)" begin
     # without decoupling
     options = Mehrotra.Options(
-        verbose=true,
+        verbose=false,
         residual_tolerance=1e-6,
         complementarity_tolerance=1e-6,
         compressed_search_direction=false,
@@ -22,6 +22,7 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/lcp_utils.j
     @test Mehrotra.cone_violation(solver) <= solver.options.residual_tolerance
 
     # with decoupling
+    solver.options.verbose = true
     solver.options.complementarity_decoupling = true
     decoupling_iterations = solver.trace.iterations
     Mehrotra.solve!(solver)
