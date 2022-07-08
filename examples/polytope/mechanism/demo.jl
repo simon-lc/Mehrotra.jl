@@ -64,5 +64,9 @@ indexing!([bodies; contacts])
 local_residual(primals, duals, slacks, parameters) =
     mechanism_residual(primals, duals, slacks, parameters, bodies, contacts)
 mech = Mechanism171(local_residual, bodies, contacts)
-solver = mech.solver
-solve!(solver)
+
+
+
+
+
+solve!(mech.solver)
