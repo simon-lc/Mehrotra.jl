@@ -1,6 +1,6 @@
-abstract type AbstractProblemMethods{T}
+abstract type AbstractProblemMethods{T,E,EX,EP}
 end
-struct ProblemMethods{T,E,EX,EP} <: AbstractProblemMethods{T}
+struct ProblemMethods{T,E,EX,EP} <: AbstractProblemMethods{T,E,EX,EP}
     equality_constraint::E                             # e
     equality_jacobian_variables::EX                    # ex
     equality_jacobian_parameters::EP                   # eθ

@@ -482,7 +482,7 @@ end
 
 abstract type NodeMethods170{T,E,EX,Eθ} end
 
-struct DynamicsMethods170{T} <: AbstractProblemMethods{T}
+struct DynamicsMethods170{T} <: AbstractProblemMethods{T,E,EX,EP}
     methods::Vector{NodeMethods170}
     α::T
 end

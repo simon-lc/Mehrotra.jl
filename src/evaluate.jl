@@ -48,3 +48,34 @@ function evaluate!(problem::ProblemData{T},
     )
     return
 end
+
+
+# using Random
+# solver = random_lcp(options=Options(
+#     verbose=false,
+#     ))
+#
+#
+# problem = solver.problem
+# meths = solver.methods
+# cone_methods = solver.cone_methods
+# solution = solver.solution
+# parameters = solver.parameters
+# evaluate!(problem, meths, cone_methods, solution, parameters,
+#     equality_constraint=false,
+#     equality_jacobian_variables=false,
+#     equality_jacobian_parameters=false,
+#     cone_constraint=false,
+#     cone_jacobian=false,
+#     cone_jacobian_inverse=false,
+#     )
+#
+# @benchmark $evaluate!($problem, $meths, $cone_methods, $solution, $parameters,
+#     equality_constraint=true,
+#     equality_jacobian_variables=true,
+#     equality_jacobian_parameters=true,
+#     cone_constraint=true,
+#     cone_jacobian=true,
+#     cone_jacobian_inverse=true,
+#     )
+#

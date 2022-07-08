@@ -1,8 +1,8 @@
-# struct Solver{T,X,E,EX,EP,B,BX,P,PX,PXI,K}
-struct Solver{T,X,B,BX,P,PX,PXI,K}
+struct Solver{T,X,E,EX,EP,B,BX,P,PX,PXI,K}
+# struct Solver{T,X,B,BX,P,PX,PXI,K}
     problem::ProblemData{T,X}
     # methods::ProblemMethods{T,E,EX,EP}
-    methods::AbstractProblemMethods{T}
+    methods::AbstractProblemMethods{T,E,EX,EP}
     cone_methods::ConeMethods{B,BX,P,PX,PXI,K}
     data::SolverData{T}
 

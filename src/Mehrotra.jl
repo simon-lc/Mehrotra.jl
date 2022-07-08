@@ -13,6 +13,8 @@ using SparseArrays
 using MeshCat
 using GeometryBasics
 using FiniteDiff
+using SparsityDetection
+using SparseDiffTools
 
 include("dimensions.jl")
 include("indices.jl")

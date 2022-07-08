@@ -36,6 +36,9 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/lcp_utils.j
     Mehrotra.solve!(solver)
     @test norm(solver.data.residual.equality, Inf) <= solver.options.residual_tolerance
     @test Mehrotra.cone_violation(solver) <= solver.options.residual_tolerance
+
+    num_allocs = @ballocated $(Mehrotra.solve!)($solver)
+    @test (num_allocs == 0) broken=!(num_allocs == 0)
 end
 
 
@@ -65,7 +68,7 @@ end
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
         options=Mehrotra.Options(
-            verbose=true,
+            verbose=false,
             residual_tolerance=1e-6,
             complementarity_tolerance=1e-6,
             compressed_search_direction=false,
@@ -75,6 +78,10 @@ end
     Mehrotra.solve!(solver)
     @test norm(solver.data.residual.equality, Inf) <= solver.options.residual_tolerance
     @test Mehrotra.cone_violation(solver) <= solver.options.residual_tolerance
+
+    solver.options.verbose = false
+    num_allocs = @ballocated $(Mehrotra.solve!)($solver)
+    @test (num_allocs == 0) broken=!(num_allocs == 0)
 end
 
 
