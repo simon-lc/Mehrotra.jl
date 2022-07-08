@@ -17,7 +17,7 @@ struct ProblemMethods{T,E,EX,EP} <: AbstractProblemMethods{T,E,EX,EP}
     # cone_jacobian_parameters_sparsity::Vector{Tuple{Int,Int}}
 end
 
-function ProblemMethods(equality::Function, dim::Dimensions, idx::Indices)
+function symbolics_methods(equality::Function, dim::Dimensions, idx::Indices)
     e, ex, eθ, ex_sparsity, eθ_sparsity = generate_gradients(equality, dim, idx)
     # c, cx, cθ, cx_sparsity, cθ_sparsity = generate_gradients(cone, dim, idx)
 
