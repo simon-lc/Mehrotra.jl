@@ -32,12 +32,12 @@ end
 ################################################################################
 # mechanism
 ################################################################################
-struct Mechanism171{T,D,NB,NC}
+struct Mechanism171{T,D,NB,NC,C}
     variables::Vector{T}
     parameters::Vector{T}
     solver::Solver{T}
     bodies::Vector{Body171{T}}
-    contacts::Vector{Contact171{T}}
+    contacts::Vector{C}
     dimensions::MechanismDimensions171
     # equalities::Vector{Equality{T}}
     # inequalities::Vector{Inequality{T}}
@@ -83,7 +83,7 @@ function Mechanism171(residual, bodies::Vector, contacts::Vector;
 
     nb = length(bodies)
     nc = length(contacts)
-    mechanism = Mechanism171{T,D,nb,nc}(
+    mechanism = Mechanism171{T,D,nb,nc,eltype(contacts)}(
         variables,
         parameters,
         solver,
