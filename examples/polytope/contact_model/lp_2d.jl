@@ -2,7 +2,6 @@
 # residual
 ################################################################################
 function lp_contact_residual(primals, duals, slacks, parameters; np::Int=0, nc::Int=0, d::Int=0)
-
     xp, xc, Ap, bp, Ac, bc = unpack_lp_contact_parameters(parameters, np=np, nc=nc, d=d)
 
     y, z, s = primals, duals, slacks

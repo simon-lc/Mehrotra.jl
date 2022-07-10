@@ -194,6 +194,9 @@ function contact_residual!(e, x, θ, contact::Friction171, pbody::Body171, cbody
     D = [Dp Dc]
 
     # variables
+    # @show typeof(x)
+    # @show typeof(contact)
+    # @show typeof(contact.node_index)
     γ, ψ, β, sγ, sψ, sβ = unpack_contact_variables(x[contact.node_index.x])
 
     # jacobians

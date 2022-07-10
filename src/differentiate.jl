@@ -11,7 +11,12 @@ function differentiate!(solver)
     κ = solver.central_paths
     compressed = options.compressed_search_direction
 
+    # Here we only need to update
+    # equality_jacobian_variables
+    # equality_jacobian_parameters
+    # cone_jacobian_variables
     # evaluate derivatives wrt to parameters
+    # # TODO: check if we can use current residual Jacobian w/o recomputing
     Mehrotra.evaluate!(problem,
         methods,
         cone_methods,
@@ -25,14 +30,9 @@ function differentiate!(solver)
         cone_jacobian_inverse=true,
     )
 
-    # Here we only need to update
-    # equality_jacobian_variables
-    # equality_jacobian_parameters
-    # cone_jacobian_variables
     residual!(data, problem, indices, solution, parameters, κ.tolerance_central_path,
         compressed=compressed)
 
-    # # TODO: check if we can use current residual Jacobian w/o recomputing
     # # residual Jacobian wrt variables
     # residual_jacobian_variables!(solver.data, solver.problem, solver.indices,
     #     solver.central_path, solver.penalty, solver.dual,
@@ -63,10 +63,7 @@ function differentiate!(solver)
             view(data.jacobian_parameters, 1:dimensions.equality, :),
             fact=true)
         data.solution_sensitivity .*= -1.0
-        # @show norm(data.solution_sensitivity)
-        # @show norm(Zi)
-        # @show norm(S)
-        # @show norm(data.residual.cone_product)
+
         # for i = 1:dimensions.parameters
         #     data.solution_sensitivity[indices.slacks, i] .=
         #         -Zi * (data.jacobian_parameters[indices.cone_product, i] + S * data.solution_sensitivity[indices.duals, i]) # -Z⁻¹ (cone_product + S * Δz)
