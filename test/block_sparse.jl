@@ -33,6 +33,6 @@
     Mehrotra.fill!(block_matrix0, 2A6, :b6)
     @test norm(block_matrix0.matrix - block_matrix2.matrix, Inf) < 1e-10
 
-    num_allocs = @ballocated Mehrotra.fill!(block_matrix0, A6, :b6)
+    num_allocs = @ballocated $(Mehrotra.fill!)($block_matrix0, $A6, $:b6)
     @test num_allocs == 0
 end
