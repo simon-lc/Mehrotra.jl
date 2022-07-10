@@ -1,5 +1,5 @@
 function evaluate!(problem::ProblemData{T},
-        methods::ProblemMethods{T,E,EX,EP},
+        methods::AbstractProblemMethods{T,E,EX,EP},
         cone_methods::ConeMethods{B,BX,P,PX,PXI,TA},
         solution::Point{T},
         parameters::Vector{T};

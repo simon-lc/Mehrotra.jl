@@ -4,6 +4,8 @@ struct Indices
     duals::Vector{Int}
     slacks::Vector{Int}
     equality::Vector{Int}
+    optimality::Vector{Int}
+    slackness::Vector{Int}
     cone_product::Vector{Int}
     parameters::Vector{Int}
     cone_nonnegative::Vector{Int}
@@ -22,6 +24,8 @@ function Indices(num_primals, num_cone, num_parameters;
     slacks = collect(num_primals + num_cone .+ (1:num_cone))
 
     equality = collect(1:num_primals + num_cone)
+    optimality = collect(1:num_primals)
+    slackness = collect(num_primals .+ (1:num_cone))
     cone_product = collect(num_primals + num_cone .+ (1:num_cone))
 
     parameters = collect(1:num_parameters)
@@ -32,6 +36,8 @@ function Indices(num_primals, num_cone, num_parameters;
         duals,
         slacks,
         equality,
+        optimality,
+        slackness,
         cone_product,
         parameters,
         nonnegative,

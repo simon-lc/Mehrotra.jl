@@ -15,7 +15,10 @@ using GeometryBasics
 using FiniteDiff
 using SparsityDetection
 using SparseDiffTools
+using ILUZero
+using LoopVectorization
 
+include("block_sparse.jl")
 include("dimensions.jl")
 include("indices.jl")
 include("codegen.jl")

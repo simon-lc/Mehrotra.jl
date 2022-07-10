@@ -8,18 +8,10 @@ struct ProblemMethods{T,E,EX,EP} <: AbstractProblemMethods{T,E,EX,EP}
     equality_jacobian_parameters_cache::Vector{T}
     equality_jacobian_variables_sparsity::Vector{Tuple{Int,Int}}
     equality_jacobian_parameters_sparsity::Vector{Tuple{Int,Int}}
-    # cone_product::C                                    # c
-    # cone_jacobian_variables::CX                        # cx
-    # cone_jacobian_parameters::CP                       # cθ
-    # cone_jacobian_variables_cache::Vector{T}
-    # cone_jacobian_parameters_cache::Vector{T}
-    # cone_jacobian_variables_sparsity::Vector{Tuple{Int,Int}}
-    # cone_jacobian_parameters_sparsity::Vector{Tuple{Int,Int}}
 end
 
 function symbolics_methods(equality::Function, dim::Dimensions, idx::Indices)
     e, ex, eθ, ex_sparsity, eθ_sparsity = generate_gradients(equality, dim, idx)
-    # c, cx, cθ, cx_sparsity, cθ_sparsity = generate_gradients(cone, dim, idx)
 
     methods = ProblemMethods(
         e,
@@ -29,9 +21,103 @@ function symbolics_methods(equality::Function, dim::Dimensions, idx::Indices)
         zeros(length(eθ_sparsity)),
         ex_sparsity,
         eθ_sparsity,
-        # c, cx, cθ,
-        #     zeros(length(cx_sparsity)), zeros(length(cθ_sparsity)),
-        #     cx_sparsity, cθ_sparsity,
+    )
+
+    return methods
+end
+
+"""
+    StruturedProblemMethods112{T,E,EX,EP} <: AbstractProblemMethods{T,E,EX,EP}
+	Store fast residual and Jacobian methods for strutured NCPs. These strutured NCPs include:
+		- linear programs (LP)
+		- quadraric programs (QP)
+		- nonlinear complementarity program arizing from contact formulation (Contact NCP and LCP)
+	We can compress the Jacobian by solving for primals and duals only (slacks are computed from the primals and duals).
+
+	For LPs, QPs and frictionless contct NCPs, the compressed Jacobian matrix is symmetric.
+	In this case, we can leverage QDLDL to factorize the compressed matrix efficiently.
+	Otherwise we need to devise a QDLDL-inspired sparse solver.
+
+	Non-strutured programs look like this,
+        jacobian_variables = [
+            A B C
+            D E F
+            0 S Z
+            ]
+	Structured programs look like this,
+        jacobian_variables = [
+            A B 0
+            C 0 D
+            0 S Z
+            ]
+    where
+        A = ∂optimality_constraints / ∂y == num_primals, num_primals
+        B = ∂optimality_constraints / ∂z == num_primals, num_cone
+        C = ∂slackness_constraints / ∂y == num_cone, num_primals
+        D = ∂slackness_constraints / ∂s = diagonal matrix == num_cone, num_cone
+        S = ∂(z∘s) / ∂z == num_cone, num_cone
+        Z = ∂(z∘s) / ∂s == num_cone, num_cone
+
+    we solve
+        |A B 0| |Δy|   |-optimality    |
+        |C 0 D|×|Δz| = |-slack_equality|
+        |0 S Z| |Δs|   |-cone_product  |
+    we get the compressed form
+        |A B      | |Δy|   |-optimality                        |
+        |C -DZ⁻¹S |×|Δz| = |-slack_equality + DZ⁻¹ cone_product|
+        Δs = -Z⁻¹ (cone_product + S * Δz)
+"""
+struct StructuredProblemMethods112{T,O,OY,OZ,OP,S,SY,SS,SP} <: AbstractProblemMethods{T,O,OY,OZ}
+    optimality_constraint::O                             # o
+    optimality_jacobian_primals::OY                      # oy
+    optimality_jacobian_duals::OZ                        # oz
+    optimality_jacobian_parameters::OP                   # oθ
+
+    slackness_constraint::S                              # s
+    slackness_jacobian_primals::SY                       # sy
+    slackness_jacobian_slacks::SS                        # ss
+    slackness_jacobian_parameters::SP                    # sθ
+
+    optimality_jacobian_primals_cache::Vector{T}
+    optimality_jacobian_duals_cache::Vector{T}
+    optimality_jacobian_parameters_cache::Vector{T}
+    optimality_jacobian_primals_sparsity::Vector{Tuple{Int,Int}}
+    optimality_jacobian_duals_sparsity::Vector{Tuple{Int,Int}}
+    optimality_jacobian_parameters_sparsity::Vector{Tuple{Int,Int}}
+
+    slackness_jacobian_primals_cache::Vector{T}
+    slackness_jacobian_slacks_cache::Vector{T}
+    slackness_jacobian_parameters_cache::Vector{T}
+    slackness_jacobian_primals_sparsity::Vector{Tuple{Int,Int}}
+    slackness_jacobian_slacks_sparsity::Vector{Tuple{Int,Int}}
+    slackness_jacobian_parameters_sparsity::Vector{Tuple{Int,Int}}
+end
+
+
+function strutured_symbolics_methods(equality::Function, dim::Dimensions, idx::Indices)
+    o, oy, oz, oθ, s, sy, ss, sθ, oy_sp, oz_sp, oθ_sp, sy_sp, ss_sp, sθ_sp = generate_structured_gradients(equality, dim, idx)
+
+    methods = StructuredProblemMethods112(
+        o,
+        oy,
+        oz,
+        oθ,
+        s,
+        sy,
+        ss,
+        sθ,
+        zeros(length(oy_sp)),
+        zeros(length(oz_sp)),
+        zeros(length(oθ_sp)),
+        oy_sp,
+        oz_sp,
+        oθ_sp,
+        zeros(length(sy_sp)),
+        zeros(length(ss_sp)),
+        zeros(length(sθ_sp)),
+        sy_sp,
+        ss_sp,
+        sθ_sp,
     )
 
     return methods
