@@ -88,10 +88,10 @@ function cone!(problem::ProblemData{T}, methods::ConeMethods, solution::Point{T}
 
     # cone
     cone_constraint && methods.product(problem.cone_product, z, s)
-    cone_jacobian && methods.product_jacobian(problem.cone_product_jacobian_dual, z, s)
-    cone_jacobian && methods.product_jacobian(problem.cone_product_jacobian_slack, s, z)
-    cone_jacobian && methods.product_jacobian_sparse(problem.cone_product_jacobian_dual_sparse, z, s)
-    cone_jacobian && methods.product_jacobian_sparse(problem.cone_product_jacobian_slack_sparse, s, z)
+    cone_jacobian && methods.product_jacobian(problem.cone_product_jacobian_duals, z, s)
+    cone_jacobian && methods.product_jacobian(problem.cone_product_jacobian_slacks, s, z)
+    cone_jacobian && methods.product_jacobian_sparse(problem.cone_product_jacobian_duals_sparse, z, s)
+    cone_jacobian && methods.product_jacobian_sparse(problem.cone_product_jacobian_slacks_sparse, s, z)
     cone_jacobian_inverse && methods.product_jacobian_inverse(problem.cone_product_jacobian_inverse_dual, z, s)
     cone_jacobian_inverse && methods.product_jacobian_inverse(problem.cone_product_jacobian_inverse_slack, s, z)
     cone_target && methods.target(problem.cone_target, z, s)

@@ -51,7 +51,7 @@ function differentiate!(solver)
     # data.solution_sensitivity .= - data.jacobian_variables \ data.jacobian_parameters #TODO
     if compressed
         Zi = data.cone_product_jacobian_inverse_slack
-        S = data.cone_product_jacobian_dual
+        S = data.cone_product_jacobian_duals
 
         # primal dual step
         data.dense_compressed_jacobian_variables .= data.compressed_jacobian_variables

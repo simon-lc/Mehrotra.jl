@@ -133,8 +133,8 @@ JV1[10:15,4:9]
 
 JV0[10:15,10:15]
 JV1[10:15,10:15]
-solver.problem.cone_product_jacobian_dual
-solver.problem.cone_product_jacobian_slack
+solver.problem.cone_product_jacobian_duals
+solver.problem.cone_product_jacobian_slacks
 
 solver.candidate
 solver.data
@@ -145,7 +145,7 @@ cone!(solver.problem, solver.cone_methods, solver.solution,
     jacobian=true,
     target=true
 )
-solver.cone_methods.product_jacobian(solver.problem.cone_product_jacobian_dual, ones(6), ones(6))
+solver.cone_methods.product_jacobian(solver.problem.cone_product_jacobian_duals, ones(6), ones(6))
 solver.solution
-solver.problem.cone_product_jacobian_dual
+solver.problem.cone_product_jacobian_duals
 solver

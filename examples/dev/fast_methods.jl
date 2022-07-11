@@ -112,7 +112,7 @@ plot(Gray.(100*abs.(Zi)))
 plot(Gray.(100*abs.(S)))
 plot(Gray.(100*abs.(Zi*S)))
 
-solver.data.cone_product_jacobian_dual
+solver.data.cone_product_jacobian_duals
 solver.data.cone_product_jacobian_ratio
 solver.data.cone_product_jacobian_ratio
 

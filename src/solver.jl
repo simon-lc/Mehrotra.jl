@@ -70,7 +70,7 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     allocate_sparse_matrices!(p_data, methods, cone_methods)
 
     # solver data
-    s_data = SolverData(dim, idx, )
+    s_data = SolverData(dim, idx, p_data)
 
     # points
     solution = Point(dim, idx)
@@ -150,8 +150,8 @@ function allocate_sparse_matrices!(data::ProblemData, methods::ProblemMethods,
     for idx in methods.equality_jacobian_parameters_sparsity
         data.equality_jacobian_parameters_sparse[idx...] = 1.0
     end
-    data.equality_jacobian_variables_sparse .*= 0.0
-    data.equality_jacobian_parameters_sparse .*= 0.0
+    # data.equality_jacobian_variables_sparse .*= 0.0
+    # data.equality_jacobian_parameters_sparse .*= 0.0
 
 
     for idx in cone_methods.product_jacobian_duals_sparsity
@@ -160,7 +160,7 @@ function allocate_sparse_matrices!(data::ProblemData, methods::ProblemMethods,
     for idx in cone_methods.product_jacobian_slacks_sparsity
         data.cone_product_jacobian_slacks_sparse[idx...] = 1.0
     end
-    data.cone_product_jacobian_duals_sparse .*= 0.0
-    data.cone_product_jacobian_slacks_sparse .*= 0.0
+    # data.cone_product_jacobian_duals_sparse .*= 0.0
+    # data.cone_product_jacobian_slacks_sparse .*= 0.0
     return nothing
 end

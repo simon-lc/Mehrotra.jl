@@ -164,12 +164,12 @@ end
 #
 # Zi = solverc.data.cone_product_jacobian_inverse_slack
 # ZiS = solverc.data.cone_product_jacobian_ratio
-# S = solverc.data.cone_product_jacobian_dual
+# S = solverc.data.cone_product_jacobian_duals
 # inv(S)
 # Zi * S
 #
-# S = solverc.problem.cone_product_jacobian_dual
-# Z = solverc.problem.cone_product_jacobian_slack
+# S = solverc.problem.cone_product_jacobian_duals
+# Z = solverc.problem.cone_product_jacobian_slacks
 # Si = solverc.problem.cone_product_jacobian_inverse_dual
 #
 # Zi = solverc.problem.cone_product_jacobian_inverse_slack

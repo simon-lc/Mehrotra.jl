@@ -7,10 +7,10 @@ struct ProblemData{T,X}
     equality_jacobian_parameters_sparse::SparseMatrixCSC{T,Int}
 
     cone_product::Vector{T}
-    cone_product_jacobian_dual::Matrix{T}
-    cone_product_jacobian_slack::Matrix{T}
-    cone_product_jacobian_dual_sparse::SparseMatrixCSC{T,Int}
-    cone_product_jacobian_slack_sparse::SparseMatrixCSC{T,Int}
+    cone_product_jacobian_duals::Matrix{T}
+    cone_product_jacobian_slacks::Matrix{T}
+    cone_product_jacobian_duals_sparse::SparseMatrixCSC{T,Int}
+    cone_product_jacobian_slacks_sparse::SparseMatrixCSC{T,Int}
     cone_product_jacobian_inverse_dual::Matrix{T}
     cone_product_jacobian_inverse_slack::Matrix{T}
     cone_target::Vector{T}
@@ -38,10 +38,10 @@ function ProblemData(num_variables, num_parameters, num_equality, num_cone;
     equality_jacobian_parameters_sparse = spzeros(num_equality, num_parameters)
 
     cone_product = zeros(num_cone)
-    cone_product_jacobian_dual = zeros(num_cone, num_cone)
-    cone_product_jacobian_slack = zeros(num_cone, num_cone)
-    cone_product_jacobian_dual_sparse = spzeros(num_cone, num_cone)
-    cone_product_jacobian_slack_sparse = spzeros(num_cone, num_cone)
+    cone_product_jacobian_duals = zeros(num_cone, num_cone)
+    cone_product_jacobian_slacks = zeros(num_cone, num_cone)
+    cone_product_jacobian_duals_sparse = spzeros(num_cone, num_cone)
+    cone_product_jacobian_slacks_sparse = spzeros(num_cone, num_cone)
     cone_product_jacobian_inverse_dual = zeros(num_cone, num_cone)
     cone_product_jacobian_inverse_slack = zeros(num_cone, num_cone)
     cone_target = zeros(num_cone)
@@ -53,10 +53,10 @@ function ProblemData(num_variables, num_parameters, num_equality, num_cone;
         equality_jacobian_variables_sparse,
         equality_jacobian_parameters_sparse,
         cone_product,
-        cone_product_jacobian_dual,
-        cone_product_jacobian_slack,
-        cone_product_jacobian_dual_sparse,
-        cone_product_jacobian_slack_sparse,
+        cone_product_jacobian_duals,
+        cone_product_jacobian_slacks,
+        cone_product_jacobian_duals_sparse,
+        cone_product_jacobian_slacks_sparse,
         cone_product_jacobian_inverse_dual,
         cone_product_jacobian_inverse_slack,
         cone_target,
@@ -69,8 +69,8 @@ end
 #     equality_jacobian_variables::SparseMatrixCSC{T,Int}
 #     equality_jacobian_parameters::SparseMatrixCSC{T,Int}
 #     cone_product::Vector{T}
-#     cone_product_jacobian_dual::Matrix{T}
-#     cone_product_jacobian_slack::Matrix{T}
+#     cone_product_jacobian_duals::Matrix{T}
+#     cone_product_jacobian_slacks::Matrix{T}
 #     cone_product_jacobian_inverse_dual::Matrix{T}
 #     cone_product_jacobian_inverse_slack::Matrix{T}
 #     cone_target::Vector{T}
@@ -85,8 +85,8 @@ end
 #     equality_jacobian_parameters = spzeros(num_equality, num_parameters)
 #
 #     cone_product = zeros(num_cone)
-#     cone_product_jacobian_dual = zeros(num_cone, num_cone)
-#     cone_product_jacobian_slack = zeros(num_cone, num_cone)
+#     cone_product_jacobian_duals = zeros(num_cone, num_cone)
+#     cone_product_jacobian_slacks = zeros(num_cone, num_cone)
 #     cone_product_jacobian_inverse_dual = zeros(num_cone, num_cone)
 #     cone_product_jacobian_inverse_slack = zeros(num_cone, num_cone)
 #     cone_target = zeros(num_cone)
@@ -96,8 +96,8 @@ end
 #         equality_jacobian_variables,
 #         equality_jacobian_parameters,
 #         cone_product,
-#         cone_product_jacobian_dual,
-#         cone_product_jacobian_slack,
+#         cone_product_jacobian_duals,
+#         cone_product_jacobian_slacks,
 #         cone_product_jacobian_inverse_dual,
 #         cone_product_jacobian_inverse_slack,
 #         cone_target,

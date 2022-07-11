@@ -20,8 +20,8 @@
 #         res[ii] = problem.cone_product[i] - central_path[i] * problem.cone_target[i]
 #     end
 #     # Fill the jacobian
-#     data.jacobian_variables[idx.cone_product, idx.duals] .= problem.cone_product_jacobian_dual # TODO
-#     data.jacobian_variables[idx.cone_product, idx.slacks] .= problem.cone_product_jacobian_slack # TODO
+#     data.jacobian_variables[idx.cone_product, idx.duals] .= problem.cone_product_jacobian_duals # TODO
+#     data.jacobian_variables[idx.cone_product, idx.slacks] .= problem.cone_product_jacobian_slacks # TODO
 #     return
 # end
 
@@ -100,9 +100,9 @@ function residual!(data::SolverData, problem::ProblemData, idx::Indices,
     if compressed
         # compression corrections
         Zi = problem.cone_product_jacobian_inverse_slack
-        S = problem.cone_product_jacobian_dual
+        S = problem.cone_product_jacobian_duals
         data.cone_product_jacobian_inverse_slack .= Zi
-        data.cone_product_jacobian_dual .= S
+        data.cone_product_jacobian_duals .= S
 
         # data.compressed_jacobian_variables[idx.duals, idx.duals] .+= -Zi * S # -Z⁻¹ S
         mul!(data.cone_product_jacobian_ratio, Zi, S) # -Z⁻¹ S
@@ -123,8 +123,8 @@ function residual!(data::SolverData, problem::ProblemData, idx::Indices,
         data.point_temporary.all .= 0.0
     else
         # Fill the jacobian
-        data.jacobian_variables[idx.cone_product, idx.duals] .= problem.cone_product_jacobian_dual # TODO
-        data.jacobian_variables[idx.cone_product, idx.slacks] .= problem.cone_product_jacobian_slack # TODO
+        data.jacobian_variables[idx.cone_product, idx.duals] .= problem.cone_product_jacobian_duals # TODO
+        data.jacobian_variables[idx.cone_product, idx.slacks] .= problem.cone_product_jacobian_slacks # TODO
     end
     return
 end
