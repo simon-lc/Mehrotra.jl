@@ -42,6 +42,7 @@ Base.@kwdef mutable struct Options{T}
     armijo_tolerance::T=1.0e-4
     machine_tolerance::T=1.0e-16
     max_filter::Int=1000
+    sparse_solver::Bool=false ###########################
     warm_start::Bool=false ##############################
     complementarity_decoupling::Bool=false ##########################
     compressed_search_direction::Bool=false #########################

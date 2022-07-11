@@ -1,14 +1,14 @@
 struct SolverData{T}
     residual::Point{T}
     compressed_residual::Point{T}
-    jacobian_variables::SparseMatrixCSC{T,Int}
+    jacobian_variables::BlockSparse116{T}
     dense_jacobian_variables::Matrix{T}
     compressed_jacobian_variables::SparseMatrixCSC{T,Int}
     dense_compressed_jacobian_variables::Matrix{T}
     cone_product_jacobian_inverse_slack::Matrix{T}
     cone_product_jacobian_dual::Matrix{T}
     cone_product_jacobian_ratio::Matrix{T}
-    jacobian_parameters::Matrix{T}
+    jacobian_parameters::BlockSparse116{T}
     step::Point{T}
     step_correction::Point{T}
     point_temporary::Point{T}
@@ -29,7 +29,11 @@ function SolverData(dim::Dimensions, idx::Indices;
     residual = Point(dim, idx)
     compressed_residual = Point(dim, idx)
 
-    jacobian_variables = spzeros(num_variables, num_variables)
+    names = [:equality_jacobian_variables, :cone_jacobian_duals, :cone_jacobian_slacks]
+    blocks = [equality_jacobian_variables, cone_jacobian_duals, cone_jacobian_slacks]
+    ranges = [(idx.equality, idx.variables), (idx.cone_product, idx.duals), (idx.cone_product, idx.slacks)]
+    jacobian_variables = BlockSparse116(num_variables, num_variables, blocks, ranges, names)
+
     dense_jacobian_variables = zeros(num_variables, num_variables)
     compressed_jacobian_variables = spzeros(num_equality, num_equality)
     dense_compressed_jacobian_variables = zeros(num_equality, num_equality)
@@ -37,7 +41,11 @@ function SolverData(dim::Dimensions, idx::Indices;
     cone_product_jacobian_inverse_slack = zeros(num_cone, num_cone)
     cone_product_jacobian_dual = zeros(num_cone, num_cone)
     cone_product_jacobian_ratio = zeros(num_cone, num_cone)
-    jacobian_parameters = zeros(num_variables, num_parameters)
+
+    blocks = [equality_jacobian_parameters]
+    ranges = [(idx.equality, idx.variables)]
+    names = [:equality_jacobian_parameters]
+    jacobian_parameters = BlockSparse116(num_variables, num_parameters, blocks, ranges, names)
 
     step = Point(dim, idx)
     step_correction = Point(dim, idx)

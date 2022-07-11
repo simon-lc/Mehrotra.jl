@@ -33,10 +33,22 @@ dimensions = Dimensions(num_primals, num_cone, num_parameters)
 meths = strutured_symbolics_methods(lcp_residual, dimensions, indices)
 
 
+# solver
+solver = Solver(lcp_residual, num_primals, num_cone,
+    parameters=parameters,
+    nonnegative_indices=idx_nn,
+    second_order_indices=idx_soc,
+    )
+
+# solve
+Mehrotra.solve!(solver)
+
+
+
 
 function evaluate!(problem::ProblemData{T},
         methods::StructuredProblemMethods112{T,O,OY,OZ,OP,S,SY,SS,SP},
-        cone_methods::ConeMethods{B,BX,P,PX,PXI,TA},
+        cone_methods::ConeMethods{T,B,BX,P,PX,PXS,PXI,TA},
         solution::Point{T},
         parameters::Vector{T};
         equality_constraint=false,
@@ -45,7 +57,7 @@ function evaluate!(problem::ProblemData{T},
         cone_constraint=false,
         cone_jacobian=false,
         cone_jacobian_inverse=false,
-        ) where {T,O,OY,OZ,OP,S,SY,SS,SP,B,BX,P,PX,PXI,TA}
+        ) where {T,O,OY,OZ,OP,S,SY,SS,SP,B,BX,P,PX,PXS,PXI,TA}
 
     x = solution.all
     y = solution.primals
@@ -98,116 +110,71 @@ function evaluate!(problem::ProblemData{T},
     )
     return
 end
-
-
-n = 35
-
-As = sprand(n, n, 0.10)
-As = As + As'
-lu(As)
-Ad = Matrix(As)
-A_sparsity = collect(zip([findnz(As)[1:2]...]...))
-A_cartesian = [CartesianIndex(a...) for a in A_sparsity]
-A_integer = [a[1] + (a[2]-1)*n for a in A_sparsity]
-Av = zeros(length(A_sparsity))
-Av .= As.nzval
-Av
-
-Bs = similar(As)
-Bd = zeros(n,n)
-
-function fillin0!(Av::Vector{T}, A_sparsity::Vector{Tuple{Int,Int}}, Bd::Matrix{T}) where T
-    for (i, idx) in enumerate(A_sparsity)
-        Bd[idx...] = Av[i]
-    end
-    return nothing
-end
-function fillin1!(Av::Vector{T}, Bs::SparseMatrixCSC{T,Int}) where T
-    Bs.nzval .= Av
-    return nothing
-end
-function fillin2!(Av::Vector{T}, A_sparsity::Vector{CartesianIndex{2}}, Bd::Matrix{T}) where T
-    for (i, idx) in enumerate(A_sparsity)
-        Bd[idx] = Av[i]
-    end
-    return nothing
-end
-function fillin3!(Av::Vector{T}, A_sparsity::Vector{Int}, Bd::Matrix{T}) where T
-    for (i, idx) in enumerate(A_sparsity)
-        Bd[idx] = Av[i]
-    end
-    return nothing
-end
-
-
-
-
-
-fillin0!(Av, A_sparsity, Bd)
-Main.@code_warntype fillin0!(Av, A_sparsity, Bd)
+# n = 35
+#
+# As = sprand(n, n, 0.10)
+# As = As + As'
+# lu(As)
+# Ad = Matrix(As)
+# A_sparsity = collect(zip([findnz(As)[1:2]...]...))
+# A_cartesian = [CartesianIndex(a...) for a in A_sparsity]
+# A_integer = [a[1] + (a[2]-1)*n for a in A_sparsity]
+# Av = zeros(length(A_sparsity))
+# Av .= As.nzval
+# Av
+#
+# Bs = similar(As)
+# Bd = zeros(n,n)
+#
+# function fillin0!(Av::Vector{T}, A_sparsity::Vector{Tuple{Int,Int}}, Bd::Matrix{T}) where T
+#     for (i, idx) in enumerate(A_sparsity)
+#         Bd[idx...] = Av[i]
+#     end
+#     return nothing
+# end
+# function fillin1!(Av::Vector{T}, Bs::SparseMatrixCSC{T,Int}) where T
+#     Bs.nzval .= Av
+#     return nothing
+# end
+# function fillin2!(Av::Vector{T}, A_sparsity::Vector{CartesianIndex{2}}, Bd::Matrix{T}) where T
+#     for (i, idx) in enumerate(A_sparsity)
+#         Bd[idx] = Av[i]
+#     end
+#     return nothing
+# end
+# function fillin3!(Av::Vector{T}, A_sparsity::Vector{Int}, Bd::Matrix{T}) where T
+#     for (i, idx) in enumerate(A_sparsity)
+#         Bd[idx] = Av[i]
+#     end
+#     return nothing
+# end
+#
+#
+#
+#
+#
+# fillin0!(Av, A_sparsity, Bd)
+# Main.@code_warntype fillin0!(Av, A_sparsity, Bd)
 # @benchmark $fillin0!($Av, $A_sparsity, $Bd)
-
-fillin1!(Av, Bs)
-Main.@code_warntype fillin1!(Av, Bs)
+#
+# fillin1!(Av, Bs)
+# Main.@code_warntype fillin1!(Av, Bs)
 # @benchmark $fillin1!($Av, $Bs)
-
-fillin2!(Av, A_cartesian, Bd)
-Main.@code_warntype fillin2!(Av, A_cartesian, Bd)
+#
+# fillin2!(Av, A_cartesian, Bd)
+# Main.@code_warntype fillin2!(Av, A_cartesian, Bd)
 # @benchmark $fillin2!($Av, $A_cartesian, $Bd)
-
-fillin3!(Av, A_integer, Bd)
-Main.@code_warntype fillin3!(Av, A_integer, Bd)
+#
+# fillin3!(Av, A_integer, Bd)
+# Main.@code_warntype fillin3!(Av, A_integer, Bd)
 # @benchmark $fillin3!($Av, $A_integer, $Bd)
-
-lu_factorization = ilu0(As)
-ilu0!(lu_factorization, As)
-@benchmark $ilu0!($lu_factorization, $As)
-
-lu(As)
+#
+# lu_factorization = ilu0(As)
+# ilu0!(lu_factorization, As)
+# @benchmark $ilu0!($lu_factorization, $As)
+#
+# lu(As)
 # @benchmark $lu($As)
-
-lu(Ad)
+#
+# lu(Ad)
 # @benchmark $lu($Ad)
-
-# Ast = SMatrix{n,n,Float64,n^2}(Ad)
-# lu(Ast)
-# @benchmark $lu($Ast)
-
-As
-Is = similar(As, Int)
-Is.nzval .= [i for i=1:nnz(Is)]
-
-AAs = [As As; As As]
-IIs = similar(AAs, Int)
-IIs.nzval .= [i for i=1:nnz(IIs)]
-
-IIAs = IIs[1:n,1:n]
-
-As_sparsity = collect(zip([findnz(AAs[1:n,1:n])[1:2]...]...))
-
-
-function fillblock0!(AAs, As, Idx)
-    # m = nnz(As)
-    # @views AAs[Idx] = As.nzval[i]
-    # for (i,ii) in enumerate(Idx)
-    #     @. AAs.nzval[ii] = As.nzval[i]
-    # end
-    @turbo AAs.nzval[Idx] = As.nzval
-    return nothing
-end
-
-function fillblock1!(AAs, As, As_sparsity)
-    m = nnz(As)
-    for (i, idx) in enumerate(As_sparsity)
-        AAs[idx...] = As.nzval[i]
-    end
-    return nothing
-end
-
-Idx = IIAs.nzval
-fillblock0!(AAs, As, Idx)
-Main.@code_warntype fillblock0!(AAs, As, Idx)
-@benchmark $fillblock0!($AAs, $As, $Idx)
-@benchmark $fillblock1!($AAs, $As, $As_sparsity)
-
-sprand(4,4,1.0)

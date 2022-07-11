@@ -121,7 +121,7 @@ num_cone = 1
 function evaluate!(
         problem::ProblemData{T},
         methods,
-        cone_methods::ConeMethods{B,BX,P,PX,PXI,TA},
+        cone_methods::ConeMethods{T,B,BX,P,PX,PXS,PXI,TA},
         solution::Point{T},
         parameters::Vector{T};
         equality_constraint=false,
@@ -130,7 +130,7 @@ function evaluate!(
         cone_constraint=false,
         cone_jacobian=false,
         cone_jacobian_inverse=false,
-        ) where {T,B,BX,P,PX,PXI,TA}
+        ) where {T,B,BX,P,PX,PXS,PXI,TA}
 
     # reset
     problem.equality_constraint .= 0.0

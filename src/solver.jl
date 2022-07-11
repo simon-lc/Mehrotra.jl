@@ -1,9 +1,9 @@
-struct Solver{T,X,E,EX,EP,B,BX,P,PX,PXI,K}
+struct Solver{T,X,E,EX,EP,B,BX,P,PX,PXS,PXI,K}
 # struct Solver{T,X,B,BX,P,PX,PXI,K}
     problem::ProblemData{T,X}
     # methods::ProblemMethods{T,E,EX,EP}
     methods::AbstractProblemMethods{T,E,EX,EP}
-    cone_methods::ConeMethods{B,BX,P,PX,PXI,K}
+    cone_methods::ConeMethods{T,B,BX,P,PX,PXS,PXI,K}
     data::SolverData{T}
 
     solution::Point{T}
@@ -67,9 +67,10 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     # problem data
     p_data = ProblemData(dim.variables, num_parameters, dim.equality, num_cone;
         custom=custom)
+    allocate_sparse_matrices!(p_data, methods, cone_methods)
 
     # solver data
-    s_data = SolverData(dim, idx)
+    s_data = SolverData(dim, idx, )
 
     # points
     solution = Point(dim, idx)
@@ -137,4 +138,29 @@ function Solver(equality, num_primals::Int, num_cone::Int;
         options,
         trace,
     )
+end
+
+
+function allocate_sparse_matrices!(data::ProblemData, methods::ProblemMethods,
+        cone_methods::ConeMethods)
+
+    for idx in methods.equality_jacobian_variables_sparsity
+        data.equality_jacobian_variables_sparse[idx...] = 1.0
+    end
+    for idx in methods.equality_jacobian_parameters_sparsity
+        data.equality_jacobian_parameters_sparse[idx...] = 1.0
+    end
+    data.equality_jacobian_variables_sparse .*= 0.0
+    data.equality_jacobian_parameters_sparse .*= 0.0
+
+
+    for idx in cone_methods.product_jacobian_duals_sparsity
+        data.cone_product_jacobian_duals_sparse[idx...] = 1.0
+    end
+    for idx in cone_methods.product_jacobian_slacks_sparsity
+        data.cone_product_jacobian_slacks_sparse[idx...] = 1.0
+    end
+    data.cone_product_jacobian_duals_sparse .*= 0.0
+    data.cone_product_jacobian_slacks_sparse .*= 0.0
+    return nothing
 end
