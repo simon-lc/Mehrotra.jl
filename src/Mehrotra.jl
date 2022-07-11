@@ -17,6 +17,7 @@ using SparsityDetection
 using SparseDiffTools
 using ILUZero
 using LoopVectorization
+using SuiteSparse
 
 include("block_sparse.jl")
 include("dimensions.jl")

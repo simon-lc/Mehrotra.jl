@@ -83,19 +83,18 @@ end
 """
 mutable struct SparseLUSolver113{T} <: LinearSolver
     x::Vector{T}
-    # factorization::ILU0Precon{T,Int,T}
-    factorization::ILU0Precon{T,Int,T}
+    factorization::SuiteSparse.UMFPACK.UmfpackLU{T, Int}
 end
 
 function sparse_lu_solver(A)
     m, n = size(A)
     x = zeros(m)
-    factorization = ilu0(A)
+    factorization = lu(A)
     SparseLUSolver113(x, factorization)
 end
 
 function factorize!(s::SparseLUSolver113{T}, A::SparseMatrixCSC{T,Int}) where T
-    ilu0!(s.factorization, A)
+    lu!(s.factorization, A)
 end
 
 function linear_solve!(s::SparseLUSolver113{T}, x::AbstractVector{T}, A::SparseMatrixCSC{T,Int},
@@ -111,47 +110,84 @@ function linear_solve!(s::SparseLUSolver113{T}, x::AbstractMatrix{T}, A::SparseM
 end
 
 
+# """
+#     Sparse LU solver
+# """
+# mutable struct SparseLUSolver113{T} <: LinearSolver
+#     x::Vector{T}
+#     # factorization::ILU0Precon{T,Int,T}
+#     factorization::ILU0Precon{T,Int,T}
+# end
+#
+# function sparse_lu_solver(A)
+#     m, n = size(A)
+#     x = zeros(m)
+#     factorization = ilu0(A)
+#     SparseLUSolver113(x, factorization)
+# end
+#
+# function factorize!(s::SparseLUSolver113{T}, A::SparseMatrixCSC{T,Int}) where T
+#     ilu0!(s.factorization, A)
+# end
+#
+# function linear_solve!(s::SparseLUSolver113{T}, x::AbstractVector{T}, A::SparseMatrixCSC{T,Int},
+#         b::AbstractVector{T}; reg::T = 0.0, fact::Bool = true) where T
+#     fact && factorize!(s, A)
+#     ldiv!(x, s.factorization, b)
+#     return nothing
+# end
+#
+# function linear_solve!(s::SparseLUSolver113{T}, x::AbstractMatrix{T}, A::SparseMatrixCSC{T,Int},
+#     b::AbstractMatrix{T}; reg::T = 0.0, fact::Bool = true) where T
+#     ldiv!(x, s.factorization, b)
+# end
 
-n = 5
-A = sprand(n, n, 0.6)# + 10*I
-cond(Matrix(A))
-lu_factorization = ilu0(A)
-x = zeros(n)
-b = rand(n)
-ldiv!(x, lu_factorization, deepcopy(b))
-norm(A * x - b)
-A * x - b
 
-# x = lu_factorization \ b
+#
+# n = 5
+# A = sprand(n, n, 0.6)# + 10*I
+# cond(Matrix(A))
+# lu_factorization = ilu0(A)
+# x = zeros(n)
+# b = rand(n)
+# ldiv!(x, lu_factorization, deepcopy(b))
+# norm(A * x - b)
 # A * x - b
 #
-
-B = sprand(10,10,0.6) - 1e-1*I
-B = B+B'
-Bc = deepcopy(B)
-lu_factorization = ilu0(B)
-ilu0!(lu_factorization, B)
-x = zeros(10)
-r = rand(10)
-rc = deepcopy(r)
-ldiv!(x, lu_factorization, r)
-norm(Bc * x - rc, Inf)
-ldiv!(x, lu(B), r)
-norm(Bc * x - rc, Inf)
-
-
-
-
-B = sprand(10,10,1.0) # works
-B = sprand(10,10,0.2) # doesn't work
-lu_factorization = ilu0(B)
-x = zeros(10)
-r = rand(10)
-ldiv!(x, lu_factorization, r)
-norm(B * x - r, Inf)
-ldiv!(x, lu(B), r)
-norm(B * x - r, Inf)
-
+# # x = lu_factorization \ b
+# # A * x - b
+# #
+#
+# B = sprand(10,10,0.6) - 1e-1*I
+# B = B+B'
+# Bc = deepcopy(B)
+# lu_factorization = ilu0(B)
+# ilu0!(lu_factorization, B)
+# x = zeros(10)
+# r = rand(10)
+# rc = deepcopy(r)
+# ldiv!(x, lu_factorization, r)
+# norm(Bc * x - rc, Inf)
+# ldiv!(x, lu(B), r)
+# norm(Bc * x - rc, Inf)
+#
+#
+#
+# using Random
+# Random.seed!(0)
+#
+# n = 10
+# B = sprand(n,n,1.0) # works
+# B = sprand(n,n,0.9) # doesn't work
+# cond(Matrix(B))
+# lu_factorization = ilu0(B)
+# x0 = zeros(n)
+# r = rand(n)
+# ldiv!(x0, lu_factorization, r)
+# norm(B * x0 - r, Inf)
+# x1 = B \ r
+# norm(B * x1 - r, Inf)
+# norm(x0 - x1, Inf)
 
 
 # n = 5
