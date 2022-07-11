@@ -31,14 +31,13 @@ function SolverData(dim::Dimensions, idx::Indices, p_data::ProblemData;
     residual = Point(dim, idx)
     compressed_residual = Point(dim, idx)
 
-    names = [:equality_jacobian_variables, :cone_jacobian_duals, :cone_jacobian_slacks]
-
     blocks = [
         p_data.equality_jacobian_variables_sparse,
         p_data.cone_product_jacobian_duals_sparse,
         p_data.cone_product_jacobian_slacks_sparse,
         ]
     ranges = [(idx.equality, idx.variables), (idx.cone_product, idx.duals), (idx.cone_product, idx.slacks)]
+    names = [:equality_jacobian_variables, :cone_jacobian_duals, :cone_jacobian_slacks]
     jacobian_variables = spzeros(num_variables, num_variables)
     jacobian_variables_sparse = BlockSparse116(num_variables, num_variables, blocks, ranges, names=names)
 

@@ -31,7 +31,7 @@ function generate_cones(num_cone, idx_nn, idx_soc;
         checkbounds=checkbounds,
         parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
         expression=Val{false})[2]
-    pa_sparse_func = Symbolics.build_function(pa_sparse, a, b,
+    pa_sparse_func = Symbolics.build_function(pa_sparse.nzval, a, b,
         checkbounds=checkbounds,
         parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
         expression=Val{false})[2]

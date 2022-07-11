@@ -27,7 +27,7 @@
 
 
 """
-    residual!(data, problem, idx, solution, parameters, central_path; compressed)
+    residual!(data, problem, idx, solution, parameters, central_path; compressed, sparse_solver)
     compute non compressed residual and jacobian for problem structured as follows,
         jacobian_variables = [
             A B C
@@ -67,7 +67,9 @@
 
 """
 function residual!(data::SolverData, problem::ProblemData, idx::Indices,
-        solution::Point, parameters, central_path; compressed::Bool=false)
+        solution::Point, parameters, central_path;
+        compressed::Bool=false,
+        sparse_solver::Bool=false)
     x = solution.all
     y = solution.primals
     z = solution.duals
@@ -80,7 +82,11 @@ function residual!(data::SolverData, problem::ProblemData, idx::Indices,
 
     # equality
     data.residual.equality .= problem.equality_constraint
-    data.jacobian_parameters[idx.equality, idx.parameters] .= problem.equality_jacobian_parameters # TODO
+    if sparse_solver
+        fill!(data.jacobian_parameters_sparse, problem.equality_jacobian_parameters_sparse, :equality_jacobian_parameters)
+    else
+        data.jacobian_parameters[idx.equality, idx.parameters] .= problem.equality_jacobian_parameters # TODO
+    end
     if compressed
         # data.compressed_jacobian_variables .= problem.equality_jacobian_variables[:, idx.equality] # TODO
         for (i, ii) in enumerate(idx.equality)
@@ -89,13 +95,18 @@ function residual!(data::SolverData, problem::ProblemData, idx::Indices,
             end
         end
     else
-        data.jacobian_variables[idx.equality, idx.variables] .= problem.equality_jacobian_variables # TODO
+        if sparse_solver
+            fill!(data.jacobian_variables_sparse, problem.equality_jacobian_variables_sparse, :equality_jacobian_variables)
+        else
+            data.jacobian_variables[idx.equality, idx.variables] .= problem.equality_jacobian_variables # TODO
+        end
     end
 
     # cone: z ∘ s - κ e
     for (i, ii) in enumerate(idx.cone_product)
         res[ii] = problem.cone_product[i] - central_path[i] * problem.cone_target[i]
     end
+
 
     if compressed
         # compression corrections
@@ -122,9 +133,14 @@ function residual!(data::SolverData, problem::ProblemData, idx::Indices,
         end
         data.point_temporary.all .= 0.0
     else
-        # Fill the jacobian
-        data.jacobian_variables[idx.cone_product, idx.duals] .= problem.cone_product_jacobian_duals # TODO
-        data.jacobian_variables[idx.cone_product, idx.slacks] .= problem.cone_product_jacobian_slacks # TODO
+        if sparse_solver
+            fill!(data.jacobian_variables_sparse, problem.cone_product_jacobian_duals_sparse, :cone_jacobian_duals)
+            fill!(data.jacobian_variables_sparse, problem.cone_product_jacobian_slacks_sparse, :cone_jacobian_slacks)
+        else
+            # Fill the jacobian
+            data.jacobian_variables[idx.cone_product, idx.duals] .= problem.cone_product_jacobian_duals # TODO
+            data.jacobian_variables[idx.cone_product, idx.slacks] .= problem.cone_product_jacobian_slacks # TODO
+        end
     end
     return
 end

@@ -38,10 +38,10 @@ function BlockSparse116(n::Int, m::Int, blocks, ranges;
 end
 
 import Base.fill!
-function fill!(block_matrix::BlockSparse116, A1, name)
+function fill!(block_matrix::BlockSparse116, block, name)
     matrix = block_matrix.matrix
     indices = block_matrix.indices
     i = block_matrix.name_dict[name]
-    @turbo matrix.nzval[indices[i]] = A1.nzval
+    @turbo matrix.nzval[indices[i]] = block.nzval
     return nothing
 end

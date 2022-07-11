@@ -29,22 +29,22 @@ function evaluate!(problem::ProblemData{T},
     if (equality_jacobian_variables && ne > 0)
         methods.equality_jacobian_variables(methods.equality_jacobian_variables_cache, x, θ)
         if sparse_solver
+            problem.equality_jacobian_variables_sparse.nzval .= methods.equality_jacobian_variables_cache
+        else
             for (i, idx) in enumerate(methods.equality_jacobian_variables_sparsity)
                 problem.equality_jacobian_variables[idx...] = methods.equality_jacobian_variables_cache[i]
             end
-        else
-            problem.equality_jacobian_variables_sparse.nzval .= methods.equality_jacobian_variables_cache
         end
     end
 
     if (equality_jacobian_parameters && ne > 0 && nθ > 0)
         methods.equality_jacobian_parameters(methods.equality_jacobian_parameters_cache, x, θ)
         if sparse_solver
+            problem.equality_jacobian_parameters_sparse.nzval .= methods.equality_jacobian_parameters_cache
+        else
             for (i, idx) in enumerate(methods.equality_jacobian_parameters_sparsity)
                 problem.equality_jacobian_parameters[idx...] = methods.equality_jacobian_parameters_cache[i]
             end
-        else
-            problem.equality_jacobian_parameters_sparse.nzval .= methods.equality_jacobian_parameters_cache
         end
     end
 
@@ -53,7 +53,8 @@ function evaluate!(problem::ProblemData{T},
         cone_constraint=cone_constraint,
         cone_jacobian=cone_jacobian,
         cone_jacobian_inverse=cone_jacobian_inverse,
-        cone_target=true # TODO this should only be true once at the beginning of the solve
+        cone_target=true, # TODO this should only be true once at the beginning of the solve
+        sparse_solver=sparse_solver,
     )
     return
 end
@@ -112,22 +113,13 @@ end
 #     verbose=false,
 #     ))
 #
-#
+# solver.solution.all .= rand(solver.dimensions.variables)
 # problem = solver.problem
 # meths = solver.methods
 # cone_methods = solver.cone_methods
 # solution = solver.solution
 # parameters = solver.parameters
 # evaluate!(problem, meths, cone_methods, solution, parameters,
-#     equality_constraint=false,
-#     equality_jacobian_variables=false,
-#     equality_jacobian_parameters=false,
-#     cone_constraint=false,
-#     cone_jacobian=false,
-#     cone_jacobian_inverse=false,
-#     )
-#
-# @benchmark $evaluate!($problem, $meths, $cone_methods, $solution, $parameters,
 #     equality_constraint=true,
 #     equality_jacobian_variables=true,
 #     equality_jacobian_parameters=true,
@@ -136,3 +128,13 @@ end
 #     cone_jacobian_inverse=true,
 #     )
 #
+# problem
+# @benchmark $evaluate!($problem, $meths, $cone_methods, $solution, $parameters,
+#     equality_constraint=true,
+#     equality_jacobian_variables=true,
+#     equality_jacobian_parameters=true,
+#     cone_constraint=true,
+#     cone_jacobian=true,
+#     cone_jacobian_inverse=true,
+#     sparse_solver=true
+#     )

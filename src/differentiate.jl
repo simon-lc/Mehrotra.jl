@@ -10,6 +10,7 @@ function differentiate!(solver)
     options = solver.options
     κ = solver.central_paths
     compressed = options.compressed_search_direction
+    sparse_solver = options.sparse_solver
 
     # Here we only need to update
     # equality_jacobian_variables
@@ -31,7 +32,7 @@ function differentiate!(solver)
     )
 
     residual!(data, problem, indices, solution, parameters, κ.tolerance_central_path,
-        compressed=compressed)
+        compressed=compressed, sparse_solver=sparse_solver)
 
     # # residual Jacobian wrt variables
     # residual_jacobian_variables!(solver.data, solver.problem, solver.indices,

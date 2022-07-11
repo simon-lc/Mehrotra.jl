@@ -1,4 +1,3 @@
-
 using Random
 using StaticArrays
 using LoopVectorization
@@ -30,7 +29,7 @@ parameters = [vec(A); b; vec(C); d]
 num_parameters = length(parameters)
 indices = Indices(num_primals, num_cone, num_parameters)
 dimensions = Dimensions(num_primals, num_cone, num_parameters)
-meths = strutured_symbolics_methods(lcp_residual, dimensions, indices)
+# meths = structured_symbolics_methods(lcp_residual, dimensions, indices)
 
 
 # solver
@@ -38,13 +37,16 @@ solver = Solver(lcp_residual, num_primals, num_cone,
     parameters=parameters,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,
+    options=Options(sparse_solver=true, max_iterations=10)
     )
 
+solver.problem
+solver.data
 # solve
 Mehrotra.solve!(solver)
+solver.data.jacobian_variables_sparse.matrix[end-3:end,end-3:end]
 
-
-
+solver.problem
 
 function evaluate!(problem::ProblemData{T},
         methods::StructuredProblemMethods112{T,O,OY,OZ,OP,S,SY,SS,SP},
@@ -168,7 +170,7 @@ end
 # fillin3!(Av, A_integer, Bd)
 # Main.@code_warntype fillin3!(Av, A_integer, Bd)
 # @benchmark $fillin3!($Av, $A_integer, $Bd)
-#
+
 # lu_factorization = ilu0(As)
 # ilu0!(lu_factorization, As)
 # @benchmark $ilu0!($lu_factorization, $As)

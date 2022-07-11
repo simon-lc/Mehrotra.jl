@@ -29,7 +29,7 @@ end
 
 """
     StruturedProblemMethods112{T,E,EX,EP} <: AbstractProblemMethods{T,E,EX,EP}
-	Store fast residual and Jacobian methods for strutured NCPs. These strutured NCPs include:
+	Store fast residual and Jacobian methods for structured NCPs. These structured NCPs include:
 		- linear programs (LP)
 		- quadraric programs (QP)
 		- nonlinear complementarity program arizing from contact formulation (Contact NCP and LCP)
@@ -39,7 +39,7 @@ end
 	In this case, we can leverage QDLDL to factorize the compressed matrix efficiently.
 	Otherwise we need to devise a QDLDL-inspired sparse solver.
 
-	Non-strutured programs look like this,
+	Non-structured programs look like this,
         jacobian_variables = [
             A B C
             D E F
@@ -95,7 +95,7 @@ struct StructuredProblemMethods112{T,O,OY,OZ,OP,S,SY,SS,SP} <: AbstractProblemMe
 end
 
 
-function strutured_symbolics_methods(equality::Function, dim::Dimensions, idx::Indices)
+function structured_symbolics_methods(equality::Function, dim::Dimensions, idx::Indices)
     o, oy, oz, oθ, s, sy, ss, sθ, oy_sp, oz_sp, oθ_sp, sy_sp, ss_sp, sθ_sp = generate_structured_gradients(equality, dim, idx)
 
     methods = StructuredProblemMethods112(

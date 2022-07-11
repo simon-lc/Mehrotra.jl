@@ -14,7 +14,7 @@ struct Solver{T,X,E,EX,EP,B,BX,P,PX,PXS,PXI,K}
     dimensions::Dimensions
 
     # linear_solver::LDLSolver{T,Int}
-    linear_solver::LUSolver{T}
+    linear_solver#::LUSolver{T}
 
     step_sizes::StepSize{T}
     central_paths::CentralPath{T}
@@ -87,8 +87,8 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     dual = zeros(dim.equality)
 
     # linear solver TODO: constructor
-    random_solution = rand(dim.variables)
-    # random_solution.all .= randn(dim.total)
+    random_solution = Point(dim, idx)
+    random_solution.all .= rand(dim.variables)
 
     # evaluate!(p_data, methods, idx, random_solution, parameters,
     #     objective_jacobian_variables_variables=true,
@@ -104,10 +104,14 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     #     constraint_tensor=options.constraint_tensor)
     # residual_jacobian_variables_symmetric!(s_data.jacobian_variables_symmetric, s_data.jacobian_variables, idx,
     #     p_data.second_order_jacobians, p_data.second_order_jacobians)
-    #
-    linear_solver = options.compressed_search_direction ?
-        lu_solver(s_data.dense_compressed_jacobian_variables) :
-        lu_solver(s_data.dense_jacobian_variables)
+
+    if options.sparse_solver
+        linear_solver = ilu0(s_data.jacobian_variables_sparse.matrix)
+    else
+        linear_solver = options.compressed_search_direction ?
+            lu_solver(s_data.dense_compressed_jacobian_variables) :
+            lu_solver(s_data.dense_jacobian_variables)
+    end
 
     # regularization
     primal_regularization = [0.0]

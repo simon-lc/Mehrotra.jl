@@ -32,11 +32,12 @@ function search_direction!(solver::Solver)
     data = solver.data
     step = data.step
     compressed = solver.options.compressed_search_direction
+    sparse_solver = solver.options.sparse_solver
 
     if compressed
         compressed_search_direction!(linear_solver, dimensions, data, step)
     else
-        uncompressed_search_direction!(linear_solver, dimensions, data, step)
+        uncompressed_search_direction!(linear_solver, dimensions, data, step, sparse_solver=sparse_solver)
     end
     return nothing
 end
@@ -70,28 +71,52 @@ function compressed_search_direction!(linear_solver::LUSolver{T},
 end
 
 
-function uncompressed_search_direction!(linear_solver::LUSolver{T},
+function uncompressed_search_direction!(linear_solver,#::LUSolver{T},
         dimensions::Dimensions,
         data::SolverData{T},
-        step::Point{T},
+        step::Point{T};
+        sparse_solver::Bool=false,
         ) where T
 
 
-    data.dense_jacobian_variables .= data.jacobian_variables
     # ny = dimensions.primals
     # nz = dimensions.duals
     # ns = dimensions.slacks
+    if sparse_solver
+        # ilu0!(linear_solver, data.jacobian_variables_sparse.matrix)
+        # ldiv!(step.all, linear_solver, data.residual.all)
+        # @show norm(data.jacobian_variables_sparse.matrix * step.all - data.residual.all, Inf)
+        step.all .= data.jacobian_variables_sparse.matrix \ data.residual.all
+    else
+        data.dense_jacobian_variables .= data.jacobian_variables
+        linear_solve!(
+            linear_solver,
+            step.all,
+            # data.dense_jacobian_variables + Diagonal([1.0*1e-8ones(ny); zeros(nz+ns)]),
+            data.dense_jacobian_variables,
+            data.residual.all,
+            fact=true)
+    end
 
-    linear_solve!(
-        linear_solver,
-        step.all,
-        # data.dense_jacobian_variables + Diagonal([1.0*1e-8ones(ny); zeros(nz+ns)]),
-        data.dense_jacobian_variables,
-        data.residual.all,
-        fact=true)
     step.all .*= -1.0
     return nothing
 end
+
+# using ILUZero
+# n = 10
+# As = sprand(n,n,0.9)
+# As = As'*As
+# lu_factorization = ilu0(As)
+# ilu0(As)
+# ilu0!(lu_factorization, As)
+# x = rand(n)
+# b = rand(n)
+# ldiv!(x, lu_factorization, b)
+# norm(As * x - b, Inf)
+#
+# @benchmark $ilu0!($lu_factorization, $As)
+
+
 
 
 # step0 = solver.data.step

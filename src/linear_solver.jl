@@ -78,6 +78,82 @@ function linear_solve!(s::LUSolver{T}, x::AbstractMatrix{T}, A::Matrix{T},
     end
 end
 
+"""
+    Sparse LU solver
+"""
+mutable struct SparseLUSolver113{T} <: LinearSolver
+    x::Vector{T}
+    # factorization::ILU0Precon{T,Int,T}
+    factorization::ILU0Precon{T,Int,T}
+end
+
+function sparse_lu_solver(A)
+    m, n = size(A)
+    x = zeros(m)
+    factorization = ilu0(A)
+    SparseLUSolver113(x, factorization)
+end
+
+function factorize!(s::SparseLUSolver113{T}, A::SparseMatrixCSC{T,Int}) where T
+    ilu0!(s.factorization, A)
+end
+
+function linear_solve!(s::SparseLUSolver113{T}, x::AbstractVector{T}, A::SparseMatrixCSC{T,Int},
+        b::AbstractVector{T}; reg::T = 0.0, fact::Bool = true) where T
+    fact && factorize!(s, A)
+    ldiv!(x, s.factorization, b)
+    return nothing
+end
+
+function linear_solve!(s::SparseLUSolver113{T}, x::AbstractMatrix{T}, A::SparseMatrixCSC{T,Int},
+    b::AbstractMatrix{T}; reg::T = 0.0, fact::Bool = true) where T
+    ldiv!(x, s.factorization, b)
+end
+
+
+
+n = 5
+A = sprand(n, n, 0.6)# + 10*I
+cond(Matrix(A))
+lu_factorization = ilu0(A)
+x = zeros(n)
+b = rand(n)
+ldiv!(x, lu_factorization, deepcopy(b))
+norm(A * x - b)
+A * x - b
+
+# x = lu_factorization \ b
+# A * x - b
+#
+
+B = sprand(10,10,0.6) - 1e-1*I
+B = B+B'
+Bc = deepcopy(B)
+lu_factorization = ilu0(B)
+ilu0!(lu_factorization, B)
+x = zeros(10)
+r = rand(10)
+rc = deepcopy(r)
+ldiv!(x, lu_factorization, r)
+norm(Bc * x - rc, Inf)
+ldiv!(x, lu(B), r)
+norm(Bc * x - rc, Inf)
+
+
+
+
+B = sprand(10,10,1.0) # works
+B = sprand(10,10,0.2) # doesn't work
+lu_factorization = ilu0(B)
+x = zeros(10)
+r = rand(10)
+ldiv!(x, lu_factorization, r)
+norm(B * x - r, Inf)
+ldiv!(x, lu(B), r)
+norm(B * x - r, Inf)
+
+
+
 # n = 5
 # m = 3
 # A = rand(n,n)
@@ -93,6 +169,82 @@ end
 # my_linear_solve!(linear_solver, X, A, B)
 # my_linear_solve!(linear_solver, Xv, A, Bv)
 #
+
+
+
+
+
+
+
+#
+# fieldnames(typeof(lu(A)))
+# lu(A).symbolic
+# lu(A).numeric
+# lu(A).m
+# lu(A).n
+# lu(A).colptr
+# lu(A).rowval
+# lu(A).nzval
+# lu(A).status
+#
+# lu(A).Rs
+# lu(A).L
+# lu(A).U
+#
+# fact = lu(A)
+# lu!(fact, A)
+# @benchmark $lu!($fact, $A)
+# @benchmark $lu($A)
+#
+# using SuiteSparse
+# using SparseArrays
+# import SparseArrays.decrement
+# using LinearAlgebra
+# import LinearAlgebra.lu!
+# import ..decrement
+#
+# function mylu1!(F::SuiteSparse.UMFPACK.UmfpackLU, S::SparseMatrixCSC{T,I}; check::Bool=true) where {T,I}
+#     zerobased = SparseArrays.getcolptr(S)[1] == 0
+#     # resize workspace if needed
+#     if F.n < size(S, 2)
+#         F.workspace = SparseArrays.UmfpackWS(S)
+#     end
+#
+#     F.m = size(S, 1)
+#     F.n = size(S, 2)
+#     F.colptr = zerobased ? copy(SparseArrays.getcolptr(S)) : decrement(SparseArrays.getcolptr(S))
+#     F.rowval = zerobased ? copy(rowvals(S)) : decrement(rowvals(S))
+#     F.nzval = copy(nonzeros(S))
+#
+#     # SuiteSparse.UMFPACK.umfpack_numeric!(F, reuse_numeric = false)
+#     SuiteSparse.UMFPACK.umfpack_numeric!(F, reuse_numeric = true)
+#     check && (issuccess(F) || throw(LinearAlgebra.SingularException(0)))
+#     return F
+# end
+#
+# # Convert from 1-based to 0-based indices
+# function decrement!(A::AbstractArray{T}) where T<:Integer
+#     for i in eachindex(A); A[i] -= oneunit(T) end
+#     A
+# end
+# decrement(A::AbstractArray{<:Integer}) = decrement!(copy(A))
+#
+# n = 19
+# A = sprand(n, n, 1.0)
+# AA = 2*A
+# factA = lu(A)
+# factAA = mylu1!(factA, AA)
+# @benchmark $mylu1!($factA, $AA)
+# r = rand(n)
+# x = zeros(n)
+# ldiv!(x, factAA, r)
+# AA * x - r
+# A * x - r
+#
+# SparseArrays.getcolptr(A)[1]
+
+
+
 
 
 
