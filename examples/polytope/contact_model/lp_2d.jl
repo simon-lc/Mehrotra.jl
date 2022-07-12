@@ -226,7 +226,7 @@ function get_outvariables(solution::Vector, solution_sensitivity::Matrix; d::Int
     N = solution_sensitivity[d .+ (1:1), 1:2d+2]
     ∂p_parent = solution_sensitivity[1:d, :]
     ∂p_child = solution_sensitivity[1:d, :]
-    nw = -N[1:d]
+    nw = N[1:d] / norm(N[1:d])
     R = [0 1; -1 0]
     tw = R * nw
 

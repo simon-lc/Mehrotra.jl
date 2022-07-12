@@ -1,4 +1,4 @@
-# using Polyhedra
+using Polyhedra
 using MeshCat
 using RobotVisualizer
 using StaticArrays
@@ -45,7 +45,7 @@ Ac = [
     -1.0  0.0;
      0.0 -1.0;
     ] .+ 0.00ones(4,2)
-bc = 0.5*[
+bc = 1.5*[
      1,
      1,
      1,
@@ -61,7 +61,7 @@ inertia = 0.2 * ones(1,1)
 bodya = Body174(timestep, mass, inertia, [Ap], [bp], gravity=+gravity, name=:bodya)
 bodyb = Body174(timestep, 1e6*mass, 1e6*inertia, [Ac], [bc], gravity=-0*gravity, name=:bodyb)
 bodies = [bodya, bodyb]
-contacts = [Contact174(bodies[1], bodies[2], friction_coefficient=0.0)]
+contacts = [Contact174(bodies[1], bodies[2], friction_coefficient=0.9990)]
 indexing!([bodies; contacts])
 
 # mechanism
@@ -73,7 +73,7 @@ mech = Mechanism174(local_residual, bodies, contacts)
 ################################################################################
 # test simulation
 ################################################################################
-mech.solver.options.verbose = true
+mech.solver.options.verbose = false#true
 mech.contacts[1].contact_solver.solver.options.verbose = false
 mech.contacts[1].contact_solver.solver.options.complementarity_tolerance = 3e-3
 mech.contacts[1].contact_solver.solver.options.residual_tolerance

@@ -172,6 +172,8 @@ function contact_residual!(e, x, θ, contact::Contact174, pbody::Body174, cbody:
     update_outvariables!(contact_solver, contact_solver.solver.parameters)
     ϕ3, p3_parent, p3_child, N3, ∂p3_parent, ∂p3_child, nw3, tw3 =
         unpack_subvariables(contact_solver.outvariables, contact)
+    # @show nw3
+    # @show tw3
 
     p3_parent += (xp3 + xc3)[1:2] / 2
     p3_child += (xp3 + xc3)[1:2] / 2
@@ -187,16 +189,16 @@ function contact_residual!(e, x, θ, contact::Contact174, pbody::Body174, cbody:
     sβ = s[3:4]
 
     # force at the contact point in the contact frame
-    νc = [γ; [sum(β)]]
+    νc = [β[1] - β[2]; γ]
     # rotation matrix from contact frame to world frame
-    wRc = [nw3 tw3] # n points towards the parent body, [n,t,z] forms an oriented vector basis
+    wRc = [tw3 nw3] # n points towards the parent body, [t,n,z] forms an oriented vector basis
     # force at the contact point in the world frame
     νw = wRc * νc
     νpw = +νw # parent
     νcw = -νw # child
     # wrenches at the centers of masses
-    τpw = (skew([xp3[1:2] - p3_parent; 0]) * [νpw; 0])[3:3]
-    τcw = (skew([xc3[1:2] - p3_child;  0]) * [νcw; 0])[3:3]
+    τpw = (skew([p3_parent - xp3[1:2]; 0]) * [νpw; 0])[3:3]
+    τcw = (skew([p3_child  - xc3[1:2]; 0]) * [νcw; 0])[3:3]
     w = [νpw; τpw; νcw; τcw]
     # mapping the force into the generalized coordinates (at the centers of masses and in the world frame)
 
@@ -205,13 +207,15 @@ function contact_residual!(e, x, θ, contact::Contact174, pbody::Body174, cbody:
     vctan = vc25[1:2] + (skew([xc3[1:2]-p3_child;  0]) * [zeros(2); vc25[3]])[1:2]
     vctan = vctan'*tw3
     vtan = vptan - vctan
+    # @show vptan
+    # @show vctan
 
     # dynamics
     e[contact.node_index.e] .+= [
         sγ - ϕ3;
         sψ - (friction_coefficient[1] * γ - [sum(β)]);
-        sβ - ([vtan; +vtan] + ψ[1]*ones(2));
+        sβ - ([-vtan; vtan] + ψ[1]*ones(2));
         ]
-    e[[pbody.node_index.e; cbody.node_index.e]] .+= w # -V3' * ν
+    e[[pbody.node_index.e; cbody.node_index.e]] .-= w # -V3' * ν
     return nothing
 end
