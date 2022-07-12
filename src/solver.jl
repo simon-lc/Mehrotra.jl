@@ -106,7 +106,8 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     #     p_data.second_order_jacobians, p_data.second_order_jacobians)
 
     if options.sparse_solver
-        linear_solver = ilu0(s_data.jacobian_variables_sparse.matrix)
+        # linear_solver = ilu0(s_data.jacobian_variables_sparse.matrix)
+        linear_solver = sparse_lu_solver(s_data.jacobian_variables_sparse.matrix + 1e3I)
     else
         linear_solver = options.compressed_search_direction ?
             lu_solver(s_data.dense_compressed_jacobian_variables) :

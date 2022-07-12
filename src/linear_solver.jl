@@ -12,10 +12,6 @@ function empty_solver(A::Any)
     EmptySolver(A)
 end
 
-# QDLDL take the one form CI-MPC
-# QDLDL.QDLDL_factor! is causing some allocations
-
-
 """
     LU solver
 """
@@ -81,7 +77,7 @@ end
 """
     Sparse LU solver
 """
-mutable struct SparseLUSolver113{T} <: LinearSolver
+mutable struct SparseLUSolver{T} <: LinearSolver
     x::Vector{T}
     factorization::SuiteSparse.UMFPACK.UmfpackLU{T, Int}
 end
@@ -90,22 +86,24 @@ function sparse_lu_solver(A)
     m, n = size(A)
     x = zeros(m)
     factorization = lu(A)
-    SparseLUSolver113(x, factorization)
+    SparseLUSolver(x, factorization)
 end
 
-function factorize!(s::SparseLUSolver113{T}, A::SparseMatrixCSC{T,Int}) where T
-    lu!(s.factorization, A)
+function factorize!(s::SparseLUSolver{T}, A::SparseMatrixCSC{T,Int}) where T
+    # lu!(s.factorization, A)
+    s.factorization = lu(A)
 end
 
-function linear_solve!(s::SparseLUSolver113{T}, x::AbstractVector{T}, A::SparseMatrixCSC{T,Int},
+function linear_solve!(s::SparseLUSolver{T}, x::AbstractVector{T}, A::SparseMatrixCSC{T,Int},
         b::AbstractVector{T}; reg::T = 0.0, fact::Bool = true) where T
     fact && factorize!(s, A)
     ldiv!(x, s.factorization, b)
     return nothing
 end
 
-function linear_solve!(s::SparseLUSolver113{T}, x::AbstractMatrix{T}, A::SparseMatrixCSC{T,Int},
+function linear_solve!(s::SparseLUSolver{T}, x::AbstractMatrix{T}, A::SparseMatrixCSC{T,Int},
     b::AbstractMatrix{T}; reg::T = 0.0, fact::Bool = true) where T
+    fact && factorize!(s, A)
     ldiv!(x, s.factorization, b)
 end
 
@@ -113,7 +111,7 @@ end
 # """
 #     Sparse LU solver
 # """
-# mutable struct SparseLUSolver113{T} <: LinearSolver
+# mutable struct SparseLUSolver{T} <: LinearSolver
 #     x::Vector{T}
 #     # factorization::ILU0Precon{T,Int,T}
 #     factorization::ILU0Precon{T,Int,T}
@@ -123,24 +121,111 @@ end
 #     m, n = size(A)
 #     x = zeros(m)
 #     factorization = ilu0(A)
-#     SparseLUSolver113(x, factorization)
+#     SparseLUSolver(x, factorization)
 # end
 #
-# function factorize!(s::SparseLUSolver113{T}, A::SparseMatrixCSC{T,Int}) where T
+# function factorize!(s::SparseLUSolver{T}, A::SparseMatrixCSC{T,Int}) where T
 #     ilu0!(s.factorization, A)
 # end
 #
-# function linear_solve!(s::SparseLUSolver113{T}, x::AbstractVector{T}, A::SparseMatrixCSC{T,Int},
+# function linear_solve!(s::SparseLUSolver{T}, x::AbstractVector{T}, A::SparseMatrixCSC{T,Int},
 #         b::AbstractVector{T}; reg::T = 0.0, fact::Bool = true) where T
 #     fact && factorize!(s, A)
 #     ldiv!(x, s.factorization, b)
 #     return nothing
 # end
 #
-# function linear_solve!(s::SparseLUSolver113{T}, x::AbstractMatrix{T}, A::SparseMatrixCSC{T,Int},
+# function linear_solve!(s::SparseLUSolver{T}, x::AbstractMatrix{T}, A::SparseMatrixCSC{T,Int},
 #     b::AbstractMatrix{T}; reg::T = 0.0, fact::Bool = true) where T
 #     ldiv!(x, s.factorization, b)
 # end
+
+
+mutable struct LDLSolver111{Tf<:AbstractFloat,Ti<:Integer} <: LinearSolver
+    # QDLDL Factorization
+    F::QDLDL.QDLDLFactorisation{Tf,Ti}
+    Atriu::SparseMatrixCSC{Tf,Ti}
+    upper_indices::Vector{Int}
+end
+
+function ldl_solver(A::SparseMatrixCSC{Tv,Ti}) where {Tv<:AbstractFloat,Ti<:Integer}
+    F = qdldl(A)
+    indices = similar(A, Int)
+    indices.nzval .= 1:nnz(A)
+    upper_indices = triu(indices).nzval
+    return LDLSolver111{Tv,Ti}(
+        F, 
+        copy(triu(A)), 
+        upper_indices,
+    )
+end
+
+function factorize!(s::LDLSolver111{Tv,Ti}, A::SparseMatrixCSC{Tv,Ti}; 
+    update=false) where {Tv<:AbstractFloat, Ti<:Integer}
+
+    for (i,ii) in enumerate(s.upper_indices)
+        s.Atriu.nzval[i] = A.nzval[ii]
+    end
+    if update
+        triu!(s.Atriu)
+        update_values!(s.F, 1:length(s.Atriu.nzval), s.Atriu.nzval)
+        refactor!(s.F)
+    else 
+        s.F = qdldl(A)
+        s.Atriu = copy(triu(A))
+    end
+
+    return nothing
+end
+
+function linear_solve!(solver::LDLSolver111{Tv,Ti}, x::Vector{Tv}, A::SparseMatrixCSC{Tv,Ti}, b::Vector{Tv};
+    fact=true, update=true) where {Tv<:AbstractFloat,Ti<:Integer}
+
+    fact && factorize!(solver, A; update=update) # factorize
+    x .= b
+    solve!(solver.F, x) # solve
+end
+
+# function linear_solve!(solver::LDLSolver111{Tv,Ti}, x::Vector{Tv}, A::AbstractMatrix{Tv}, b::Vector{Tv};
+#     fact=true,
+#     update=true) where {Tv<:AbstractFloat,Ti<:Integer}
+
+#     # fill sparse_matrix
+#     n, m = size(A) 
+#     for i = 1:n 
+#         for j = 1:m 
+#             solver.Atriu[i, j] = A[i, j]
+#         end
+#     end
+    
+#     linear_solve!(solver, x, solver.Atriu, b, 
+#         fact=fact,
+#         update=update)
+# end
+
+function linear_solve!(solver::LDLSolver111{T}, x::Matrix{T}, A::AbstractMatrix{T},
+    b::Matrix{T}; 
+    fact=true,
+    update=true) where T
+
+    fill!(x, 0.0)
+    n, m = size(x) 
+    r_idx = 1:n
+    fact && factorize!(solver, A; update=update)
+
+    x .= b 
+    for j = 1:m
+        xv = @views x[r_idx, j]
+        solve!(solver.F, xv)
+    end
+end
+
+
+
+
+
+
+
 
 
 #
@@ -290,10 +375,10 @@ end
 # """
 #     QDLDL inplace functionality
 # """
-# mutable struct LDLSolver{Tf<:AbstractFloat,Ti<:Integer} <: LinearSolver
+# mutable struct LDLSolver111{Tf<:AbstractFloat,Ti<:Integer} <: LinearSolver
 #     # QDLDL Factorization
 #     F::QDLDL.QDLDLFactorisation{Tf,Ti}
-#     A_sparse::SparseMatrixCSC{Tf,Ti}
+#     Atriu::SparseMatrixCSC{Tf,Ti}
 #     # Allocate memory
 #     AtoPAPt::Vector{Ti}
 #     Pr::Vector{Ti}
@@ -304,7 +389,7 @@ end
 #     Pv_triu::Vector{Tf}
 # end
 #
-# function LDLSolver(A::SparseMatrixCSC{Tf,Ti}, F::QDLDL.QDLDLFactorisation{Tf,Ti}) where {Tf<:AbstractFloat,Ti<:Integer}
+# function LDLSolver111(A::SparseMatrixCSC{Tf,Ti}, F::QDLDL.QDLDLFactorisation{Tf,Ti}) where {Tf<:AbstractFloat,Ti<:Integer}
 #     AtoPAPt = zeros(Ti,nnz(A))
 #     Pr = zeros(Ti, nnz(A))
 #     Pc = zeros(Ti, size(A, 1) + 1)
@@ -312,10 +397,10 @@ end
 #     num_entries = zeros(Ti,size(A, 2))
 #     Pr_triu = zeros(Ti, nnz(F.workspace.triuA))
 #     Pv_triu = zeros(Tf, nnz(F.workspace.triuA))
-#     return LDLSolver{Tf,Ti}(F, copy(A), AtoPAPt, Pr, Pc, Pv, num_entries, Pr_triu, Pv_triu)
+#     return LDLSolver111{Tf,Ti}(F, copy(A), AtoPAPt, Pr, Pc, Pv, num_entries, Pr_triu, Pv_triu)
 # end
 #
-# function factorize!(s::LDLSolver{Tf,Ti}, A::SparseMatrixCSC{Tf,Ti}) where {Tf<:AbstractFloat, Ti<:Integer}
+# function factorize!(s::LDLSolver111{Tf,Ti}, A::SparseMatrixCSC{Tf,Ti}) where {Tf<:AbstractFloat, Ti<:Integer}
 #     # Reset the pre-allocated fields
 #     s.AtoPAPt .= 0
 # 	s.Pr .= 0
@@ -425,17 +510,17 @@ end
 #     LDL solver
 # """
 # function ldl_solver(A::SparseMatrixCSC{T,Int}) where T
-#     LDLSolver(A, qdldl(A))
+#     LDLSolver111(A, qdldl(A))
 # end
 #
-# function linear_solve4!(solver::LDLSolver{Tv,Ti}, x::Vector{Tv}, A::SparseMatrixCSC{Tv,Ti}, b::Vector{Tv};
+# function linear_solve4!(solver::LDLSolver111{Tv,Ti}, x::Vector{Tv}, A::SparseMatrixCSC{Tv,Ti}, b::Vector{Tv};
 #     reg=0.0, fact::Bool = true) where {Tv<:AbstractFloat,Ti<:Integer}
 #     # fact && factorize!(solver, A) # factorize
 #     # x .= b
 #     # QDLDL.solve!(solver.F, x) # solve
 # end
 #
-# function linear_solve3!(s::LDLSolver{T}, x::Matrix{T}, A::Matrix{T},
+# function linear_solve3!(s::LDLSolver111{T}, x::Matrix{T}, A::Matrix{T},
 #     b::Matrix{T};
 #     reg::T = 0.0,
 #     fact::Bool = true) where T
@@ -452,7 +537,7 @@ end
 #     end
 # end
 #
-# function linear_solve2!(solver::LDLSolver{Tv,Ti}, x::Vector{Tv},
+# function linear_solve2!(solver::LDLSolver111{Tv,Ti}, x::Vector{Tv},
 # 		A::SparseMatrixCSC{Tv,Ti}, b::Vector{Tv};
 # 	    reg=0.0,
 # 		fact::Bool=true) where {Tv<:AbstractFloat,Ti<:Integer}
@@ -461,15 +546,15 @@ end
 #     n, m = size(A)
 #     for i = 1:n
 #         for j = 1:m
-#             solver.A_sparse[i, j] = A[i, j]
+#             solver.Atriu[i, j] = A[i, j]
 #         end
 #     end
 #
-#     linear_solve3!(solver, x, solver.A_sparse, b, reg=reg, fact=fact)
+#     linear_solve3!(solver, x, solver.Atriu, b, reg=reg, fact=fact)
 # end
 #
 #
-# function linear_solve4!(solver::LDLSolver{Tv,Ti}, x::Vector{Tv}, A::SparseMatrixCSC{Tv,Ti}, b::Vector{Tv};
+# function linear_solve4!(solver::LDLSolver111{Tv,Ti}, x::Vector{Tv}, A::SparseMatrixCSC{Tv,Ti}, b::Vector{Tv};
 #     reg=0.0, fact::Bool = true) where {Tv<:AbstractFloat,Ti<:Integer}
 #     fact && factorize!(solver, A) # factorize
 #     x .= b
@@ -491,7 +576,7 @@ end
 # Main.@code_warntype linear_solve4!(solver, x, A, b)
 #
 #
-# function factorize!(s::LDLSolver{Tf,Ti}, A::SparseMatrixCSC{Tf,Ti}) where {Tf<:AbstractFloat, Ti<:Integer}
+# function factorize!(s::LDLSolver111{Tf,Ti}, A::SparseMatrixCSC{Tf,Ti}) where {Tf<:AbstractFloat, Ti<:Integer}
 #     # Reset the pre-allocated fields
 #     s.AtoPAPt .= 0
 # 	s.Pr .= 0
@@ -638,7 +723,7 @@ end
 #
 #
 #
-# # function linear_solve!(solver::LDLSolver111{Tv,Ti}, x::Vector{Tv}, A::AbstractMatrix{Tv}, b::Vector{Tv};
+# # function linear_solve!(solver::LDLSolver111111{Tv,Ti}, x::Vector{Tv}, A::AbstractMatrix{Tv}, b::Vector{Tv};
 # #     fact=true,
 # #     update=true) where {Tv<:AbstractFloat,Ti<:Integer}
 #
@@ -646,16 +731,16 @@ end
 # #     n, m = size(A)
 # #     for i = 1:n
 # #         for j = 1:m
-# #             solver.A_sparse[i, j] = A[i, j]
+# #             solver.Atriu[i, j] = A[i, j]
 # #         end
 # #     end
 #
-# #     linear_solve!(solver, x, solver.A_sparse, b,
+# #     linear_solve!(solver, x, solver.Atriu, b,
 # #         fact=fact,
 # #         update=update)
 # # end
 #
-# function linear_solve!(s::LDLSolver111{T}, x::Matrix{T}, A::Matrix{T},
+# function linear_solve!(s::LDLSolver111111{T}, x::Matrix{T}, A::Matrix{T},
 #     b::Matrix{T};
 #     fact=true,
 #     update=true) where T

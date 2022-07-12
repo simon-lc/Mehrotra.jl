@@ -76,10 +76,16 @@ function differentiate!(solver)
             # -Zi * (data.residual.cone_product .+ (S * data.solution_sensitivity[indices.duals, :])) # -Z⁻¹ (cone_product + S * Δz)
             # -Zi * (hcat([data.residual.cone_product for i=1:dimensions.parameters]...) + (S * data.solution_sensitivity[indices.duals, :])) # -Z⁻¹ (cone_product + S * Δz)
     else
-        data.dense_jacobian_variables .= data.jacobian_variables
-        linear_solve!(solver.linear_solver, data.solution_sensitivity,
-            data.dense_jacobian_variables, data.jacobian_parameters, fact=true)
-        data.solution_sensitivity .*= -1.0
+        if options.sparse_solver
+            linear_solve!(solver.linear_solver, data.solution_sensitivity,
+                data.jacobian_variables_sparse.matrix, data.jacobian_parameters, fact=true)
+            data.solution_sensitivity .*= -1.0
+        else
+            data.dense_jacobian_variables .= data.jacobian_variables
+            linear_solve!(solver.linear_solver, data.solution_sensitivity,
+                data.dense_jacobian_variables, data.jacobian_parameters, fact=true)
+            data.solution_sensitivity .*= -1.0
+        end
     end
     # #TODO parallelize, make more efficient
     # for i in solver.indices.parameters

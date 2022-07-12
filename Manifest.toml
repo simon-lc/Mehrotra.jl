@@ -946,11 +946,9 @@ uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
 
 [[deps.QDLDL]]
 deps = ["AMD", "LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "aa1a32b0917794199aeeb15d6fba46ca02450306"
-repo-rev = "v0.2.1"
-repo-url = "https://github.com/osqp/QDLDL.jl.git"
+git-tree-sha1 = "9a7b1303429c91539132a6acf5b31ffa6d5f18c5"
 uuid = "bfc457fd-c171-5ab7-bd9e-d5dbfc242d63"
-version = "0.2.1"
+version = "0.3.0"
 
 [[deps.QuadGK]]
 deps = ["DataStructures", "LinearAlgebra"]

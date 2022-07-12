@@ -2,7 +2,7 @@ struct SolverData{T}
     residual::Point{T}
     compressed_residual::Point{T}
     jacobian_variables::SparseMatrixCSC{T,Int}
-    jacobian_variables_sparse::BlockSparse116{T}
+    jacobian_variables_sparse::BlockSparse{T}
     dense_jacobian_variables::Matrix{T}
     compressed_jacobian_variables::SparseMatrixCSC{T,Int}
     dense_compressed_jacobian_variables::Matrix{T}
@@ -10,7 +10,7 @@ struct SolverData{T}
     cone_product_jacobian_duals::Matrix{T}
     cone_product_jacobian_ratio::Matrix{T}
     jacobian_parameters::SparseMatrixCSC{T,Int}
-    jacobian_parameters_sparse::BlockSparse116{T}
+    jacobian_parameters_sparse::BlockSparse{T}
     step::Point{T}
     step_correction::Point{T}
     point_temporary::Point{T}
@@ -39,7 +39,7 @@ function SolverData(dim::Dimensions, idx::Indices, p_data::ProblemData;
     ranges = [(idx.equality, idx.variables), (idx.cone_product, idx.duals), (idx.cone_product, idx.slacks)]
     names = [:equality_jacobian_variables, :cone_jacobian_duals, :cone_jacobian_slacks]
     jacobian_variables = spzeros(num_variables, num_variables)
-    jacobian_variables_sparse = BlockSparse116(num_variables, num_variables, blocks, ranges, names=names)
+    jacobian_variables_sparse = BlockSparse(num_variables, num_variables, blocks, ranges, names=names)
 
     dense_jacobian_variables = zeros(num_variables, num_variables)
     compressed_jacobian_variables = spzeros(num_equality, num_equality)
@@ -53,7 +53,7 @@ function SolverData(dim::Dimensions, idx::Indices, p_data::ProblemData;
     ranges = [(idx.equality, idx.parameters)]
     names = [:equality_jacobian_parameters]
     jacobian_parameters = spzeros(num_variables, num_parameters)
-    jacobian_parameters_sparse = BlockSparse116(num_variables, num_parameters, blocks, ranges, names=names)
+    jacobian_parameters_sparse = BlockSparse(num_variables, num_parameters, blocks, ranges, names=names)
 
     step = Point(dim, idx)
     step_correction = Point(dim, idx)

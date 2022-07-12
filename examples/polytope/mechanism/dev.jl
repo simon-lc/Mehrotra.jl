@@ -6,19 +6,19 @@ using Quaternions
 using Plots
 
 
-include("../contact_model/lp_2d.jl")
-include("../polytope.jl")
-include("../visuals.jl")
-include("../rotate.jl")
-include("../quaternion.jl")
+include("../contact_model/lp_2d.jl");
+include("../polytope.jl");
+include("../visuals.jl");
+include("../rotate.jl");
+include("../quaternion.jl");
 
 vis = Visualizer()
 render(vis)
 
-include("node.jl")
-include("body.jl")
-include("contact.jl")
-include("mechanism.jl")
+include("node.jl");
+include("body.jl");
+include("contact.jl");
+include("mechanism.jl");
 
 
 
@@ -45,7 +45,7 @@ Ac = [
     -1.0  0.0;
      0.0 -1.0;
     ] .+ 0.00ones(4,2)
-bc = 1.5*[
+bc = 2.0*[
      1,
      1,
      1,
@@ -82,8 +82,8 @@ solve!(mech.solver)
 
 
 
-Xa2 = [[+0.1,3.0,0.0]]
-Xb2 = [[-0,1.0,0.0]]
+Xa2 = [[+0.1,5.0,1.0]]
+Xb2 = [[-0,1.0,-1.0]]
 Va15 = [[-0,0,-0.0]]
 Vb15 = [[+0,0,0.0]]
 Pp = []
@@ -150,4 +150,4 @@ for i = 1:H
 end
 MeshCat.setanimation!(vis, anim)
 # open(vis)
-# convert_frames_to_video_and_gif("no_real_flickering")
+# convert_frames_to_video_and_gif("no_real")

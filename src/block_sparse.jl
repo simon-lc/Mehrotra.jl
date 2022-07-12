@@ -1,11 +1,11 @@
-struct BlockSparse116{T,N,M}
+struct BlockSparse{T,N,M}
     matrix::SparseMatrixCSC{T, Int}
     indices::Vector{Vector{Int}}
     name_dict::Dict{Symbol,Int}
     ranges::Vector{Tuple{Vector{Int}, Vector{Int}}}
 end
 
-function BlockSparse116(n::Int, m::Int, blocks, ranges;
+function BlockSparse(n::Int, m::Int, blocks, ranges;
         names::AbstractVector{Symbol}=[Symbol(:b,i) for i=1:length(blocks)])
 
     nb = length(blocks)
@@ -34,11 +34,11 @@ function BlockSparse116(n::Int, m::Int, blocks, ranges;
         name_dict[name] = i
     end
 
-    return BlockSparse116{T,n,m}(matrix, indices, name_dict, ranges)
+    return BlockSparse{T,n,m}(matrix, indices, name_dict, ranges)
 end
 
 import Base.fill!
-function fill!(block_matrix::BlockSparse116, block, name)
+function fill!(block_matrix::BlockSparse, block, name)
     matrix = block_matrix.matrix
     indices = block_matrix.indices
     i = block_matrix.name_dict[name]

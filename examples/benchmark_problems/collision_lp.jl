@@ -1,0 +1,46 @@
+using Mehrotra
+using Random
+
+include("../polytope/contact_model/lp_2d.jl");
+
+
+# parameters
+Ap = [
+     1.0  0.0;
+     0.0  1.0;
+    -1.0  0.0;
+     0.0 -1.0;
+    ] .- 0.00ones(4,2)
+bp = 0.5*[
+    +1,
+    +1,
+    +1,
+     1,
+     # 2,
+    ]
+Ac = [
+     1.0  0.0;
+     0.0  1.0;
+    -1.0  0.0;
+     0.0 -1.0;
+    ] .+ 0.00ones(4,2)
+bc = 2.0*[
+     1,
+     1,
+     1,
+     1,
+    ]
+
+solver = lp_contact_solver(Ap, bp, Ac, bc; d=2,
+    options=Options(
+        verbose=false,
+        complementarity_tolerance=3e-3,
+        residual_tolerance=1e-6,
+        differentiate=true,
+        compressed_search_direction=false,
+        sparse_solver=true,
+        ));
+
+solve!(solver)
+Main.@profview [solve!(solver) for i=1:10000]
+@benchmark $solve!($solver)
