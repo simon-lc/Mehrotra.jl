@@ -65,10 +65,11 @@ end
 ################################################################################
 function lp_contact_solver(Ap, bp, Ac, bc; d::Int=2,
         options::Options=Options(
-            complementarity_tolerance=1e-2,
+            complementarity_tolerance=3e-3,
             residual_tolerance=1e-6,
             differentiate=true,
-            compressed_search_direction=false))
+            compressed_search_direction=true,
+            ))
 
     np = length(bp)
     nc = length(bc)
@@ -114,18 +115,29 @@ function set_parameters!(solver::Solver, xp, xc, Ap, bp, Ac, bc)
 end
 
 
-
 ################################################################################
 # ContactSolver
 ################################################################################
-struct ContactSolver171{T,S,NP,NC,FO,Fϕ,FP,FC,FN}
+struct ContactSolver174{T,S,NP,NC,FO,Fϕ,FP,FC,FN}
     solver::S
+
+    ϕ::Vector{T}
+    x::Vector{T}
+    N::Matrix{T}
+    P::Matrix{T}
+    V::Matrix{T}
+    ∂ϕ::Matrix{T}
+    ∂x::Matrix{T}
+    nw::Vector{T}
+    tw::Vector{T}
+    outvariables::Vector{T}
+
     get_outvariables::FO
     get_ϕ::Fϕ
     get_p_parent::FP
     get_p_child::FC
     get_N::FN
-    outvariables::Vector{T}
+
     num_parameters::Int
     num_outvariables::Int
 end
@@ -135,7 +147,7 @@ function ContactSolver(Ap::Matrix{T}, bp::Vector{T}, Ac::Matrix{T}, bc::Vector{T
         threads=false,
         options::Options=Options(
             verbose=false,
-            complementarity_tolerance=1e-2,
+            complementarity_tolerance=3e-3,
             residual_tolerance=1e-6,
             differentiate=true,
             compressed_search_direction=true)) where T
@@ -185,8 +197,21 @@ function ContactSolver(Ap::Matrix{T}, bp::Vector{T}, Ac::Matrix{T}, bc::Vector{T
 
     exprs = [xl_expr; ϕ_expr; p_parent_expr; p_child_expr; N_child_expr]
 
-    return ContactSolver171{T, typeof(solver), np, nc, typeof.(exprs)...}(
-        solver, exprs..., zeros(num_outvariables), num_parameters, num_outvariables)
+    return ContactSolver174{T, typeof(solver), np, nc, typeof.(exprs)...}(
+        solver,
+        zeros(1),#ϕ
+        zeros(d),#x
+        zeros(1,6),#N
+        zeros(1,6),#P
+        zeros(1,6),#V
+        zeros(1,6),#∂ϕ
+        zeros(1,6),#∂x
+        zeros(d),#nw
+        zeros(d),#tw
+        zeros(num_outvariables),
+        exprs...,
+        num_parameters,
+        num_outvariables)
 end
 
 function get_outvariables(solver::Solver{T}; d::Int=2, merged::Bool=true) where T
@@ -201,13 +226,17 @@ function get_outvariables(solution::Vector, solution_sensitivity::Matrix; d::Int
     N = solution_sensitivity[d .+ (1:1), 1:2d+2]
     ∂p_parent = solution_sensitivity[1:d, :]
     ∂p_child = solution_sensitivity[1:d, :]
+    nw = -N[1:d]
+    R = [0 1; -1 0]
+    tw = R * nw
 
-    merged && return [ϕ; p_parent; p_child; vec(N); vec(∂p_parent); vec(∂p_child)]
-    return ϕ, p_parent, p_child, N, ∂p_parent, ∂p_child
+    merged && return [ϕ; p_parent; p_child; vec(N); vec(∂p_parent); vec(∂p_child); nw; tw]
+    return ϕ, p_parent, p_child, N, ∂p_parent, ∂p_child, nw, tw
 end
 
 
-function update_outvariables!(contact_solver::ContactSolver171, parameters::Vector{T}) where T
+
+function update_outvariables!(contact_solver::ContactSolver174, parameters::Vector{T}) where T
     update_outvariables!(
         contact_solver.outvariables,
         parameters,

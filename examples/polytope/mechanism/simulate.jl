@@ -1,4 +1,4 @@
-function get_next_state!(mechanism::Mechanism171{T}) where T
+function get_next_state!(mechanism::Mechanism174{T}) where T
     bodies = mechanism.bodies
     num_bodies = length(bodies)
     nx = 6
@@ -9,7 +9,7 @@ function get_next_state!(mechanism::Mechanism171{T}) where T
     return x
 end
 
-function get_next_velocity!(mechanism::Mechanism171{T}) where T
+function get_next_velocity!(mechanism::Mechanism174{T}) where T
     bodies = mechanism.bodies
     num_bodies = length(bodies)
     nv = 3
@@ -20,7 +20,7 @@ function get_next_velocity!(mechanism::Mechanism171{T}) where T
     return v
 end
 
-function get_next_configuration!(mechanism::Mechanism171{T}) where T
+function get_next_configuration!(mechanism::Mechanism174{T}) where T
     bodies = mechanism.bodies
     num_bodies = length(bodies)
     nq = 3
@@ -33,23 +33,23 @@ end
 
 
 
-# function step!(mechanism::Mechanism171{T}, x::Vector{T}, u::Vector{T}) where T
+# function step!(mechanism::Mechanism174{T}, x::Vector{T}, u::Vector{T}) where T
 # end
 #
-# function input_gradient(du, x, u, mechanism::Mechanism171{T})
+# function input_gradient(du, x, u, mechanism::Mechanism174{T})
 # end
 #
-# function state_gradient(dx, x, u, mechanism::Mechanism171{T})
+# function state_gradient(dx, x, u, mechanism::Mechanism174{T})
 # end
 #
-# function set_input!(mechanism::Mechanism171{T})
+# function set_input!(mechanism::Mechanism174{T})
 # end
 #
-# function set_current_state!(mechanism::Mechanism171{T})
+# function set_current_state!(mechanism::Mechanism174{T})
 # end
 #
-# function set_next_state!(mechanism::Mechanism171{T})
+# function set_next_state!(mechanism::Mechanism174{T})
 # end
 #
-# function get_current_state!(mechanism::Mechanism171{T})
+# function get_current_state!(mechanism::Mechanism174{T})
 # end

@@ -1,9 +1,9 @@
 ################################################################################
 # body
 ################################################################################
-struct Body171{T,D}
+struct Body174{T,D}
     name::Symbol
-    node_index::NodeIndices171
+    node_index::NodeIndices174
     pose::Vector{T}
     velocity::Vector{T}
     input::Vector{T}
@@ -15,17 +15,17 @@ struct Body171{T,D}
     b_colliders::Vector{Vector{T}} #polytope
 end
 
-function Body171(timestep, mass, inertia::Matrix,
+function Body174(timestep, mass, inertia::Matrix,
         A_colliders::Vector{Matrix{T}},
         b_colliders::Vector{Vector{T}};
         gravity=-9.81,
         name::Symbol=:body,
-        node_index::NodeIndices171=NodeIndices171()) where T
+        node_index::NodeIndices174=NodeIndices174()) where T
 
     D = size(A_colliders[1],2)
     @assert D == 2
 
-    return Body171{T,D}(
+    return Body174{T,D}(
         name,
         node_index,
         zeros(D+1),
@@ -40,40 +40,29 @@ function Body171(timestep, mass, inertia::Matrix,
     )
 end
 
-function variable_dimension(body::Body171{T,D}) where {T,D}
-    if D == 2
-        nv = 3 # velocity
-        nx = nv
-    else
-        error("no 3D yet")
-    end
-    return nx
-end
+primal_dimension(body::Body174{T,D}) where {T,D} = 3
+cone_dimension(body::Body174{T,D}) where {T,D} = 0
+variable_dimension(body::Body174{T,D}) where {T,D} = primal_dimension(body) + 2 * cone_dimension(body)
+equality_dimension(body::Body174{T,D}) where {T,D} = primal_dimension(body) + cone_dimension(body)
 
-equality_dimension(body) = variable_dimension(body)
-
-function parameter_dimension(body::Body171{T,D}) where {T,D}
-    if D == 2
-        nq = 3 # configuration
-        nv = 3 # velocity
-        nu = 3 # input
-        n_gravity = 1 # mass
-        n_timestep = 1 # mass
-        n_mass = 1 # mass
-        n_inertia = 1 # inertia
-        nθ = nq + nv + nu + n_gravity + n_timestep + n_mass + n_inertia
-    else
-        error("no 3D yet")
-    end
+function parameter_dimension(body::Body174{T,D}) where {T,D}
+    @assert D == 2
+    nq = 3 # configuration
+    nv = 3 # velocity
+    nu = 3 # input
+    n_gravity = 1 # mass
+    n_timestep = 1 # mass
+    n_mass = 1 # mass
+    n_inertia = 1 # inertia
+    nθ = nq + nv + nu + n_gravity + n_timestep + n_mass + n_inertia
     return nθ
 end
 
-function unpack_body_variables(x::Vector{T}) where T
-    v = x
-    return v
+function unpack_variables(x::Vector{T}, body::Body174{T}) where T
+    return x
 end
 
-function get_parameters(body::Body171{T,D}) where {T,D}
+function get_parameters(body::Body174{T,D}) where {T,D}
     @assert D == 2
     pose = body.pose
     velocity = body.velocity
@@ -87,7 +76,7 @@ function get_parameters(body::Body171{T,D}) where {T,D}
     return θ
 end
 
-function set_parameters!(body::Body171{T,D}, θ) where {T,D}
+function set_parameters!(body::Body174{T,D}, θ) where {T,D}
     @assert D == 2
     off = 0
     body.pose .= θ[off .+ (1:D+1)]; off += D+1
@@ -101,7 +90,7 @@ function set_parameters!(body::Body171{T,D}, θ) where {T,D}
     return nothing
 end
 
-function unpack_body_parameters(θ::Vector, body::Body171{T,D}) where {T,D}
+function unpack_parameters(θ::Vector, body::Body174{T,D}) where {T,D}
     @assert D == 2
     off = 0
     pose = θ[off .+ (1:D+1)]; off += D+1
@@ -115,12 +104,13 @@ function unpack_body_parameters(θ::Vector, body::Body171{T,D}) where {T,D}
     return pose, velocity, input, timestep, gravity, mass, inertia
 end
 
-function body_residual!(e, x, θ, body::Body171)
+
+function body_residual!(e, x, θ, body::Body174)
     node_index = body.node_index
     # variables = primals = velocity
-    v25 = unpack_body_variables(x[node_index.x])
+    v25 = unpack_variables(x[node_index.x], body)
     # parameters
-    p2, v15, u, timestep, gravity, mass, inertia = unpack_body_parameters(θ[node_index.θ], body)
+    p2, v15, u, timestep, gravity, mass, inertia = unpack_parameters(θ[node_index.θ], body)
     # integrator
     p1 = p2 - timestep[1] * v15
     p3 = p2 + timestep[1] * v25

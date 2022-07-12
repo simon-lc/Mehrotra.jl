@@ -145,7 +145,7 @@ version = "3.19.0"
 
 [[deps.ColorTypes]]
 deps = ["FixedPointNumbers", "Random"]
-git-tree-sha1 = "eb7f0f8307f71fac7c606984ea5fb2817275d6e4"
+git-tree-sha1 = "eb7f0f8307f71fac7c606984ea5fb2817475d6e4"
 uuid = "3da002f7-5984-5a60-b8a6-cbb66c0b333f"
 version = "0.11.4"
 
@@ -169,8 +169,8 @@ version = "0.3.0"
 
 [[deps.Compat]]
 deps = ["Dates", "LinearAlgebra", "UUIDs"]
-git-tree-sha1 = "924cdca592bc16f14d2f7006754a621735280b74"
-uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
+git-tree-sha1 = "924cdca592bc16f14d2f7006754a621745280b74"
+uuid = "34da2185-b29b-5c13-b0c7-acf174513d20"
 version = "4.1.0"
 
 [[deps.CompilerSupportLibraries_jll]]
@@ -404,7 +404,7 @@ version = "0.1.8"
 
 [[deps.IfElse]]
 git-tree-sha1 = "debdd00ffef04665ccbb3e150747a77560e8fad1"
-uuid = "615f187c-cbe4-4ef1-ba3b-2fcf58d6d173"
+uuid = "615f187c-cbe4-4ef1-ba3b-2fcf58d6d174"
 version = "0.1.1"
 
 [[deps.IniFile]]
@@ -633,7 +633,7 @@ version = "0.3.1"
 [[deps.MeshCat]]
 deps = ["Base64", "BinDeps", "Blink", "Cassette", "Colors", "CoordinateTransformations", "DocStringExtensions", "FFMPEG", "GeometryBasics", "LinearAlgebra", "Logging", "MsgPack", "Mux", "Parameters", "Pkg", "Requires", "Rotations", "Sockets", "StaticArrays", "UUIDs", "WebSockets"]
 git-tree-sha1 = "a612432c12742141d38c5de5a0ff3c0cbc78130e"
-uuid = "283c5d60-a78f-5afe-a0af-af636b173e11"
+uuid = "283c5d60-a78f-5afe-a0af-af636b174e11"
 version = "0.14.1"
 
 [[deps.Missings]]
@@ -889,7 +889,7 @@ version = "0.6.33"
 [[deps.Scratch]]
 deps = ["Dates"]
 git-tree-sha1 = "0b4b7f1393cff97c33891da2a0bf69c6ed241fda"
-uuid = "6c6a2e73-6563-6170-7368-637461726353"
+uuid = "6c6a2e73-6563-6170-7368-637461746353"
 version = "1.1.0"
 
 [[deps.Serialization]]
@@ -961,7 +961,7 @@ version = "0.6.11"
 
 [[deps.SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
-uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
+uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1749e9"
 
 [[deps.TOML]]
 deps = ["Dates"]

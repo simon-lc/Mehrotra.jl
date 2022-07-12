@@ -25,48 +25,42 @@ include("mechanism.jl")
 # demo
 ################################################################################
 # parameters
-# Ap = [
-#      1.0  0.0;
-#      0.0  1.0;
-#     -1.0  0.0;
-#      0.0 -1.0;
-#     ] .- 0.00ones(4,2)
-# bp = 0.5*[
-#     +1,
-#     +1,
-#     +1,
-#     1,
-#     # 2,
-#     ]
-Θ = Vector(range(0,2π,length=10))[1:end-1]
-Ap = cat([[cos(θ) sin(θ)] for θ in Θ]..., dims=1)
-bp = 0.5*ones(9)
+Ap = [
+     1.0  0.0;
+     0.0  1.0;
+    -1.0  0.0;
+     0.0 -1.0;
+    ] .- 0.00ones(4,2)
+bp = 0.5*[
+    +1,
+    +1,
+    +1,
+     1,
+     # 2,
+    ]
 Ac = [
      1.0  0.0;
      0.0  1.0;
     -1.0  0.0;
      0.0 -1.0;
-    ] .+ 0.30ones(4,2)
-bc = 5.0*[
+    ] .+ 0.00ones(4,2)
+bc = 0.5*[
      1,
      1,
      1,
      1,
     ]
 
-
-
 timestep = 0.05
 gravity = -9.81
 mass = 1.0
 inertia = 0.2 * ones(1,1)
-μ = [0.3]
 
 # nodes
-bodya = Body171(timestep, mass, inertia, [Ap], [bp], gravity=+gravity, name=:bodya)
-bodyb = Body171(timestep, 1e6*mass, 1e6*inertia, [Ac], [bc], gravity=-0*gravity, name=:bodyb)
+bodya = Body174(timestep, mass, inertia, [Ap], [bp], gravity=+gravity, name=:bodya)
+bodyb = Body174(timestep, 1e6*mass, 1e6*inertia, [Ac], [bc], gravity=-0*gravity, name=:bodyb)
 bodies = [bodya, bodyb]
-contacts = [Friction171(bodies[1], bodies[2], μ)]
+contacts = [Contact174(bodies[1], bodies[2])]
 indexing!([bodies; contacts])
 
 contacts[1]
@@ -74,7 +68,7 @@ contacts[1]
 # mechanism
 local_residual(primals, duals, slacks, parameters) =
     mechanism_residual(primals, duals, slacks, parameters, bodies, contacts)
-mech = Mechanism171(local_residual, bodies, contacts)
+mech = Mechanism174(local_residual, bodies, contacts)
 
 
 ################################################################################
@@ -87,15 +81,15 @@ mech.contacts[1].contact_solver.solver.options.residual_tolerance
 
 
 
-Xa2 = [[+0.1,3.0,0.5]]
-Xb2 = [[+0,-3.0,0.0]]
-Va15 = [[-2,0,10.0]]
+Xa2 = [[+0.1,3.0,0.0]]
+Xb2 = [[-0,1.0,0.0]]
+Va15 = [[-0,0,-0.0]]
 Vb15 = [[+0,0,0.0]]
 Pp = []
 Pc = []
 iter = []
 
-H = 100
+H = 35
 Up = [zeros(3) for i=1:H]
 Uc = [zeros(3) for i=1:H]
 for i = 1:H
@@ -155,4 +149,4 @@ for i = 1:H
 end
 MeshCat.setanimation!(vis, anim)
 # open(vis)
-convert_frames_to_video_and_gif("polygone_rolling")
+# convert_frames_to_video_and_gif("no_real_flickering")

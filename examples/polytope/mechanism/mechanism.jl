@@ -1,7 +1,7 @@
 ################################################################################
 # dimensions
 ################################################################################
-struct MechanismDimensions171
+struct MechanismDimensions174
     body_configuration::Int
     body_velocity::Int
     body_state::Int
@@ -10,44 +10,64 @@ struct MechanismDimensions171
     variables::Int
     parameters::Int
     primals::Int
+    duals::Int
+    slacks::Int
     cone::Int
     equality::Int
 end
 
-function MechanismDimensions171(bodies::Vector, contacts::Vector)
+function MechanismDimensions174(bodies::Vector, contacts::Vector)
     # dimensions
-    nq = 3 # in 2D
-    nv = 3 # in 2D
-    nx = 6 # in 2D
-    nb = length(bodies)
-    nc = length(contacts)
-    nx = sum(variable_dimension.(bodies)) + sum(variable_dimension.(contacts))
-    nθ = sum(parameter_dimension.(bodies)) + sum(parameter_dimension.(contacts))
-    num_primals = sum(variable_dimension.(bodies))
-    num_cone = Int(sum(variable_dimension.(contacts)) / 2)
-    num_equality = num_primals + num_cone
-    return MechanismDimensions171(nq, nv, nx, nb, nc, nx, nθ, num_primals, num_cone, num_equality)
+    body_configuration = 3 # in 2D
+    body_velocity = 3 # in 2D
+    body_state = 6 # in 2D
+
+    num_bodies = length(bodies)
+    num_contacts = length(contacts)
+
+    nodes = [bodies; contacts]
+    num_variables = sum(variable_dimension.(nodes))
+    num_parameters = sum(parameter_dimension.(nodes))
+    num_primals = sum(primal_dimension.(nodes))
+    num_cone = sum(cone_dimension.(nodes))
+    num_duals = num_cone
+    num_slacks = num_cone
+    num_equality = sum(equality_dimension.(nodes))
+
+    return MechanismDimensions174(
+        body_configuration,
+        body_velocity,
+        body_state,
+        num_bodies,
+        num_contacts,
+        num_variables,
+        num_parameters,
+        num_primals,
+        num_duals,
+        num_slacks,
+        num_cone,
+        num_equality)
 end
 
 ################################################################################
 # mechanism
 ################################################################################
-struct Mechanism171{T,D,NB,NC,C}
+struct Mechanism174{T,D,NB,NC,C}
     variables::Vector{T}
     parameters::Vector{T}
     solver::Solver{T}
-    bodies::Vector{Body171{T}}
+    bodies::Vector{Body174{T}}
     contacts::Vector{C}
-    dimensions::MechanismDimensions171
+    dimensions::MechanismDimensions174
     # equalities::Vector{Equality{T}}
     # inequalities::Vector{Inequality{T}}
 end
 
-function Mechanism171(residual, bodies::Vector, contacts::Vector;
+function Mechanism174(residual, bodies::Vector, contacts::Vector;
         options::Options{T}=Options(), D::Int=2) where {T}
 
     # Dimensions
-    dim = MechanismDimensions171(bodies, contacts)
+    dim = MechanismDimensions174(bodies, contacts)
 
     # indexing
     indexing!([bodies; contacts])
@@ -83,7 +103,7 @@ function Mechanism171(residual, bodies::Vector, contacts::Vector;
 
     nb = length(bodies)
     nc = length(contacts)
-    mechanism = Mechanism171{T,D,nb,nc,eltype(contacts)}(
+    mechanism = Mechanism174{T,D,nb,nc,eltype(contacts)}(
         variables,
         parameters,
         solver,
@@ -92,21 +112,6 @@ function Mechanism171(residual, bodies::Vector, contacts::Vector;
         dim,
         )
     return mechanism
-end
-
-function indexing!(nodes::Vector)
-    eoff = 0
-    xoff = 0
-    θoff = 0
-    for node in nodes
-        ne = equality_dimension(node)
-        nx = variable_dimension(node)
-        nθ = parameter_dimension(node)
-        node.node_index.e = collect(eoff .+ (1:ne)); eoff += ne
-        node.node_index.x = collect(xoff .+ (1:nx)); xoff += nx
-        node.node_index.θ = collect(θoff .+ (1:nθ)); θoff += nθ
-    end
-    return nothing
 end
 
 function mechanism_residual(primals, duals, slacks, parameters, bodies, contacts)
