@@ -64,8 +64,9 @@ function Mehrotra.solve!(solver)
     )
 
     # residual
-    residual!(data, problem, indices, solution, parameters,
-        κ.tolerance_central_path, compressed=compressed, sparse_solver=sparse_solver)
+    residual!(data, problem, indices, κ.tolerance_central_path, 
+        compressed=compressed, 
+        sparse_solver=sparse_solver)
 
     # violations
     equality_violation = norm(data.residual.equality, Inf)
@@ -97,8 +98,9 @@ function Mehrotra.solve!(solver)
 
         ## Predictor step
         # residual
-        residual!(data, problem, indices, solution, parameters,
-            κ.zero_central_path, compressed=compressed, sparse_solver=sparse_solver)
+        residual!(data, problem, indices, κ.zero_central_path, 
+            compressed=compressed, 
+            sparse_solver=sparse_solver)
 
         # search direction
         search_direction!(solver)
@@ -117,8 +119,9 @@ function Mehrotra.solve!(solver)
         centering!(κ.target_central_path, solution, step, α.affine_step_size, indices, options=options)
 
         ## Corrector step
-        residual!(data, problem, indices, solution, parameters, κ.target_central_path,
-            compressed=compressed, sparse_solver=sparse_solver)
+        residual!(data, problem, indices, κ.target_central_path,
+            compressed=compressed, 
+            sparse_solver=sparse_solver)
         search_direction!(solver)
 
         # line search
@@ -133,8 +136,10 @@ function Mehrotra.solve!(solver)
             τ_nn=0.99, τ_soc=0.99, ϵ=1e-14, decoupling=decoupling)
 
         # violations
-        residual!(data, problem, indices, solution, parameters,
-            κ.tolerance_central_path, compressed=compressed, sparse_solver=sparse_solver) # TODO needs to be only recomputing residual of the cone
+        residual!(data, problem, indices, κ.tolerance_central_path, 
+            compressed=compressed, 
+            sparse_solver=sparse_solver) # TODO needs to be only recomputing residual of the cone
+
         equality_violation = norm(data.residual.equality, Inf)
         cone_product_violation = cone_violation(solver)
 
@@ -160,8 +165,8 @@ function Mehrotra.solve!(solver)
 
             ## Predictor step
             # residual
-            residual!(data, problem, indices, candidate, parameters,
-                κ.tolerance_central_path, compressed=compressed, sparse_solver=sparse_solver) # TODO needs to be options.complementarity_tolerance
+            residual!(data, problem, indices, κ.tolerance_central_path, 
+                compressed=compressed, sparse_solver=sparse_solver) # TODO needs to be options.complementarity_tolerance
 
             # violations
             equality_violation_candidate = norm(data.residual.equality, Inf)

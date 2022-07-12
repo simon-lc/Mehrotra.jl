@@ -1,6 +1,6 @@
 function evaluate!(problem::ProblemData{T},
         methods::AbstractProblemMethods{T,E,EX,EP},
-        cone_methods::ConeMethods{B,BX,P,PX,PXS,PXI,TA},
+        cone_methods::ConeMethods{B,BX,P,PX,PXI,TA},
         solution::Point{T},
         parameters::Vector{T};
         equality_constraint=false,
@@ -10,7 +10,7 @@ function evaluate!(problem::ProblemData{T},
         cone_jacobian=false,
         cone_jacobian_inverse=false,
         sparse_solver::Bool=false,
-        ) where {T,E,EX,EP,B,BX,P,PX,PXS,PXI,TA}
+        ) where {T,E,EX,EP,B,BX,P,PX,PXI,TA}
 
     x = solution.all
     y = solution.primals
@@ -61,7 +61,7 @@ end
 
 # function evaluate!(problem::ProblemData112{T},
 #         methods::AbstractProblemMethods{T,E,EX,EP},
-#         cone_methods::ConeMethods{B,BX,P,PX,PXS,PXI,TA},
+#         cone_methods::ConeMethods{B,BX,P,PX,PXI,TA},
 #         solution::Point{T},
 #         parameters::Vector{T};
 #         equality_constraint=false,
@@ -70,7 +70,7 @@ end
 #         cone_constraint=false,
 #         cone_jacobian=false,
 #         cone_jacobian_inverse=false,
-#         ) where {T,E,EX,EP,B,BX,P,PX,PXS,PXI,TA}
+#         ) where {T,E,EX,EP,B,BX,P,PX,PXI,TA}
 #
 #     x = solution.all
 #     y = solution.primals

@@ -1,21 +1,22 @@
 struct SolverData{T}
     residual::Point{T}
-    compressed_residual::Point{T}
-    jacobian_variables::SparseMatrixCSC{T,Int}
+    residual_compressed::Point{T}
+    # jacobian_variables::SparseMatrixCSC{T,Int}
+    jacobian_variables_dense::Matrix{T}
     jacobian_variables_sparse::BlockSparse{T}
-    dense_jacobian_variables::Matrix{T}
-    compressed_jacobian_variables::SparseMatrixCSC{T,Int}
-    dense_compressed_jacobian_variables::Matrix{T}
+    jacobian_variables_dense_compressed::Matrix{T}
+    jacobian_variables_sparse_compressed::SparseMatrixCSC{T,Int}
+    slackness_jacobian_slacks::Vector{T}
     cone_product_jacobian_inverse_slack::Matrix{T}
     cone_product_jacobian_duals::Matrix{T}
     cone_product_jacobian_ratio::Matrix{T}
     jacobian_parameters::SparseMatrixCSC{T,Int}
     jacobian_parameters_sparse::BlockSparse{T}
     step::Point{T}
-    step_correction::Point{T}
+    # step_correction::Point{T}
     point_temporary::Point{T}
-    merit::Vector{T}
-    merit_gradient::Vector{T}
+    # merit::Vector{T}
+    # merit_gradient::Vector{T}
     constraint_violation::Vector{T}
     solution_sensitivity::Matrix{T}
 end
@@ -29,8 +30,10 @@ function SolverData(dim::Dimensions, idx::Indices, p_data::ProblemData;
     num_cone = dim.cone
 
     residual = Point(dim, idx)
-    compressed_residual = Point(dim, idx)
+    residual_compressed = Point(dim, idx)
 
+    # jacobian_variables = spzeros(num_variables, num_variables)
+    jacobian_variables_dense = zeros(num_variables, num_variables)
     blocks = [
         p_data.equality_jacobian_variables_sparse,
         p_data.cone_product_jacobian_duals_sparse,
@@ -38,12 +41,12 @@ function SolverData(dim::Dimensions, idx::Indices, p_data::ProblemData;
         ]
     ranges = [(idx.equality, idx.variables), (idx.cone_product, idx.duals), (idx.cone_product, idx.slacks)]
     names = [:equality_jacobian_variables, :cone_jacobian_duals, :cone_jacobian_slacks]
-    jacobian_variables = spzeros(num_variables, num_variables)
     jacobian_variables_sparse = BlockSparse(num_variables, num_variables, blocks, ranges, names=names)
 
-    dense_jacobian_variables = zeros(num_variables, num_variables)
-    compressed_jacobian_variables = spzeros(num_equality, num_equality)
-    dense_compressed_jacobian_variables = zeros(num_equality, num_equality)
+    jacobian_variables_dense_compressed = zeros(num_equality, num_equality)
+    jacobian_variables_sparse_compressed = spzeros(num_equality, num_equality)
+
+    slackness_jacobian_slacks = zeros(num_cone)
 
     cone_product_jacobian_inverse_slack = zeros(num_cone, num_cone)
     cone_product_jacobian_duals = zeros(num_cone, num_cone)
@@ -56,35 +59,36 @@ function SolverData(dim::Dimensions, idx::Indices, p_data::ProblemData;
     jacobian_parameters_sparse = BlockSparse(num_variables, num_parameters, blocks, ranges, names=names)
 
     step = Point(dim, idx)
-    step_correction = Point(dim, idx)
+    # step_correction = Point(dim, idx)
     point_temporary = Point(dim, idx)
 
-    merit = zeros(1)
-    merit_gradient = zeros(num_variables)
+    # merit = zeros(1)
+    # merit_gradient = zeros(num_variables)
 
-    constraint_violation = zeros(num_variables)
+    # constraint_violation = zeros(num_variables)
 
     solution_sensitivity = zeros(num_variables, num_parameters)
 
     SolverData(
         residual,
-        compressed_residual,
-        jacobian_variables,
+        residual_compressed,
+        # jacobian_variables,
+        jacobian_variables_dense,
         jacobian_variables_sparse,
-        dense_jacobian_variables,
-        compressed_jacobian_variables,
-        dense_compressed_jacobian_variables,
+        jacobian_variables_dense_compressed,
+        jacobian_variables_sparse_compressed,
+        slackness_jacobian_slacks,
         cone_product_jacobian_inverse_slack,
         cone_product_jacobian_duals,
         cone_product_jacobian_ratio,
         jacobian_parameters,
         jacobian_parameters_sparse,
         step,
-        step_correction,
+        # step_correction,
         point_temporary,
-        merit,
-        merit_gradient,
-        constraint_violation,
+        # merit,
+        # merit_gradient,
+        # constraint_violation,
         solution_sensitivity,
     )
 end

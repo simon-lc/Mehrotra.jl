@@ -1,9 +1,9 @@
-struct Solver{T,X,E,EX,EP,B,BX,P,PX,PXS,PXI,K}
+struct Solver{T,X,E,EX,EP,B,BX,P,PX,PXI,K}
 # struct Solver{T,X,B,BX,P,PX,PXI,K}
     problem::ProblemData{T,X}
     # methods::ProblemMethods{T,E,EX,EP}
     methods::AbstractProblemMethods{T,E,EX,EP}
-    cone_methods::ConeMethods{T,B,BX,P,PX,PXS,PXI,K}
+    cone_methods::ConeMethods{T,B,BX,P,PX,PXI,K}
     data::SolverData{T}
 
     solution::Point{T}
@@ -13,8 +13,7 @@ struct Solver{T,X,E,EX,EP,B,BX,P,PX,PXS,PXI,K}
     indices::Indices
     dimensions::Dimensions
 
-    # linear_solver::LDLSolver{T,Int}
-    linear_solver#::LUSolver{T}
+    linear_solver::LinearSolver{T}
 
     step_sizes::StepSize{T}
     central_paths::CentralPath{T}
@@ -105,13 +104,19 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     # residual_jacobian_variables_symmetric!(s_data.jacobian_variables_symmetric, s_data.jacobian_variables, idx,
     #     p_data.second_order_jacobians, p_data.second_order_jacobians)
 
+    residual!(s_data, p_data, idx, central_paths.central_path;
+        compressed=options.compressed_search_direction,
+        sparse_solver=options.sparse_solver)
+
     if options.sparse_solver
         # linear_solver = ilu0(s_data.jacobian_variables_sparse.matrix)
-        linear_solver = sparse_lu_solver(s_data.jacobian_variables_sparse.matrix + 1e3I)
+        # linear_solver = sparse_lu_solver(s_data.jacobian_variables_sparse.matrix + 1e3I)
+        @show nnz(s_data.jacobian_variables_sparse.matrix)
+        linear_solver = ldl_solver(s_data.jacobian_variables_sparse.matrix + I)
     else
         linear_solver = options.compressed_search_direction ?
-            lu_solver(s_data.dense_compressed_jacobian_variables) :
-            lu_solver(s_data.dense_jacobian_variables)
+            lu_solver(s_data.jacobian_variables_dense_compressed) :
+            lu_solver(s_data.jacobian_variables_dense)
     end
 
     # regularization

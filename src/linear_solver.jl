@@ -1,21 +1,21 @@
-abstract type LinearSolver end
+abstract type LinearSolver{T} end
 
 
 """
     Empty solver
 """
-mutable struct EmptySolver <: LinearSolver
+mutable struct EmptySolver{T} <: LinearSolver{T}
     F::Any
 end
 
 function empty_solver(A::Any)
-    EmptySolver(A)
+    EmptySolver{Float64}(A)
 end
 
 """
     LU solver
 """
-mutable struct LUSolver{T} <: LinearSolver
+mutable struct LUSolver{T} <: LinearSolver{T}
     A::Array{T,2}
     x::Vector{T}
     ipiv::Vector{Int}
@@ -77,7 +77,7 @@ end
 """
     Sparse LU solver
 """
-mutable struct SparseLUSolver{T} <: LinearSolver
+mutable struct SparseLUSolver{T} <: LinearSolver{T}
     x::Vector{T}
     factorization::SuiteSparse.UMFPACK.UmfpackLU{T, Int}
 end
@@ -141,7 +141,7 @@ end
 # end
 
 
-mutable struct LDLSolver111{Tf<:AbstractFloat,Ti<:Integer} <: LinearSolver
+mutable struct LDLSolver111{Tf<:AbstractFloat,Ti<:Integer} <: LinearSolver{Tf}
     # QDLDL Factorization
     F::QDLDL.QDLDLFactorisation{Tf,Ti}
     Atriu::SparseMatrixCSC{Tf,Ti}
@@ -185,23 +185,6 @@ function linear_solve!(solver::LDLSolver111{Tv,Ti}, x::Vector{Tv}, A::SparseMatr
     x .= b
     solve!(solver.F, x) # solve
 end
-
-# function linear_solve!(solver::LDLSolver111{Tv,Ti}, x::Vector{Tv}, A::AbstractMatrix{Tv}, b::Vector{Tv};
-#     fact=true,
-#     update=true) where {Tv<:AbstractFloat,Ti<:Integer}
-
-#     # fill sparse_matrix
-#     n, m = size(A) 
-#     for i = 1:n 
-#         for j = 1:m 
-#             solver.Atriu[i, j] = A[i, j]
-#         end
-#     end
-    
-#     linear_solve!(solver, x, solver.Atriu, b, 
-#         fact=fact,
-#         update=update)
-# end
 
 function linear_solve!(solver::LDLSolver111{T}, x::Matrix{T}, A::AbstractMatrix{T},
     b::Matrix{T}; 

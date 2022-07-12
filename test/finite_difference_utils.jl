@@ -44,7 +44,7 @@ function test_residual_jacobian(solver, residual; mode::Symbol=:variables)
         cone_jacobian=true,
         cone_jacobian_inverse=true,
     )
-    Mehrotra.residual!(data, problem, indices, solution, parameters, κ.tolerance_central_path)
+    Mehrotra.residual!(data, problem, indices, κ.tolerance_central_path)
 
     # reference
     if mode == :variables

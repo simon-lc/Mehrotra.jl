@@ -41,6 +41,22 @@ solver = lp_contact_solver(Ap, bp, Ac, bc; d=2,
         sparse_solver=true,
         ));
 
+
+solver.problem.equality_jacobian_parameters_sparse
+solver.problem.equality_jacobian_variables_sparse[1:7,1:7]
+solver.problem.cone_product_jacobian_duals_sparse
+solver.problem.cone_product_jacobian_slacks_sparse
+
+solver.data.jacobian_variables
+solver.data.jacobian_variables_sparse.matrix
+
+solver.options.sparse_solver
+solver.linear_solver
+
+solver.data.jacobian_variables
+solver.data.jacobian_variables_sparse.matrix
+solver.data.jacobian_variables_dense
+
 solve!(solver)
 Main.@profview [solve!(solver) for i=1:10000]
 @benchmark $solve!($solver)

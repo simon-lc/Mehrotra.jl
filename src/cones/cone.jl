@@ -87,29 +87,46 @@ function cone!(problem::ProblemData{T}, methods::ConeMethods, solution::Point{T}
     barrier && methods.barrier(problem.barrier, s)
     barrier_gradient && methods.barrier_gradient(problem.barrier_gradient, s)
 
-    # cone
+    # cone constraint
     cone_constraint && methods.product(problem.cone_product, z, s)
-    # cone_jacobian && methods.product_jacobian(problem.cone_product_jacobian_duals, z, s)
-    # cone_jacobian && methods.product_jacobian(problem.cone_product_jacobian_slacks, s, z)
-    cone_jacobian && methods.product_jacobian_sparse(methods.product_jacobian_duals_cache, z, s)
-    cone_jacobian && methods.product_jacobian_sparse(methods.product_jacobian_slacks_cache, s, z)
-    if sparse_solver
-        problem.cone_product_jacobian_duals_sparse.nzval .= methods.product_jacobian_duals_cache
-    else
-        for (i, idx) in enumerate(methods.product_jacobian_duals_sparsity)
-            problem.cone_product_jacobian_duals[idx...] = methods.product_jacobian_duals_cache[i]
-        end
-    end
-    if sparse_solver
-        problem.cone_product_jacobian_slacks_sparse.nzval .= methods.product_jacobian_slacks_cache
-    else
-        for (i, idx) in enumerate(methods.product_jacobian_slacks_sparsity)
-            problem.cone_product_jacobian_slacks[idx...] = methods.product_jacobian_slacks_cache[i]
-        end
-    end
 
-    cone_jacobian_inverse && methods.product_jacobian_inverse(problem.cone_product_jacobian_inverse_dual, z, s)
-    cone_jacobian_inverse && methods.product_jacobian_inverse(problem.cone_product_jacobian_inverse_slack, s, z)
+    # cone jacobian
+    cone_jacobian && methods.product_jacobian(methods.product_jacobian_duals_cache, z, s)
+    cone_jacobian && methods.product_jacobian(methods.product_jacobian_slacks_cache, s, z)
+    # if sparse_solver
+    problem.cone_product_jacobian_duals_sparse.nzval .= methods.product_jacobian_duals_cache
+    # else
+    #     for (i, idx) in enumerate(methods.product_jacobian_duals_sparsity)
+    #         problem.cone_product_jacobian_duals[idx...] = methods.product_jacobian_duals_cache[i]
+    #     end
+    # end
+    # if sparse_solver
+    problem.cone_product_jacobian_slacks_sparse.nzval .= methods.product_jacobian_slacks_cache
+    # else
+    #     for (i, idx) in enumerate(methods.product_jacobian_slacks_sparsity)
+    #         problem.cone_product_jacobian_slacks[idx...] = methods.product_jacobian_slacks_cache[i]
+    #     end
+    # end
+
+    # cone jacobian inverse
+    cone_jacobian_inverse && methods.product_jacobian_inverse(problem.product_jacobian_inverse_duals_cache, z, s)
+    cone_jacobian_inverse && methods.product_jacobian_inverse(problem.product_jacobian_inverse_duals_cache, s, z)
+    # if sparse_solver
+    problem.cone_product_jacobian_inverse_duals_sparse.nzval .= methods.product_jacobian_inverse_duals_cache
+    # else
+    #     for (i, idx) in enumerate(methods.product_jacobian_inverse_duals_sparsity)
+    #         problem.cone_product_jacobian_inverse_duals[idx...] = methods.product_jacobian_inverse_duals_cache[i]
+    #     end
+    # end
+    # if sparse_solver
+    problem.cone_product_jacobian_inverse_slacks_sparse.nzval .= methods.product_jacobian_inverse_slacks_cache
+    # else
+    #     for (i, idx) in enumerate(methods.product_jacobian_inverse_slacks_sparsity)
+    #         problem.cone_product_jacobian_inverse_slacks[idx...] = methods.product_jacobian_inverse_slacks_cache[i]
+    #     end
+    # end
+
+    # cone target
     cone_target && methods.target(problem.cone_target, z, s)
 
     return

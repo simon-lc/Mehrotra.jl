@@ -31,7 +31,7 @@ function differentiate!(solver)
         cone_jacobian_inverse=true,
     )
 
-    residual!(data, problem, indices, solution, parameters, κ.tolerance_central_path,
+    residual!(data, problem, indices, κ.tolerance_central_path,
         compressed=compressed, sparse_solver=sparse_solver)
 
     # # residual Jacobian wrt variables
@@ -55,11 +55,11 @@ function differentiate!(solver)
         S = data.cone_product_jacobian_duals
 
         # primal dual step
-        data.dense_compressed_jacobian_variables .= data.compressed_jacobian_variables
+        data.jacobian_variables_dense_compressed .= data.jacobian_variables_sparse_compressed
         linear_solve!(solver.linear_solver,
             # data.solution_sensitivity[indices.equality, :],
             view(data.solution_sensitivity, 1:dimensions.equality, :),
-            data.dense_compressed_jacobian_variables,
+            data.jacobian_variables_dense_compressed,
             # data.jacobian_parameters[indices.equality, :],
             view(data.jacobian_parameters, 1:dimensions.equality, :),
             fact=true)
@@ -81,9 +81,9 @@ function differentiate!(solver)
                 data.jacobian_variables_sparse.matrix, data.jacobian_parameters, fact=true)
             data.solution_sensitivity .*= -1.0
         else
-            data.dense_jacobian_variables .= data.jacobian_variables
+            data.jacobian_variables_dense .= data.jacobian_variables
             linear_solve!(solver.linear_solver, data.solution_sensitivity,
-                data.dense_jacobian_variables, data.jacobian_parameters, fact=true)
+                data.jacobian_variables_dense, data.jacobian_parameters, fact=true)
             data.solution_sensitivity .*= -1.0
         end
     end

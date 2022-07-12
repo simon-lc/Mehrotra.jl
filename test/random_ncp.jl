@@ -150,9 +150,9 @@ end
 #
 #
 #
-# residual!(data, problem, indices, solution, parameters,
+# residual!(data, problem, indices,
 #     central_paths.target_central_path; compressed=true)
-# Main.@code_warntype residual!(data, problem, indices, solution, parameters,
+# Main.@code_warntype residual!(data, problem, indices,
 #     central_paths.target_central_path; compressed=true)
-# @benchmark $residual!($data, $problem, $indices, $solution, $parameters,
+# @benchmark $residual!($data, $problem, $indices,s,
 #     $central_paths.target_central_path; compressed=true)

@@ -27,7 +27,6 @@
     solver: Solver
 """
 function search_direction!(solver::Solver)
-    dimensions = solver.dimensions
     linear_solver = solver.linear_solver
     data = solver.data
     step = data.step
@@ -35,70 +34,67 @@ function search_direction!(solver::Solver)
     sparse_solver = solver.options.sparse_solver
 
     if compressed
-        compressed_search_direction!(linear_solver, dimensions, data, step)
+        compressed_search_direction!(linear_solver, data, step, 
+            sparse_solver=sparse_solver)
     else
-        uncompressed_search_direction!(linear_solver, dimensions, data, step, sparse_solver=sparse_solver)
+        uncompressed_search_direction!(linear_solver, data, step, 
+            sparse_solver=sparse_solver)
     end
     return nothing
 end
 
-function compressed_search_direction!(linear_solver::LUSolver{T},
-        dimensions::Dimensions,
+function compressed_search_direction!(linear_solver::LinearSolver{T},
         data::SolverData{T},
         step::Point{T},
+        sparse_solver::Bool=false,
         ) where T
 
 
     Zi = data.cone_product_jacobian_inverse_slack
     S = data.cone_product_jacobian_duals
     # primal dual step
-    # step.equality .= data.compressed_jacobian_variables \ residual.equality
-    data.dense_compressed_jacobian_variables .= data.compressed_jacobian_variables
-
-    linear_solve!(linear_solver, step.equality,
-        data.dense_compressed_jacobian_variables, data.compressed_residual.equality)
+    # step.equality .= data.jacobian_variables_sparse_compressed \ residual.equality
+    jacobian_variables_compressed = sparse_solver ? jacobian_variables_sparse_compressed : jacobian_variables_dense_compressed
+    linear_solve!(linear_solver, 
+        step.equality, 
+        jacobian_variables_compressed, 
+        data.residual_compressed.equality)
     step.equality .*= -1.0
 
     # slack step
-    # step.slacks .= -Zi * (data.compressed_residual.cone_product + S * step.duals) # -Z⁻¹ (cone_product + S * Δz)
+    # step.slacks .= -Zi * (data.residual_compressed.cone_product + S * step.duals) # -Z⁻¹ (cone_product + S * Δz)
     data.point_temporary.slacks .= 0.0
     mul!(data.point_temporary.slacks, S, step.duals)
-    data.point_temporary.slacks .+= data.compressed_residual.cone_product
+    data.point_temporary.slacks .+= data.residual_compressed.cone_product
     mul!(step.slacks, Zi, data.point_temporary.slacks)
     step.slacks .*= -1.0
     data.point_temporary.slacks .= 0.0
+    
     return nothing
 end
 
 
-function uncompressed_search_direction!(linear_solver,#::LUSolver{T},
-        dimensions::Dimensions,
+function uncompressed_search_direction!(linear_solver::LinearSolver{T},
         data::SolverData{T},
         step::Point{T};
         sparse_solver::Bool=false,
         ) where T
 
 
-    # ny = dimensions.primals
-    # nz = dimensions.duals
-    # ns = dimensions.slacks
     if sparse_solver
         # ilu0!(linear_solver, data.jacobian_variables_sparse.matrix)
         # ldiv!(step.all, linear_solver, data.residual.all)
-        # @show norm(data.jacobian_variables_sparse.matrix * step.all - data.residual.all, Inf)
         step.all .= data.jacobian_variables_sparse.matrix \ data.residual.all
     else
-        data.dense_jacobian_variables .= data.jacobian_variables
         linear_solve!(
             linear_solver,
             step.all,
-            # data.dense_jacobian_variables + Diagonal([1.0*1e-8ones(ny); zeros(nz+ns)]),
-            data.dense_jacobian_variables,
+            data.jacobian_variables_dense,
             data.residual.all,
             fact=true)
     end
-
     step.all .*= -1.0
+    
     return nothing
 end
 
@@ -123,7 +119,7 @@ end
 # data = solver.data
 # residual = solver.data.residual
 # linear_solve!(solver.linear_solver, step0.equality,
-#     data.dense_compressed_jacobian_variables, residual.equality)
+#     data.jacobian_variables_dense_compressed, residual.equality)
 #
 #
 # step0.all[solver.indices.duals]

@@ -128,10 +128,10 @@ end
 # S0 = solverc.data.solution_sensitivity
 # S1 = solveru.data.solution_sensitivity
 #
-# solverc.data.compressed_residual
-# solverc.data.compressed_jacobian_variables
+# solverc.data.residual_compressed
+# solverc.data.jacobian_variables_sparse_compressed
 # solverc.data.jacobian_variables
-# inv(Matrix(solverc.data.compressed_jacobian_variables))
+# inv(Matrix(solverc.data.jacobian_variables_sparse_compressed))
 # @test norm(S0 - S1) < 1e-10
 # norm(S0 - S1, Inf)
 #
@@ -143,7 +143,7 @@ end
 # norm(Δ0 - Δ1, Inf)
 #
 #
-# solverc.data.compressed_jacobian_variables
+# solverc.data.jacobian_variables_sparse_compressed
 # Δ0
 # Δ1
 # Δ0 - Δ1
@@ -157,9 +157,9 @@ end
 #
 #
 # norm(solverc.data.residual.all - solveru.data.residual.all)
-# norm(solverc.data.compressed_residual.all - solveru.data.residual.all)
+# norm(solverc.data.residual_compressed.all - solveru.data.residual.all)
 #
-# solverc.data.compressed_residual.all - solveru.data.residual.all
+# solverc.data.residual_compressed.all - solveru.data.residual.all
 #
 #
 # Zi = solverc.data.cone_product_jacobian_inverse_slack
