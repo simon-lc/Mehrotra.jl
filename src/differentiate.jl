@@ -48,8 +48,8 @@ function differentiate!(solver)
 
         # primal dual step
         # data.jacobian_variables_dense_compressed .= data.jacobian_variables_sparse_compressed
-        @show norm(jacobian_variables_compressed)
-        @show norm(jacobian_parameters)
+        # @show norm(jacobian_variables_compressed)
+        # @show norm(jacobian_parameters)
         linear_solve!(solver.linear_solver,
             # data.solution_sensitivity[indices.equality, :],
             view(data.solution_sensitivity, 1:dimensions.equality, :),
@@ -58,7 +58,7 @@ function differentiate!(solver)
             view(data.jacobian_parameters, 1:dimensions.equality, :),
             fact=true)
         data.solution_sensitivity .*= -1.0
-        @show norm(data.solution_sensitivity)
+        # @show norm(data.solution_sensitivity)
 
         # for i = 1:dimensions.parameters
         #     data.solution_sensitivity[indices.slacks, i] .=
