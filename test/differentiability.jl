@@ -20,6 +20,7 @@ include("finite_difference_utils.jl")
             complementarity_tolerance=1e-8,
             differentiate=true,
             compressed_search_direction=false,
+            sparse_solver=true,
         ),
     )
 
@@ -146,3 +147,119 @@ end
     test_solution_sensitivity(solver)
     @test test_solution_sensitivity(solver) < 1e-2
 end
+
+
+
+
+
+
+# #########################################
+# # problem setup
+# #########################################
+# solver = random_lcp(;
+#     num_primals=2,
+#     num_cone=3,
+#     cone_type=:non_negative_cone,
+#     seed=1,
+#     options=Mehrotra.Options(
+#         verbose=false,
+#         residual_tolerance=1e-8,
+#         complementarity_tolerance=1e-8,
+#         differentiate=true,
+#         compressed_search_direction=true,
+#         sparse_solver=true,
+#     ),
+# )
+# solver.dimensions.parameters
+# solver.dimensions.primals
+# solver.dimensions.cone
+
+# #########################################
+# # residual jacobians
+# #########################################
+# test_residual_jacobian(solver, lcp_residual;
+#     mode=:variables)
+# @test test_residual_jacobian(solver, lcp_residual;
+#     mode=:variables) < 1e-6
+
+# test_residual_jacobian(solver, lcp_residual;
+#     mode=:parameters)
+# @test test_residual_jacobian(solver, lcp_residual;
+#     mode=:parameters) < 1e-6
+
+# #########################################
+# # solution sensitivity
+# #########################################
+# err, S0, S1 = test_solution_sensitivity(solver)
+# @test test_solution_sensitivity(solver) < 1e-4
+
+# solver.data.solution_sensitivity
+# S0
+# S1
+
+# solver.data.jacobian_variables_dense_compressed
+# solver.data.jacobian_variables_sparse.matrix
+# solver.data.jacobian_variables_dense
+# solver.data.jacobian_parameters[1:2,1:4]
+
+# solver.linear_solver
+
+
+
+
+
+
+
+
+
+
+# #########################################
+# # problem setup
+# #########################################
+# solver = random_lcp(;
+#     num_primals=2,
+#     num_cone=3,
+#     cone_type=:non_negative_cone,
+#     seed=1,
+#     options=Mehrotra.Options(
+#         verbose=false,
+#         residual_tolerance=1e-8,
+#         complementarity_tolerance=1e-8,
+#         differentiate=true,
+#         compressed_search_direction=false,
+#         sparse_solver=false,
+#     ),
+# );
+
+# solve!(solver)
+# #########################################
+# # residual jacobians
+# #########################################
+# test_residual_jacobian(solver, lcp_residual;
+#     mode=:variables)
+# @test test_residual_jacobian(solver, lcp_residual;
+#     mode=:variables) < 1e-6
+
+# test_residual_jacobian(solver, lcp_residual;
+#     mode=:parameters)
+
+# @test test_residual_jacobian(solver, lcp_residual;
+#     mode=:parameters) < 1e-6
+
+# #########################################
+# # solution sensitivity
+# #########################################
+# test_solution_sensitivity(solver)
+# @test test_solution_sensitivity(solver) < 1e-4
+
+
+# using Plots
+# plot(Gray.(1e10*abs.(J0)))
+# plot(Gray.(1e10*abs.(J1)))
+# plot(Gray.(1e10*abs.(J0 - J1)))
+
+# J0
+# J1
+# Matrix(solver.problem.equality_jacobian_parameters)
+# Matrix(solver.problem.equality_jacobian_parameters_sparse)
+

@@ -28,24 +28,27 @@ function evaluate!(problem::ProblemData{T},
 
     if (equality_jacobian_variables && ne > 0)
         methods.equality_jacobian_variables(methods.equality_jacobian_variables_cache, x, θ)
-        if sparse_solver
-            problem.equality_jacobian_variables_sparse.nzval .= methods.equality_jacobian_variables_cache
-        else
-            for (i, idx) in enumerate(methods.equality_jacobian_variables_sparsity)
-                problem.equality_jacobian_variables[idx...] = methods.equality_jacobian_variables_cache[i]
-            end
-        end
+        # if sparse_solver
+        problem.equality_jacobian_variables_sparse.nzval .= methods.equality_jacobian_variables_cache
+        # else
+            # for (i, idx) in enumerate(methods.equality_jacobian_variables_sparsity)
+                # problem.equality_jacobian_variables[idx...] = methods.equality_jacobian_variables_cache[i]
+            # end
+        # end
     end
 
     if (equality_jacobian_parameters && ne > 0 && nθ > 0)
         methods.equality_jacobian_parameters(methods.equality_jacobian_parameters_cache, x, θ)
-        if sparse_solver
-            problem.equality_jacobian_parameters_sparse.nzval .= methods.equality_jacobian_parameters_cache
-        else
-            for (i, idx) in enumerate(methods.equality_jacobian_parameters_sparsity)
-                problem.equality_jacobian_parameters[idx...] = methods.equality_jacobian_parameters_cache[i]
-            end
-        end
+        # @show methods.equality_jacobian_parameters_cache[1:4]
+        # if sparse_solver
+        problem.equality_jacobian_parameters_sparse.nzval .= methods.equality_jacobian_parameters_cache
+            # @show problem.equality_jacobian_parameters_sparse[1:2,1:4]
+        # else
+            # for (i, idx) in enumerate(methods.equality_jacobian_parameters_sparsity)
+                # problem.equality_jacobian_parameters[idx...] = methods.equality_jacobian_parameters_cache[i]
+                # @show problem.equality_jacobian_parameters[1:2,1:4]
+            # end
+        # end
     end
 
     # evaluate candidate cone product constraint, cone target and jacobian

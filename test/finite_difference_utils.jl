@@ -29,8 +29,10 @@ function test_residual_jacobian(solver, residual; mode::Symbol=:variables)
     variables = solver.solution.all
     parameters = solver.parameters
     options = solver.options
-    indices = solver.indices
+    idx = solver.indices
     κ = solver.central_paths
+    compressed = options.compressed_search_direction
+    sparse_solver = options.sparse_solver
 
     # find solution
     Mehrotra.solve!(solver)
@@ -43,28 +45,48 @@ function test_residual_jacobian(solver, residual; mode::Symbol=:variables)
         cone_constraint=true,
         cone_jacobian=true,
         cone_jacobian_inverse=true,
+        sparse_solver=sparse_solver,
     )
-    Mehrotra.residual!(data, problem, indices, κ.tolerance_central_path)
+    Mehrotra.residual!(data, problem, idx, κ.tolerance_central_path,
+        compressed=compressed,
+        sparse_solver=sparse_solver,
+        )
 
     # reference
     if mode == :variables
-        J0 = data.jacobian_variables_dense
+        if compressed && sparse_solver
+            J0 = data.jacobian_variables_sparse_compressed
+        elseif compressed && !sparse_solver
+            J0 = data.jacobian_variables_dense_compressed
+        elseif !compressed && sparse_solver
+            J0 = data.jacobian_variables_sparse.matrix
+        elseif !compressed && !sparse_solver
+            J0 = data.jacobian_variables_dense
+        end
     elseif mode == :parameters
-        J0 = data.jacobian_parameters
+        J0 = sparse_solver ? data.jacobian_parameters_sparse.matrix : data.jacobian_parameters
     end
 
     # finitediff
     if mode == :variables
         J1 = FiniteDiff.finite_difference_jacobian(
-            variables -> extended_residual(residual, indices, variables, parameters),
+            variables -> extended_residual(residual, idx, variables, parameters),
             variables)
+        if compressed
+            J1 
+            D = J1[idx.slackness, idx.slacks]
+            Z = J1[idx.cone_product, idx.slacks]
+            S = J1[idx.cone_product, idx.duals]
+            J1[idx.slackness, idx.duals] .+= -D*inv(Z)*S
+            (J1 = J1[idx.equality, idx.equality])
+        end
     elseif mode == :parameters
         J1 = FiniteDiff.finite_difference_jacobian(
-            parameters -> extended_residual(residual, indices, variables, parameters),
+            parameters -> extended_residual(residual, idx, variables, parameters),
             parameters)
     end
 
-    return norm(J0 - J1, Inf) / max(1, norm(J0, Inf), norm(J1, Inf))
+    return norm(J0 - J1, Inf) / max(1, norm(J0, Inf), norm(J1, Inf))#, J0, J1
 end
 
 function test_solution_sensitivity(solver)
@@ -82,5 +104,5 @@ function test_solution_sensitivity(solver)
         parameters -> problem_solution(solver, parameters),
         solver.parameters, absstep=1e-10)
 
-    return norm(S0 - S1, Inf) / max(1, norm(S0, Inf), norm(S1, Inf))
+    return norm(S0 - S1, Inf) / max(1, norm(S0, Inf), norm(S1, Inf))#, S0, S1
 end

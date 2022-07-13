@@ -64,6 +64,8 @@ end
 function linear_solve!(s::LUSolver{T}, x::AbstractMatrix{T}, A::Matrix{T},
     b::AbstractMatrix{T}; reg::T = 0.0, fact::Bool = true) where T
     fill!(x, 0.0)
+    # @show norm(x)
+
     n, m = size(x)
     r_idx = 1:n
     fact && factorize!(s, A)
@@ -72,6 +74,7 @@ function linear_solve!(s::LUSolver{T}, x::AbstractMatrix{T}, A::Matrix{T},
         xv = @views x[r_idx, j]
         LinearAlgebra.LAPACK.getrs!('N', s.A, s.ipiv, xv)
     end
+    # @show norm(x)
 end
 
 """
@@ -116,7 +119,10 @@ function linear_solve!(s::SparseLUSolver{T}, x::AbstractMatrix{T}, A::SparseMatr
     xc .= x
     bc .= b
     xc .= A \ bc
+    # @show "before", norm(xc)
+    # # @show norm(x)
     x .= xc
+    # @show "after", norm(xc)
 end
 
 

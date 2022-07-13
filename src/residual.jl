@@ -53,7 +53,6 @@ function residual!(data::SolverData, problem::ProblemData, idx::Indices, central
 
     if compressed
         # Fill D
-        equality_jacobian_variables = sparse_solver ? problem.equality_jacobian_variables_sparse : problem.equality_jacobian_variables
         for (i,ii) in enumerate(idx.slacks)
             data.slackness_jacobian_slacks .= problem.equality_jacobian_variables_sparse[idx.slackness[i], ii]
         end
@@ -89,7 +88,7 @@ function residual!(data::SolverData, problem::ProblemData, idx::Indices, central
     if !compressed && sparse_solver
         fill!(data.jacobian_variables_sparse, problem.equality_jacobian_variables_sparse, :equality_jacobian_variables)
     elseif !compressed && !sparse_solver
-        data.jacobian_variables_dense[idx.equality, idx.variables] .= problem.equality_jacobian_variables # TODO
+        data.jacobian_variables_dense[idx.equality, idx.variables] .= problem.equality_jacobian_variables_sparse # TODO
     elseif compressed && sparse_solver
         for (i, ii) in enumerate(idx.equality)
             for (j, jj) in enumerate(idx.equality)
@@ -99,7 +98,7 @@ function residual!(data::SolverData, problem::ProblemData, idx::Indices, central
     elseif compressed && !sparse_solver
         for (i, ii) in enumerate(idx.equality)
             for (j, jj) in enumerate(idx.equality)
-                data.jacobian_variables_dense_compressed[ii,jj] = problem.equality_jacobian_variables[ii,jj] # TODO
+                data.jacobian_variables_dense_compressed[ii,jj] = problem.equality_jacobian_variables_sparse[ii,jj] # TODO
             end
         end
     end

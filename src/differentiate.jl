@@ -41,19 +41,24 @@ function differentiate!(solver)
     if compressed
         jacobian_variables_compressed = options.sparse_solver ? 
             data.jacobian_variables_sparse_compressed : data.jacobian_variables_dense_compressed
+        jacobian_parameters = options.sparse_solver ? 
+            data.jacobian_parameters_sparse.matrix : data.jacobian_parameters
         Zi = data.cone_product_jacobian_inverse_slack
         S = data.cone_product_jacobian_duals
 
         # primal dual step
-        data.jacobian_variables_dense_compressed .= data.jacobian_variables_sparse_compressed
+        # data.jacobian_variables_dense_compressed .= data.jacobian_variables_sparse_compressed
+        @show norm(jacobian_variables_compressed)
+        @show norm(jacobian_parameters)
         linear_solve!(solver.linear_solver,
-            data.solution_sensitivity[indices.equality, :],
-            # view(data.solution_sensitivity, 1:dimensions.equality, :),
+            # data.solution_sensitivity[indices.equality, :],
+            view(data.solution_sensitivity, 1:dimensions.equality, :),
             jacobian_variables_compressed,
-            Matrix(data.jacobian_parameters[indices.equality, :]),
-            # view(data.jacobian_parameters, 1:dimensions.equality, :),
+            # jacobian_parameters[indices.equality, :],
+            view(data.jacobian_parameters, 1:dimensions.equality, :),
             fact=true)
         data.solution_sensitivity .*= -1.0
+        @show norm(data.solution_sensitivity)
 
         # for i = 1:dimensions.parameters
         #     data.solution_sensitivity[indices.slacks, i] .=
@@ -67,21 +72,11 @@ function differentiate!(solver)
             # -Zi * (hcat([data.residual.cone_product for i=1:dimensions.parameters]...) + (S * data.solution_sensitivity[indices.duals, :])) # -Z⁻¹ (cone_product + S * Δz)
     else
         jacobian_variables = options.sparse_solver ? data.jacobian_variables_sparse.matrix : data.jacobian_variables_dense
+        jacobian_parameters = options.sparse_solver ? data.jacobian_parameters_sparse.matrix : data.jacobian_parameters
         linear_solve!(solver.linear_solver, data.solution_sensitivity,
-            jacobian_variables, data.jacobian_parameters, fact=true)
+            jacobian_variables, jacobian_parameters, fact=true)
         data.solution_sensitivity .*= -1.0
     end
     # #TODO parallelize, make more efficient
     return
 end
-
-A = rand(5,5)
-view(A, 1:2, :)
-
-# data.residual.cone_product + S * data.jacobian_parameters[indices.duals, :]
-#
-a = [1,2,3,4,5]
-A = zeros(5,10)
-
-a .+ A
-hcat([a for i=1:10]...)
