@@ -48,7 +48,7 @@ function test_residual_jacobian(solver, residual; mode::Symbol=:variables)
 
     # reference
     if mode == :variables
-        J0 = data.jacobian_variables
+        J0 = data.jacobian_variables_dense
     elseif mode == :parameters
         J0 = data.jacobian_parameters
     end
