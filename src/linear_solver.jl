@@ -98,8 +98,8 @@ function linear_solve!(s::SparseLUSolver{T}, x::AbstractVector{T}, A::SparseMatr
         b::AbstractVector{T}; reg::T = 0.0, fact::Bool = true) where T
     # fact && factorize!(s, A)
     # ldiv!(x, s.factorization, b)
-    xc = zeros(length(x))
-    bc = zeros(length(b))
+    xc = zeros(size(x)...)
+    bc = zeros(size(b)...)
     xc .= x
     bc .= b
     xc .= A \ bc
@@ -111,7 +111,12 @@ function linear_solve!(s::SparseLUSolver{T}, x::AbstractMatrix{T}, A::SparseMatr
     b::AbstractMatrix{T}; reg::T = 0.0, fact::Bool = true) where T
     fact && factorize!(s, A)
     # ldiv!(x, s.factorization, b)
-    x .= A \ b
+    xc = zeros(size(x)...)
+    bc = zeros(size(b)...)
+    xc .= x
+    bc .= b
+    xc .= A \ bc
+    x .= xc
 end
 
 

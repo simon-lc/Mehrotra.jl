@@ -33,8 +33,8 @@ solver = Solver(lcp_residual, num_primals, num_cone,
     options=Options(
         compressed_search_direction=true,
         sparse_solver=true,
+        differentiate=true,
         verbose=true,
-        differentiate=false,
         symmetric=false,
     ));
 
