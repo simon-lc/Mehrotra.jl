@@ -18,7 +18,6 @@ function symbolics_methods(equality::Function, dim::Dimensions, idx::Indices)
         e,
         ex,
         eθ,
-        ss,
         zeros(length(ex_sparsity)),
         zeros(length(eθ_sparsity)),
         ex_sparsity,

@@ -17,7 +17,7 @@ struct SolverData{T}
     point_temporary::Point{T}
     # merit::Vector{T}
     # merit_gradient::Vector{T}
-    constraint_violation::Vector{T}
+    # constraint_violation::Vector{T}
     solution_sensitivity::Matrix{T}
 end
 

@@ -30,10 +30,18 @@ solver = Solver(lcp_residual, num_primals, num_cone,
     parameters=parameters,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,
-    )
+    options=Options(
+        compressed_search_direction=true,
+        sparse_solver=true,
+        verbose=true,
+        differentiate=false,
+        symmetric=false,
+    ));
 
+solver.linear_solver
 # solve
 Mehrotra.solve!(solver)
+
 
 
 
@@ -69,3 +77,22 @@ solver = Solver(lcp_residual, num_primals, num_cone,
 
 # solve
 Mehrotra.solve!(solver)
+
+
+
+n = 10
+a = zeros(2n)
+b = zeros(2n)
+av = @views a[Vector(1:n)]
+bv = @views b[Vector(1:n)]
+
+num_primals = 10
+num_cone = 10
+num_parameters = 10
+
+dim = Dimensions(num_primals, num_cone, num_parameters)
+idx = Indices(num_primals, num_cone, num_parameters)
+point = Point(dim, idx)
+A = sprand(n,n,1.0)
+point.primals .= A \ point.duals
+typeof(av)

@@ -109,8 +109,8 @@ function cone!(problem::ProblemData{T}, methods::ConeMethods, solution::Point{T}
     # end
 
     # cone jacobian inverse
-    cone_jacobian_inverse && methods.product_jacobian_inverse(problem.product_jacobian_inverse_duals_cache, z, s)
-    cone_jacobian_inverse && methods.product_jacobian_inverse(problem.product_jacobian_inverse_duals_cache, s, z)
+    cone_jacobian_inverse && methods.product_jacobian_inverse(methods.product_jacobian_inverse_duals_cache, z, s)
+    cone_jacobian_inverse && methods.product_jacobian_inverse(methods.product_jacobian_inverse_slacks_cache, s, z)
     # if sparse_solver
     problem.cone_product_jacobian_inverse_duals_sparse.nzval .= methods.product_jacobian_inverse_duals_cache
     # else

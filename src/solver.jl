@@ -109,10 +109,13 @@ function Solver(equality, num_primals::Int, num_cone::Int;
         sparse_solver=options.sparse_solver)
 
     if options.sparse_solver
-        # linear_solver = ilu0(s_data.jacobian_variables_sparse.matrix)
-        # linear_solver = sparse_lu_solver(s_data.jacobian_variables_sparse.matrix + 1e3I)
-        @show nnz(s_data.jacobian_variables_sparse.matrix)
-        linear_solver = ldl_solver(s_data.jacobian_variables_sparse.matrix + I)
+        if options.compressed_search_direction
+            linear_solver = options.symmetric ? 
+                ldl_solver(s_data.jacobian_variables_sparse_compressed) :
+                sparse_lu_solver(s_data.jacobian_variables_sparse_compressed + 1e3I)
+        else
+            linear_solver = sparse_lu_solver(s_data.jacobian_variables_sparse.matrix + 1e3I)
+        end
     else
         linear_solver = options.compressed_search_direction ?
             lu_solver(s_data.jacobian_variables_dense_compressed) :
@@ -169,6 +172,12 @@ function allocate_sparse_matrices!(data::ProblemData, methods::ProblemMethods,
     end
     for idx in cone_methods.product_jacobian_slacks_sparsity
         data.cone_product_jacobian_slacks_sparse[idx...] = 1.0
+    end
+    for idx in cone_methods.product_jacobian_inverse_duals_sparsity
+        data.cone_product_jacobian_inverse_duals_sparse[idx...] = 1.0
+    end
+    for idx in cone_methods.product_jacobian_inverse_slacks_sparsity
+        data.cone_product_jacobian_inverse_slacks_sparse[idx...] = 1.0
     end
     # data.cone_product_jacobian_duals_sparse .*= 0.0
     # data.cone_product_jacobian_slacks_sparse .*= 0.0

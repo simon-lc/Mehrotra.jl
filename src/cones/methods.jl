@@ -22,7 +22,6 @@ function ConeMethods(num_cone, idx_nn, idx_soc)
         Φa_func,
         p_func,
         pa_func,
-        pa_sparse_func,
         pai_func,
         t_func,
         zeros(length(pa_sparsity)),

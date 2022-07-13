@@ -45,7 +45,7 @@ end
 
 function compressed_search_direction!(linear_solver::LinearSolver{T},
         data::SolverData{T},
-        step::Point{T},
+        step::Point{T};
         sparse_solver::Bool=false,
         ) where T
 
@@ -54,7 +54,7 @@ function compressed_search_direction!(linear_solver::LinearSolver{T},
     S = data.cone_product_jacobian_duals
     # primal dual step
     # step.equality .= data.jacobian_variables_sparse_compressed \ residual.equality
-    jacobian_variables_compressed = sparse_solver ? jacobian_variables_sparse_compressed : jacobian_variables_dense_compressed
+    jacobian_variables_compressed = sparse_solver ? data.jacobian_variables_sparse_compressed : data.jacobian_variables_dense_compressed
     linear_solve!(linear_solver, 
         step.equality, 
         jacobian_variables_compressed, 
@@ -72,7 +72,6 @@ function compressed_search_direction!(linear_solver::LinearSolver{T},
     
     return nothing
 end
-
 
 function uncompressed_search_direction!(linear_solver::LinearSolver{T},
         data::SolverData{T},

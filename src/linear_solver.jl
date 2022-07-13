@@ -96,15 +96,22 @@ end
 
 function linear_solve!(s::SparseLUSolver{T}, x::AbstractVector{T}, A::SparseMatrixCSC{T,Int},
         b::AbstractVector{T}; reg::T = 0.0, fact::Bool = true) where T
-    fact && factorize!(s, A)
-    ldiv!(x, s.factorization, b)
+    # fact && factorize!(s, A)
+    # ldiv!(x, s.factorization, b)
+    xc = zeros(length(x))
+    bc = zeros(length(b))
+    xc .= x
+    bc .= b
+    xc .= A \ bc
+    x .= xc
     return nothing
 end
 
 function linear_solve!(s::SparseLUSolver{T}, x::AbstractMatrix{T}, A::SparseMatrixCSC{T,Int},
     b::AbstractMatrix{T}; reg::T = 0.0, fact::Bool = true) where T
     fact && factorize!(s, A)
-    ldiv!(x, s.factorization, b)
+    # ldiv!(x, s.factorization, b)
+    x .= A \ b
 end
 
 
@@ -178,7 +185,7 @@ function factorize!(s::LDLSolver111{Tv,Ti}, A::SparseMatrixCSC{Tv,Ti};
     return nothing
 end
 
-function linear_solve!(solver::LDLSolver111{Tv,Ti}, x::Vector{Tv}, A::SparseMatrixCSC{Tv,Ti}, b::Vector{Tv};
+function linear_solve!(solver::LDLSolver111{Tv,Ti}, x::AbstractVector{Tv}, A::SparseMatrixCSC{Tv,Ti}, b::AbstractVector{Tv};
     fact=true, update=true) where {Tv<:AbstractFloat,Ti<:Integer}
 
     fact && factorize!(solver, A; update=update) # factorize
@@ -186,8 +193,8 @@ function linear_solve!(solver::LDLSolver111{Tv,Ti}, x::Vector{Tv}, A::SparseMatr
     solve!(solver.F, x) # solve
 end
 
-function linear_solve!(solver::LDLSolver111{T}, x::Matrix{T}, A::AbstractMatrix{T},
-    b::Matrix{T}; 
+function linear_solve!(solver::LDLSolver111{T}, x::AbstractMatrix{T}, A::AbstractMatrix{T},
+    b::AbstractMatrix{T}; 
     fact=true,
     update=true) where T
 
