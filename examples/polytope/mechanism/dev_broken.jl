@@ -6,19 +6,19 @@ using Quaternions
 using Plots
 
 
-include("../contact_model/lp_2d.jl")
-include("../polytope.jl")
-include("../visuals.jl")
-include("../rotate.jl")
-include("../quaternion.jl")
+include("../contact_model/lp_2d.jl");
+include("../polytope.jl");
+include("../visuals.jl");
+include("../rotate.jl");
+include("../quaternion.jl");
 
 vis = Visualizer()
 render(vis)
 
-include("node.jl")
-include("body.jl")
-include("contact.jl")
-include("mechanism.jl")
+include("node.jl");
+include("body.jl");
+include("contact.jl");
+include("mechanism.jl");
 
 
 
@@ -39,6 +39,18 @@ bp = 0.5*[
      1,
      # 2,
     ]
+Ap2 = [
+     1.0  0.0;
+     0.0  1.0;
+    -1.0  0.0;
+     0.0 -1.0;
+    ] .- 0.00ones(4,2)
+bp2 = 0.5*[
+    +2,
+    +0.5,
+    +2,
+    +0.5,
+    ]
 Ac = [
      1.0  0.0;
      0.0  1.0;
@@ -52,22 +64,26 @@ bc = 2.0*[
      1,
     ]
 
+
 timestep = 0.05
 gravity = -9.81
 mass = 1.0
 inertia = 0.2 * ones(1,1)
 
 # nodes
-bodya = Body174(timestep, mass, inertia, [Ap], [bp], gravity=+gravity, name=:bodya)
-bodyb = Body174(timestep, 1e6*mass, 1e6*inertia, [Ac], [bc], gravity=-0*gravity, name=:bodyb)
-bodies = [bodya, bodyb]
-contacts = [Contact174(bodies[1], bodies[2], friction_coefficient=0.9990)]
+bodya = Body174(timestep, mass, inertia, [Ap], [bp], gravity=+gravity, name=:bodya);
+bodyb = Body174(timestep, 1e6*mass, 1e6*inertia, [Ac], [bc], gravity=-0*gravity, name=:bodyb);
+bodies = [bodya, bodyb];
+contact = Contact174(bodies[1], bodies[2], friction_coefficient=0.3);
+# contact2 = Contact174(:bodya, :bodyb, 0.3, Ap2, bp2, Ac, bc; name=:contact2);
+# contacts = [contact, contact2];
+contacts = [contact];
 indexing!([bodies; contacts])
 
 # mechanism
 local_residual(primals, duals, slacks, parameters) =
-    mechanism_residual(primals, duals, slacks, parameters, bodies, contacts)
-mech = Mechanism174(local_residual, bodies, contacts)
+    mechanism_residual(primals, duals, slacks, parameters, bodies, contacts);
+mech = Mechanism174(local_residual, bodies, contacts);
 
 
 ################################################################################
@@ -78,11 +94,15 @@ mech.contacts[1].contact_solver.solver.options.verbose = false
 mech.contacts[1].contact_solver.solver.options.complementarity_tolerance = 3e-3
 mech.contacts[1].contact_solver.solver.options.residual_tolerance
 
+mech.contacts[2].contact_solver.solver.options.verbose = false
+mech.contacts[2].contact_solver.solver.options.complementarity_tolerance = 3e-3
+mech.contacts[2].contact_solver.solver.options.residual_tolerance
+
 solve!(mech.solver)
 
 
 
-Xa2 = [[+0.1,5.0,1.0]]
+Xa2 = [[+0.1,6.0,1.0]]
 Xb2 = [[-0,1.0,-1.0]]
 Va15 = [[-0,0,-0.0]]
 Vb15 = [[+0,0,0.0]]
@@ -123,7 +143,7 @@ for i = 1:H
     push!(iter, mech.solver.trace.iterations)
 end
 
-# scatter(iter)
+scatter(iter)
 
 ################################################################################
 # visualization
@@ -134,6 +154,7 @@ set_background!(vis)
 set_light!(vis)
 
 build_2d_polytope!(vis, Ap, bp, name=:polya, color=RGBA(0.2,0.2,0.2,0.7))
+# build_2d_polytope!(vis, Ap2, bp2, name=:polya2, color=RGBA(0.2,0.2,0.2,0.7))
 build_2d_polytope!(vis, Ac, bc, name=:polyb, color=RGBA(0.9,0.9,0.9,0.7))
 
 setobject!(vis[:contact],
@@ -144,10 +165,11 @@ anim = MeshCat.Animation(Int(floor(1/timestep)))
 for i = 1:H
     atframe(anim, i) do
         set_2d_polytope!(vis, Xa2[i][1:2], Xa2[i][3:3], name=:polya)
+        # set_2d_polytope!(vis, Xa2[i][1:2], Xa2[i][3:3], name=:polya2)
         set_2d_polytope!(vis, Xb2[i][1:2], Xb2[i][3:3], name=:polyb)
         settransform!(vis[:contact], MeshCat.Translation(SVector{3}(0, Pp[i]...)))
     end
 end
 MeshCat.setanimation!(vis, anim)
 # open(vis)
-# convert_frames_to_video_and_gif("no_real_flickering")
+# convert_frames_to_video_and_gif("no_real")

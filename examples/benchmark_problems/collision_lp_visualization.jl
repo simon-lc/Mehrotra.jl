@@ -26,7 +26,7 @@ bp = 0.5*[
     +1,
      1,
      # 2,
-    ]
+    ] - 0.0*ones(4)
 Ac = [
      1.0  0.0;
      0.0  1.0;
@@ -38,12 +38,12 @@ bc = 0.5*[
      1,
      1,
      1,
-    ]
+    ] + 0.0*rand(4)
 
 solver = lp_contact_solver(Ap, bp, Ac, bc; d=2,
     options=Options(
         verbose=false,
-        complementarity_tolerance=3e-2,
+        complementarity_tolerance=3e-3,
         residual_tolerance=1e-6,
         differentiate=true,
         compressed_search_direction=false,
@@ -91,11 +91,14 @@ end
 #########################################################################
 # generate contact info
 #########################################################################
-H = 400
+H = 200
 θ = range(0, 6π, length=H)
 rad = 4.0
-Xc = [[0, 2, 0.0] for i=1:H]
-Xp = [[ i/H*rad*cos(t), i/H*rad*sin(t)+2, 0.0] for (i,t) in enumerate(θ)]
+Xc = [[0, 4, 0.0] for i=1:H]
+Xp = [[1, 5, 0.0] for i=1:H]
+# Xp = [[-1+2i/H, 5, 0.0] for i=1:H]
+Xp = [[-0.75+1.5i/H, 4.5+sqrt(2)/2, π/4] for i=1:H]
+# Xp = [[ i/H*rad*cos(t), i/H*rad*sin(t)+4, 0.0] for (i,t) in enumerate(θ)]
 D = []
 Xw = []
 Nw = []
@@ -109,13 +112,14 @@ for i = 1:H
 end
 
 using Plots
-plot(hcat(Nw...)')
-plot(hcat(Tw...)')
+# plot(hcat(Nw...)')
+# plot(hcat(Tw...)')
+plot(norm.(Nw))
 
 #########################################################################
 # visualize
 #########################################################################
-vis = Visualizer()
+# vis = Visualizer()
 render(vis)
 
 set_floor!(vis)
@@ -148,6 +152,5 @@ for i = 1:H
     end
 end
 MeshCat.setanimation!(vis, anim)
-open(vis)
-# convert_frames_to_video_and_gif("no_real")
-
+# open(vis)
+# convert_frames_to_video_and_gif("contact_normal_vertex_sliding")
