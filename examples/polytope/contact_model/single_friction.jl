@@ -1,5 +1,19 @@
+using Polyhedra
+using MeshCat
+using RobotVisualizer
+using StaticArrays
+using Quaternions
+using Plots
+
+
+include("../contact_model/lp_2d.jl")
+include("../polytope.jl")
+include("../visuals.jl")
+include("../rotate.jl")
+include("../quaternion.jl")
+
 vis = Visualizer()
-open(vis)
+render(vis)
 
 ################################################################################
 # residual
@@ -12,15 +26,20 @@ function joint_residual(primals, duals, slacks, parameters; np::Int=0, nc::Int=0
     mass = 1.0
     inertia = 0.2
     gravity = -9.81
-    friction_coefficient = 0.2
+    friction_coefficient = [0.9]
 
     y, z, s = primals, duals, slacks
     γ = z[1:1]
-    zp = z[1 .+ (1:np)]
-    zc = z[1+np .+ (1:nc)]
+    ψ = z[2:2]
+    β = z[3:4]
+    zp = z[4 .+ (1:np)]
+    zc = z[4+np .+ (1:nc)]
+
     sγ = s[1:1]
-    sp = s[1 .+ (1:np)]
-    sc = s[1+np .+ (1:nc)]
+    sψ = s[2:2]
+    sβ = s[3:4]
+    sp = s[4 .+ (1:np)]
+    sc = s[4+np .+ (1:nc)]
 
     # pw is expressed in world's frame
     off = 0
@@ -44,11 +63,12 @@ function joint_residual(primals, duals, slacks, parameters; np::Int=0, nc::Int=0
 
     # normal and tangent
     nw = -x_2d_rotation(xp3[3:3]) * Ap' * zp
+    # nw ./= norm(nw)
     R = [0 1; -1 0]
     tw = R * nw
 
     # force at the contact point in the contact frame
-    νc = [0 - 0; γ]
+    νc = [β[1] - β[2]; γ]
     # rotation matrix from contact frame to world frame
     wRc = [tw nw] # n points towards the parent body, [t,n,z] forms an oriented vector basis
     # force at the contact point in the world frame
@@ -61,20 +81,27 @@ function joint_residual(primals, duals, slacks, parameters; np::Int=0, nc::Int=0
     w = [νpw; τpw; νcw; τcw]
     # mapping the force into the generalized coordinates (at the centers of masses and in the world frame)
 
-    M = Diagonal([mass, mass, inertia])
+    vptan = vp25[1:2] + (skew([xp3[1:2]-p3_parent; 0]) * [zeros(2); vp25[3]])[1:2]
+    vptan = vptan'*tw
+    vctan = vc25[1:2] + (skew([xc3[1:2]-p3_child;  0]) * [zeros(2); vc25[3]])[1:2]
+    vctan = vctan'*tw
+    vtan = vptan - vctan
 
+    M = Diagonal([mass, mass, inertia])
     res = [
-        1e0*M * (xp3 - 2xp2 + xp1)/timestep - timestep * mass * [0,1*gravity,0];
-        1e6*M * (xc3 - 2xc2 + xc1)/timestep - timestep * mass * [0,0*gravity,0];
+        1e0*M * (xp3 - 2xp2 + xp1)/timestep - timestep * mass * [0,+1*gravity,0];
+        1e0*M * (xc3 - 2xc2 + xc1)/timestep - timestep * mass * [0,-9e-1*gravity,0];
         x_2d_rotation(xp3[3:3]) * Ap' * zp + x_2d_rotation(xc3[3:3]) * Ac' * zc;
         1 - sum(zp) - sum(zc);
         sγ - ϕ;
+        sψ - (friction_coefficient[1] * γ - [sum(β)]);
+        sβ - ([+vtan; -vtan] + ψ[1]*ones(2));
         sp - (- Ap * pp + bp + ϕ .* ones(np));
         sc - (- Ac * pc + bc + ϕ .* ones(nc));
-        # sp .* zp;
-        # sc .* zc;
     ]
     res[1:2d+2] .-= w # -V3' * ν
+    # res[2d+2 .+ (1:2)] .+= 1e-1 * y[2d+2 .+ (1:d)]
+    # res[2d+2 .+ (3:3)] .+= 1e-1 * ϕ
 
     return res
 end
@@ -137,7 +164,7 @@ Ac = [
     -1.0  0.0;
      0.0 -1.0;
     ] .+ 0.00ones(4,2)
-bc = 0.5*[
+bc = 2.5*[
      1,
      1,
      1,
@@ -153,14 +180,14 @@ np = length(bp)
 nc = length(bc)
 d = 2
 
-xp2 = [+2,+2,0.0]
+xp2 = [+20,+20,0.0]
 xc2 = [-2,-2,0.0]
 vp15 = zeros(d+1)
 vc15 = zeros(d+1)
 
 parameters = pack_joint_parameters(xp2, xc2, vp15, vc15, Ap, bp, Ac, bc)
 num_primals = 3*(d + 1)
-num_cone = 1 + np + nc
+num_cone = 4 + np + nc
 idx_nn = collect(1:num_cone)
 idx_soc = [collect(1:0)]
 
@@ -174,12 +201,25 @@ solver = Solver(
         parameters=parameters,
         nonnegative_indices=idx_nn,
         second_order_indices=idx_soc,
+        method_type=:finite_difference,
         options=Options(
-            verbose=false,
+            verbose=true,
+            # verbose=true,
+            # warm_start=true,
+            # verbose=false,
             # sparse_solver=true,
             # compressed_search_direction=true,
-            complementarity_tolerance=3e-3),
+            # max_iterations=1,
+            # complementarity_decoupling=true,
+            complementarity_tolerance=1e-3),
         );
+
+parameters = pack_joint_parameters(xp2, xc2, vp15, vc15, Ap, bp, Ac, bc)
+solver.parameters .= parameters
+initialize_primals!(solver)
+initialize_duals!(solver)
+initialize_slacks!(solver)
+initialize_interior_point!(solver)
 solve!(solver)
 # @benchmark $solve!($solver)
 
@@ -188,21 +228,21 @@ solve!(solver)
 ################################################################################
 # test simulation
 ################################################################################
-solver.options.verbose = false#true
-solver.options.complementarity_tolerance = 3e-2
+# solver.options.verbose = false#true
+solver.options.complementarity_tolerance = 3e-5
 solver.options.residual_tolerance
 
 
-Xp2 = [[+0.00,2.0,+0.0]]
-Xc2 = [[-0.00,0.5,-0.0]]
-Vp15 = [[-0.0, 0.0, -0.0]]
-Vc15 = [[+0.0, 0.0, +0.0]]
+Xp2 = [[+0.00,+2.5,+1.0]]
+Xc2 = [[-0.00,-2.0,-0.2]]
+Vp15 = [[-0.0, 0.0, +10.0]]
+Vc15 = [[+0.0, 0.0, +00.0]]
 Pw = []
 Nw = []
 Tw = []
 iter = []
 
-H = 35
+H = 45
 Up = [zeros(3) for i=1:H]
 Uc = [zeros(3) for i=1:H]
 for i = 1:H
@@ -219,7 +259,7 @@ for i = 1:H
     pw = y[off .+ (1:d)] + (xp3[1:2] + xc3[1:2]) ./ 2; off += d
     ϕ = y[off .+ (1:1)]; off += 1
 
-    zp = solver.solution.duals[1 .+ (1:np)]
+    zp = solver.solution.duals[4 .+ (1:np)]
     nw = -x_2d_rotation(xp3[3:3]) * Ap' * zp
     R = [0 1; -1 0]
     tw = R * nw
@@ -234,6 +274,10 @@ for i = 1:H
     push!(Tw, tw)
     push!(iter, solver.trace.iterations)
 end
+
+
+
+# add regularization scheme on LP
 
 scatter(iter)
 
@@ -270,6 +314,15 @@ for i = 1:H
 end
 MeshCat.setanimation!(vis, anim)
 # open(vis)
-# convert_frames_to_video_and_gif("no_real_flickering")
+# convert_frames_to_video_and_gif("single_level_hard_offset")
+# convert_frames_to_video_and_gif("single_level_hard_tilted")
+# convert_frames_to_video_and_gif("single_level_hard")
 
-Pw
+ex = solver.data.jacobian_variables_dense
+plot(Gray.(abs.(ex)))
+plot(Gray.(abs.(ex - ex')))
+plot(Gray.(abs.(ex + ex')))
+# plot(Gray.(1e3abs.(solver.data.jacobian_variables_dense)))
+
+ex[1:6,1:6]
+ex[7:9,7:9]

@@ -3,18 +3,18 @@ using SparseArrays, SuiteSparse, LinearAlgebra, BenchmarkTools
 abstract type LinearSolver end 
 
 include(joinpath("..", "..", "..", "SparseArrays.jl/src/solvers/LibSuiteSparse.jl"))
-"""
-    LU solver
-"""
-function lu_solver(A::SparseMatrixCSC{T,Int}) where T
-    A = Array(A) 
-    lu_solver(A)
-end
+# """
+#     LU solver
+# """
+# function lu_solver(A::SparseMatrixCSC{T,Int}) where T
+#     A = Array(A) 
+#     lu_solver(A)
+# end
 
-function linear_solve!(solver::LUSolver{T}, x::Vector{T}, A::SparseMatrixCSC{T,Int},
-        b::Vector{T}; reg::T = 0.0, fact::Bool = true) where T
-    linear_solve!(solver, x, Array(A), b, reg=reg, fact=fact)
-end
+# function linear_solve!(solver::LUSolver{T}, x::Vector{T}, A::SparseMatrixCSC{T,Int},
+#         b::Vector{T}; reg::T = 0.0, fact::Bool = true) where T
+#     linear_solve!(solver, x, Array(A), b, reg=reg, fact=fact)
+# end
 
 """
     LU (sparse) solver
@@ -39,12 +39,12 @@ end
 
 function factorize!(s::LUSparseSolver{T}, A::SparseMatrixCSC{T,Int}) where T
     _lu!(s.F, A, s.tmp, s.umf_ctrl, s.umf_info)
-    # s.F = lu(A)
+    # # s.F = lu(A)
 end
 
 function linear_solve!(s::LUSparseSolver{T}, x::Vector{T}, A::SparseMatrixCSC{T,Int},
         b::Vector{T}; reg::T = 0.0, fact::Bool = true) where T
-    fact && factorize!(s, A)
+    # fact && factorize!(s, A)
     _solve!(x, s.F, b, s.umf_ctrl, s.umf_info)
     # x .= A \ b
 end
@@ -63,6 +63,17 @@ function linear_solve!(s::LUSparseSolver{T}, x::Matrix{T}, A::Matrix{T},
 end
 
 function _umfpack_numeric!(U::SuiteSparse.UMFPACK.UmfpackLU{Float64,Int64}, tmp, umf_ctrl, umf_info; reuse_numeric = true)
+    # (Ptr{Int64}, Ptr{Int64}, Ptr{Float64}, Ptr{Cvoid}, Ptr{Cvoid},
+    #                 Ptr{Float64}, Ptr{Float64})
+    # (:umfpack_dl_numeric, :libumfpack)
+    # Int64
+    # U.colptr
+    # U.rowval
+    # U.nzval
+    # U.symbolic
+    # tmp
+    # umf_ctrl
+    # umf_info
     status = ccall((:umfpack_dl_numeric, :libumfpack), Int64,
                    (Ptr{Int64}, Ptr{Int64}, Ptr{Float64}, Ptr{Cvoid}, Ptr{Cvoid},
                     Ptr{Float64}, Ptr{Float64}),
@@ -89,20 +100,27 @@ function _lu!(F::SuiteSparse.UMFPACK.UmfpackLU, S::SparseMatrixCSC{<:SuiteSparse
 end
 
 function _solve!(x, lu::SuiteSparse.UMFPACK.UmfpackLU{T, Int}, b, umf_ctrl, umf_info) where T
-    ccall((:umfpack_dl_solve, :libumfpack), Int64,
+    (:umfpack_dl_solve, :libumfpack), Int64,
         (Int64, Ptr{Int64}, Ptr{Int64}, Ptr{Float64},
          Ptr{Float64}, Ptr{Float64}, Ptr{Cvoid}, Ptr{Float64},
          Ptr{Float64}),
         0, lu.colptr, lu.rowval, lu.nzval,
         x, b, lu.numeric, umf_ctrl,
-        umf_info)
+        umf_info
+    # ccall((:umfpack_dl_solve, :libumfpack), Int64,
+    #     (Int64, Ptr{Int64}, Ptr{Int64}, Ptr{Float64},
+    #      Ptr{Float64}, Ptr{Float64}, Ptr{Cvoid}, Ptr{Float64},
+    #      Ptr{Float64}),
+    #     0, lu.colptr, lu.rowval, lu.nzval,
+    #     x, b, lu.numeric, umf_ctrl,
+    #     umf_info)
     return nothing
 end
 
 # test 
 n = 100
 S = sprand(n, n, 0.2)
-b = rand(n) 
+b = rand(n)
 
 xsol1 = S \ b
 solver = lu_sparse_solver(S)

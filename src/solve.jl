@@ -7,7 +7,7 @@ function Mehrotra.solve!(solver)
     !warm_start && initialize_slacks!(solver)
     !warm_start && initialize_interior_point!(solver)
 
-    # ϵ = 1e-5
+    # ϵ = 1e-3
     # warm_start && (solver.solution.duals .= solver.solution.duals .+ ϵ)
     # warm_start && (solver.solution.slacks .= solver.solution.slacks .+ ϵ)
 
@@ -64,8 +64,8 @@ function Mehrotra.solve!(solver)
     )
 
     # residual
-    residual!(data, problem, indices, κ.tolerance_central_path, 
-        compressed=compressed, 
+    residual!(data, problem, indices, κ.tolerance_central_path,
+        compressed=compressed,
         sparse_solver=sparse_solver)
 
     # violations
@@ -98,8 +98,8 @@ function Mehrotra.solve!(solver)
 
         ## Predictor step
         # residual
-        residual!(data, problem, indices, κ.zero_central_path, 
-            compressed=compressed, 
+        residual!(data, problem, indices, κ.zero_central_path,
+            compressed=compressed,
             sparse_solver=sparse_solver)
 
         # search direction
@@ -109,18 +109,18 @@ function Mehrotra.solve!(solver)
         # cone search duals
         cone_search!(α.affine_step_size, z, Δz,
             indices.cone_nonnegative, indices.cone_second_order;
-            τ_nn=0.99, τ_soc=0.99, ϵ=1e-14, decoupling=decoupling)
+            τ_nn=0.9500, τ_soc=0.9500, ϵ=1e-14, decoupling=decoupling)
         # cone search slacks
         cone_search!(α.affine_step_size, s, Δs,
             indices.cone_nonnegative, indices.cone_second_order;
-            τ_nn=0.99, τ_soc=0.99, ϵ=1e-14, decoupling=decoupling)
+            τ_nn=0.9500, τ_soc=0.9500, ϵ=1e-14, decoupling=decoupling)
 
         # centering
         centering!(κ.target_central_path, solution, step, α.affine_step_size, indices, options=options)
 
         ## Corrector step
         residual!(data, problem, indices, κ.target_central_path,
-            compressed=compressed, 
+            compressed=compressed,
             sparse_solver=sparse_solver)
         search_direction!(solver)
 
@@ -129,15 +129,15 @@ function Mehrotra.solve!(solver)
         # cone search duals
         cone_search!(α.step_size, z, Δz,
             indices.cone_nonnegative, indices.cone_second_order;
-            τ_nn=0.99, τ_soc=0.99, ϵ=1e-14, decoupling=decoupling)
+            τ_nn=0.9500, τ_soc=0.9500, ϵ=1e-14, decoupling=decoupling)
         # cone search slacks
         cone_search!(α.step_size, s, Δs,
             indices.cone_nonnegative, indices.cone_second_order;
-            τ_nn=0.99, τ_soc=0.99, ϵ=1e-14, decoupling=decoupling)
+            τ_nn=0.9500, τ_soc=0.9500, ϵ=1e-14, decoupling=decoupling)
 
         # violations
-        residual!(data, problem, indices, κ.tolerance_central_path, 
-            compressed=compressed, 
+        residual!(data, problem, indices, κ.tolerance_central_path,
+            compressed=compressed,
             sparse_solver=sparse_solver) # TODO needs to be only recomputing residual of the cone
 
         equality_violation = norm(data.residual.equality, Inf)
@@ -165,7 +165,7 @@ function Mehrotra.solve!(solver)
 
             ## Predictor step
             # residual
-            residual!(data, problem, indices, κ.tolerance_central_path, 
+            residual!(data, problem, indices, κ.tolerance_central_path,
                 compressed=compressed, sparse_solver=sparse_solver) # TODO needs to be options.complementarity_tolerance
 
             # violations
