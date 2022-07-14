@@ -77,16 +77,15 @@ function get_parameters(body::Body174{T,D}) where {T,D}
 end
 
 function set_parameters!(body::Body174{T,D}, θ) where {T,D}
-    @assert D == 2
-    off = 0
-    body.pose .= θ[off .+ (1:D+1)]; off += D+1
-    body.velocity .= θ[off .+ (1:D+1)]; off += D+1
-    body.input .= θ[off .+ (1:D+1)]; off += D+1
+    pose, velocity, input, timestep, gravity, mass, inertia = unpack_parameters(θ, body)
+    body.pose .= pose
+    body.velocity .= velocity
+    body.input .= input
 
-    body.gravity .= θ[off .+ (1:1)]; off += 1
-    body.timestep .= θ[off .+ (1:1)]; off += 1
-    body.mass .= θ[off .+ (1:1)]; off += 1
-    body.inertia[1,1] = θ[off .+ 1]; off += 1
+    body.gravity .= gravity
+    body.timestep .= timestep
+    body.mass .= mass
+    body.inertia .= inertia
     return nothing
 end
 
@@ -121,3 +120,6 @@ function body_residual!(e, x, θ, body::Body174)
     e[node_index.e] .+= dynamics
     return nothing
 end
+
+
+

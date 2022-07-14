@@ -15,14 +15,17 @@ struct Contact174{T,D,NP,NC}
 end
 
 function Contact174(parent_body::Body174{T}, child_body::Body174{T};
-        name::Symbol=:contact, friction_coefficient=0.2) where {T}
+        parent_collider_id::Int=1, 
+        child_collider_id::Int=1, 
+        name::Symbol=:contact, 
+        friction_coefficient=0.2) where {T}
 
     parent_name = parent_body.name
     child_name = child_body.name
-    Ap = parent_body.A_colliders[1]
-    bp = parent_body.b_colliders[1]
-    Ac = child_body.A_colliders[1]
-    bc = child_body.b_colliders[1]
+    Ap = parent_body.A_colliders[parent_collider_id]
+    bp = parent_body.b_colliders[parent_collider_id]
+    Ac = child_body.A_colliders[child_collider_id]
+    bc = child_body.b_colliders[child_collider_id]
 
     return Contact174(parent_name, child_name, friction_coefficient, Ap, bp, Ac, bc;
         name=name)
@@ -57,8 +60,8 @@ function Contact174(
     )
 end
 
-primal_dimension(contact::Contact174{T,D}) where {T,D} = 0
-cone_dimension(contact::Contact174{T,D}) where {T,D} = 1+1+2 # γ ψ β
+primal_dimension(contact::Contact174{T,D}) where {T,D} = D + 1 # x, ϕ
+cone_dimension(contact::Contact174{T,D,NP,NC}) where {T,D,NP,NC} = 1 + 1 + 2 + NP + NC # γ ψ β λp, λc
 variable_dimension(contact::Contact174{T,D}) where {T,D} = primal_dimension(contact) + 2 * cone_dimension(contact)
 equality_dimension(contact::Contact174{T,D}) where {T,D} = primal_dimension(contact) + cone_dimension(contact)
 
@@ -71,22 +74,34 @@ function parameter_dimension(contact::Contact174{T,D}) where {T,D}
     return nθ
 end
 
-function subparameter_dimension(contact::Contact174{T,D,NP,NC}) where {T,D,NP,NC}
-    nθl = contact.contact_solver.num_parameters
-    return nθl
-end
+# function subparameter_dimension(contact::Contact174{T,D,NP,NC}) where {T,D,NP,NC}
+#     nθl = contact.contact_solver.num_parameters
+#     return nθl
+# end
 
-function subvariable_dimension(contact::Contact174{T,D,NP,NC}) where {T,D,NP,NC}
-    nxl = contact.contact_solver.num_outvariables
-    return nxl
-end
+# function subvariable_dimension(contact::Contact174{T,D,NP,NC}) where {T,D,NP,NC}
+#     nxl = contact.contact_solver.num_outvariables
+#     return nxl
+# end
 
-function unpack_variables(x::Vector{T}, contact::Contact174) where T
+function unpack_variables(x::Vector{T}, contact::Contact174{T,D,NP,NC}) where {T,D,NP,NC}
     num_cone = cone_dimension(contact)
     off = 0
-    z = x[off .+ (1:num_cone)]; off += num_cone
-    s = x[off .+ (1:num_cone)]; off += num_cone
-    return z, s
+    x = x[off .+ (1:2)]; off += 2
+    ϕ = x[off .+ (1:1)]; off += 1
+
+    γ = x[off .+ (1:1)]; off += 1
+    ψ = x[off .+ (1:1)]; off += 1
+    β = x[off .+ (1:2)]; off += 2
+    λp = x[off .+ (1:NP)]; off += NP
+    λc = x[off .+ (1:NC)]; off += NC
+
+    sγ = x[off .+ (1:1)]; off += 1
+    sψ = x[off .+ (1:1)]; off += 1
+    sβ = x[off .+ (1:2)]; off += 2
+    sp = x[off .+ (1:NP)]; off += NP
+    sc = x[off .+ (1:NC)]; off += NC
+    return x, ϕ, γ, ψ, β, λp, λc, sγ, sψ, sβ, sp, sc
 end
 
 function get_parameters(contact::Contact174{T,D}) where {T,D}
@@ -99,12 +114,13 @@ function get_parameters(contact::Contact174{T,D}) where {T,D}
 end
 
 function set_parameters!(contact::Contact174{T,D,NP,NC}, θ) where {T,D,NP,NC}
-    off = 0
-    contact.friction_coefficient .= θ[off .+ (1:1)]; off += 1
-    contact.A_parent_collider .= reshape(θ[off .+ (1:NP*D)], (NP,D)); off += NP*D
-    contact.b_parent_collider .= θ[off .+ (1:NP)]; off += NP
-    contact.A_child_collider .= reshape(θ[off .+ (1:NC*D)], (NC,D)); off += NC*D
-    contact.b_child_collider .= θ[off .+ (1:NC)]; off += NC
+    friction_coefficient, A_parent_collider, b_parent_collider, A_child_collider, b_child_collider = 
+        unpack_parameters(θ, contact)
+    contact.friction_coefficient .= friction_coefficient
+    contact.A_parent_collider .= A_parent_collider
+    contact.b_parent_collider .= b_parent_collider
+    contact.A_child_collider .= A_child_collider
+    contact.b_child_collider .= b_child_collider
     return nothing
 end
 
@@ -119,103 +135,76 @@ function unpack_parameters(θ::Vector, contact::Contact174{T,D,NP,NC}) where {T,
     return friction_coefficient, A_parent_collider, b_parent_collider, A_child_collider, b_child_collider
 end
 
-function unpack_subvariables(xl::Vector, contact::Contact174{T,D,NP,NC}) where {T,D,NP,NC}
-    nθl = subparameter_dimension(contact)
-
-    off = 0
-    ϕ = xl[off .+ (1:1)]; off += 1
-    p_parent = xl[off .+ (1:D)]; off += D
-    p_child = xl[off .+ (1:D)]; off += D
-    N = reshape(xl[off .+ (1:2D+2)], (1,2D+2)); off += 2D+2
-    ∂p_parent = reshape(xl[off .+ (1:D*nθl)], (D,nθl)); off += D*nθl
-    ∂p_child = reshape(xl[off .+ (1:D*nθl)], (D,nθl)); off += D*nθl
-    nw = xl[off .+ (1:D)]; off += D
-    tw = xl[off .+ (1:D)]; off += D
-    return ϕ, p_parent, p_child, N, ∂p_parent, ∂p_child, nw, tw
-end
-
-# function contact_residual!(e, x, xl, θ, contact::Contact174, pbody::Body174, cbody::Body174)
-#     # variables
-#     z, s = unpack_variables(x[contact.node_index.x], contact)
-#     # subvariables
-#     ϕ, p_parent, p_child, N, ∂p_parent, ∂p_child = unpack_subvariables(xl, contact)
-#
-#     # dynamics
-#     e[contact.node_index.e] .+= sγ - (ϕ .- 0.1)
-#     e[[pbody.node_index.e; cbody.node_index.e]] .+= -Nq2'*γ
-#     return nothing
-# end
-
 function contact_residual!(e, x, θ, contact::Contact174, pbody::Body174, cbody::Body174)
-
-    contact_solver = contact.contact_solver
-
-    # parameters
-    friction_coefficient, _ = unpack_parameters(θ[contact.node_index.θ], contact)
-    xp2, vp15, up2, timestep_p, _ = unpack_parameters(θ[pbody.node_index.θ], pbody)
-    xc2, vc15, uc2, timestep_c, _ = unpack_parameters(θ[cbody.node_index.θ], cbody)
+    
+    # unpack parameters
+    friction_coefficient, Ap, bp, Ac, bc = unpack_parameters(θ[contact.node_index.θ], contact)
+    pp2, vp15, up2, timestep_p, gravity_p, mass_p, inertia_p = unpack_parameters(θ[pbody.node_index.θ], pbody)
+    pc2, vc15, uc2, timestep_c, gravity_c, mass_c, inertia_c = unpack_parameters(θ[cbody.node_index.θ], cbody)
+    
+    # unpack variables
+    x, ϕ, γ, ψ, β, λp, λc, sγ, sψ, sβ, sp, sc = unpack_variables(x[contact.node_index.x], contact)
     vp25 = unpack_variables(x[pbody.node_index.x], pbody)
     vc25 = unpack_variables(x[cbody.node_index.x], cbody)
-    xp3 = xp2 + timestep_p[1] * vp25
-    xc3 = xc2 + timestep_c[1] * vc25
-    xp4 = xp2 + 2timestep_p[1] * vp25
-    xc4 = xc2 + 2timestep_c[1] * vc25
+    pp3 = pp2 + timestep_p[1] * vp25
+    pc3 = pc2 + timestep_c[1] * vc25
+    pp1 = pp2 - timestep_p[1] * vp15
+    pc1 = pc2 - timestep_c[1] * vc15
 
-    # # subvariables
-    # set_pose_parameters!(contact_solver.solver, xp2, xc2)
-    # update_outvariables!(contact_solver, contact_solver.solver.parameters)
-    # ϕ2, p2_parent, p2_child, N2, ∂p2_parent, ∂p2_child =
-    #     unpack_subvariables(contact_solver.outvariables, contact)
+    # contact position in the world frame
+    contact_w = x + (pp3 + pc3)[1:2] / 2
+    # contact_p is expressed in pbody's frame
+    contact_p = x_2d_rotation(pp3[3:3])' * (pw - pp3[1:2])
+    # contact_c is expressed in cbody's frame
+    contact_c = x_2d_rotation(pc3[3:3])' * (pw - pc3[1:2])
 
-    # subvariables
-    set_pose_parameters!(contact_solver.solver, xp3, xc3)
-    update_outvariables!(contact_solver, contact_solver.solver.parameters)
-    ϕ3, p3_parent, p3_child, N3, ∂p3_parent, ∂p3_child, nw3, tw3 =
-        unpack_subvariables(contact_solver.outvariables, contact)
-    # @show nw3
-    # @show tw3
+    # contact normal and tangent in the world frame
+    normal_pw = -x_2d_rotation(xp3[3:3]) * Ap' * zp
+    normal_cw = +x_2d_rotation(xc3[3:3]) * Ac' * zc
+    R = [0 1; -1 0]
+    tangent_pw = R * normal_pw
+    tangent_cw = R * normal_cw
 
-    p3_parent += (xp3 + xc3)[1:2] / 2
-    p3_child += (xp3 + xc3)[1:2] / 2
-
-    # variables
-    z, s = unpack_variables(x[contact.node_index.x], contact)
-
-    γ = z[1:1]
-    ψ = z[2:2]
-    β = z[3:4]
-    sγ = s[1:1]
-    sψ = s[2:2]
-    sβ = s[3:4]
+    # rotation matrix from contact frame to world frame
+    wRp = [tangent_pw normal_pw] # n points towards the parent body, [t,n,z] forms an oriented vector basis
+    wRc = [tangent_cw normal_cw] # n points towards the parent body, [t,n,z] forms an oriented vector basis
 
     # force at the contact point in the contact frame
-    νc = [β[1] - β[2]; γ]
-    # rotation matrix from contact frame to world frame
-    wRc = [tw3 nw3] # n points towards the parent body, [t,n,z] forms an oriented vector basis
+    f = [β[1] - β[2]; γ]
     # force at the contact point in the world frame
-    νw = wRc * νc
-    νpw = +νw # parent
-    νcw = -νw # child
-    # wrenches at the centers of masses
-    τpw = (skew([p3_parent - xp3[1:2]; 0]) * [νpw; 0])[3:3]
-    τcw = (skew([p3_child  - xc3[1:2]; 0]) * [νcw; 0])[3:3]
-    w = [νpw; τpw; νcw; τcw]
-    # mapping the force into the generalized coordinates (at the centers of masses and in the world frame)
+    f_pw = +wRp * f # parent
+    f_cw = -wRc * f # child
+    # torques at the centers of masses in world frame
+    τ_pw = (skew([contact_w - pp3[1:2]; 0]) * [f_pw; 0])[3:3]
+    τ_cw = (skew([contact_w - pc3[1:2]; 0]) * [f_cw; 0])[3:3]
+    # overall wrench on both bodies in world frame
+    # mapping the contact force into the generalized coordinates (at the centers of masses and in the world frame)
+    wrench_p = [f_pw; τ_pw]
+    wrench_c = [f_cw; τ_cw]
 
-    vptan = vp25[1:2] + (skew([xp3[1:2]-p3_parent; 0]) * [zeros(2); vp25[3]])[1:2]
-    vptan = vptan'*tw3
-    vctan = vc25[1:2] + (skew([xc3[1:2]-p3_child;  0]) * [zeros(2); vc25[3]])[1:2]
-    vctan = vctan'*tw3
-    vtan = vptan - vctan
-    # @show vptan
-    # @show vctan
+    # tangential velocities at the contact point
+    tanvel_p = vp25[1:2] + (skew([pp3[1:2] - contact_w; 0]) * [zeros(2); vp25[3]])[1:2]
+    tanvel_p = tanvel_p' * tangent_pw
+    tanvel_c = vc25[1:2] + (skew([pc3[1:2] - contact_w; 0]) * [zeros(2); vc25[3]])[1:2]
+    tanvel_c = tanvel_c' * tangent_cw
+    tanvel = tanvel_p - tanvel_c
 
-    # dynamics
-    e[contact.node_index.e] .+= [
-        sγ - ϕ3;
+    # contact equality
+    residual = [
+        x_2d_rotation(pp3[3:3]) * Ap' * zp + x_2d_rotation(pc3[3:3]) * Ac' * zc;
+        1 - sum(zp) - sum(zc);
+        sγ - ϕ;
         sψ - (friction_coefficient[1] * γ - [sum(β)]);
-        sβ - ([-vtan; vtan] + ψ[1]*ones(2));
-        ]
-    e[[pbody.node_index.e; cbody.node_index.e]] .-= w # -V3' * ν
+        sβ - ([+tanvel; -tanvel] + ψ[1]*ones(2));
+        sp - (- Ap * contact_p + bp + ϕ .* ones(np));
+        sc - (- Ac * contact_c + bc + ϕ .* ones(nc));
+    ]
+
+    # fill the equality vector (residual of the equality constraints)
+    e[contact.node_index.e] .+= residual
+    e[pbody.node_index.e] .-= wrench_p
+    e[cbody.node_index.e] .-= wrench_c
     return nothing
 end
+
+

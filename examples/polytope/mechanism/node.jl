@@ -1,7 +1,7 @@
 mutable struct NodeIndices174
-    e::Vector{Int}
-    x::Vector{Int}
-    θ::Vector{Int}
+    e::Vector{Int} # equality
+    x::Vector{Int} # variables
+    θ::Vector{Int} # parameters
 end
 
 function NodeIndices174()
