@@ -62,19 +62,21 @@ function joint_residual(primals, duals, slacks, parameters; np::Int=0, nc::Int=0
     p3_child = pw
 
     # normal and tangent
-    nw = -x_2d_rotation(xp3[3:3]) * Ap' * zp
+    npw = -x_2d_rotation(xp3[3:3]) * Ap' * zp
+    ncw = +x_2d_rotation(xc3[3:3]) * Ac' * zc
     # nw ./= norm(nw)
     R = [0 1; -1 0]
-    tw = R * nw
+    tpw = R * npw
+    tcw = R * ncw
 
     # force at the contact point in the contact frame
     νc = [β[1] - β[2]; γ]
     # rotation matrix from contact frame to world frame
-    wRc = [tw nw] # n points towards the parent body, [t,n,z] forms an oriented vector basis
+    wRc_p = [tpw npw] # n points towards the parent body, [t,n,z] forms an oriented vector basis
+    wRc_c = [tcw ncw] # n points towards the parent body, [t,n,z] forms an oriented vector basis
     # force at the contact point in the world frame
-    νw = wRc * νc
-    νpw = +νw # parent
-    νcw = -νw # child
+    νpw = +wRc_p * νc # parent
+    νcw = -wRc_c * νc # child
     # wrenches at the centers of masses
     τpw = (skew([p3_parent - xp3[1:2]; 0]) * [νpw; 0])[3:3]
     τcw = (skew([p3_child  - xc3[1:2]; 0]) * [νcw; 0])[3:3]
@@ -82,9 +84,9 @@ function joint_residual(primals, duals, slacks, parameters; np::Int=0, nc::Int=0
     # mapping the force into the generalized coordinates (at the centers of masses and in the world frame)
 
     vptan = vp25[1:2] + (skew([xp3[1:2]-p3_parent; 0]) * [zeros(2); vp25[3]])[1:2]
-    vptan = vptan'*tw
+    vptan = vptan'*tpw
     vctan = vc25[1:2] + (skew([xc3[1:2]-p3_child;  0]) * [zeros(2); vc25[3]])[1:2]
-    vctan = vctan'*tw
+    vctan = vctan'*tcw
     vtan = vptan - vctan
 
     M = Diagonal([mass, mass, inertia])
