@@ -7,9 +7,9 @@ function Mehrotra.solve!(solver)
     !warm_start && initialize_slacks!(solver)
     !warm_start && initialize_interior_point!(solver)
 
-    # ϵ = 1e-3
-    # warm_start && (solver.solution.duals .= solver.solution.duals .+ ϵ)
-    # warm_start && (solver.solution.slacks .= solver.solution.slacks .+ ϵ)
+    ϵ = 1e-2
+    warm_start && (solver.solution.duals .= solver.solution.duals .+ ϵ)
+    warm_start && (solver.solution.slacks .= solver.solution.slacks .+ ϵ)
 
     # indices
     indices = solver.indices
