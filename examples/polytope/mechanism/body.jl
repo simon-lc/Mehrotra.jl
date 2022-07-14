@@ -1,9 +1,9 @@
 ################################################################################
 # body
 ################################################################################
-struct Body174{T,D}
+struct Body175{T,D}
     name::Symbol
-    node_index::NodeIndices174
+    node_index::NodeIndices175
     pose::Vector{T}
     velocity::Vector{T}
     input::Vector{T}
@@ -15,17 +15,17 @@ struct Body174{T,D}
     b_colliders::Vector{Vector{T}} #polytope
 end
 
-function Body174(timestep, mass, inertia::Matrix,
+function Body175(timestep, mass, inertia::Matrix,
         A_colliders::Vector{Matrix{T}},
         b_colliders::Vector{Vector{T}};
         gravity=-9.81,
         name::Symbol=:body,
-        node_index::NodeIndices174=NodeIndices174()) where T
+        node_index::NodeIndices175=NodeIndices175()) where T
 
     D = size(A_colliders[1],2)
     @assert D == 2
 
-    return Body174{T,D}(
+    return Body175{T,D}(
         name,
         node_index,
         zeros(D+1),
@@ -40,12 +40,12 @@ function Body174(timestep, mass, inertia::Matrix,
     )
 end
 
-primal_dimension(body::Body174{T,D}) where {T,D} = 3
-cone_dimension(body::Body174{T,D}) where {T,D} = 0
-variable_dimension(body::Body174{T,D}) where {T,D} = primal_dimension(body) + 2 * cone_dimension(body)
-equality_dimension(body::Body174{T,D}) where {T,D} = primal_dimension(body) + cone_dimension(body)
+primal_dimension(body::Body175{T,D}) where {T,D} = 3
+cone_dimension(body::Body175{T,D}) where {T,D} = 0
+variable_dimension(body::Body175{T,D}) where {T,D} = primal_dimension(body) + 2 * cone_dimension(body)
+equality_dimension(body::Body175{T,D}) where {T,D} = primal_dimension(body) + cone_dimension(body)
 
-function parameter_dimension(body::Body174{T,D}) where {T,D}
+function parameter_dimension(body::Body175{T,D}) where {T,D}
     @assert D == 2
     nq = 3 # configuration
     nv = 3 # velocity
@@ -58,11 +58,11 @@ function parameter_dimension(body::Body174{T,D}) where {T,D}
     return nθ
 end
 
-function unpack_variables(x::Vector{T}, body::Body174{T}) where T
+function unpack_variables(x::Vector{T}, body::Body175{T}) where T
     return x
 end
 
-function get_parameters(body::Body174{T,D}) where {T,D}
+function get_parameters(body::Body175{T,D}) where {T,D}
     @assert D == 2
     pose = body.pose
     velocity = body.velocity
@@ -76,7 +76,7 @@ function get_parameters(body::Body174{T,D}) where {T,D}
     return θ
 end
 
-function set_parameters!(body::Body174{T,D}, θ) where {T,D}
+function set_parameters!(body::Body175{T,D}, θ) where {T,D}
     pose, velocity, input, timestep, gravity, mass, inertia = unpack_parameters(θ, body)
     body.pose .= pose
     body.velocity .= velocity
@@ -89,7 +89,7 @@ function set_parameters!(body::Body174{T,D}, θ) where {T,D}
     return nothing
 end
 
-function unpack_parameters(θ::Vector, body::Body174{T,D}) where {T,D}
+function unpack_parameters(θ::Vector, body::Body175{T,D}) where {T,D}
     @assert D == 2
     off = 0
     pose = θ[off .+ (1:D+1)]; off += D+1
@@ -103,8 +103,12 @@ function unpack_parameters(θ::Vector, body::Body174{T,D}) where {T,D}
     return pose, velocity, input, timestep, gravity, mass, inertia
 end
 
+function find_body(bodies::AbstractVector{<:Body175}, name::Symbol)
+    idx = findfirst(x -> x == name, getfield.(bodies, :name))
+    return bodies[idx]
+end
 
-function body_residual!(e, x, θ, body::Body174)
+function body_residual!(e, x, θ, body::Body175)
     node_index = body.node_index
     # variables = primals = velocity
     v25 = unpack_variables(x[node_index.x], body)
@@ -121,5 +125,10 @@ function body_residual!(e, x, θ, body::Body174)
     return nothing
 end
 
-
-
+function x_2d_rotation(q)
+    c = cos(q[1])
+    s = sin(q[1])
+    R = [c -s;
+         s  c]
+    return R
+end

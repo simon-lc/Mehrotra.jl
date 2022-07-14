@@ -1,7 +1,7 @@
 ################################################################################
 # dimensions
 ################################################################################
-struct MechanismDimensions174
+struct MechanismDimensions175
     body_configuration::Int
     body_velocity::Int
     body_state::Int
@@ -16,7 +16,7 @@ struct MechanismDimensions174
     equality::Int
 end
 
-function MechanismDimensions174(bodies::Vector, contacts::Vector)
+function MechanismDimensions175(bodies::Vector, contacts::Vector)
     # dimensions
     body_configuration = 3 # in 2D
     body_velocity = 3 # in 2D
@@ -34,7 +34,7 @@ function MechanismDimensions174(bodies::Vector, contacts::Vector)
     num_slacks = num_cone
     num_equality = sum(equality_dimension.(nodes))
 
-    return MechanismDimensions174(
+    return MechanismDimensions175(
         body_configuration,
         body_velocity,
         body_state,
@@ -52,22 +52,22 @@ end
 ################################################################################
 # mechanism
 ################################################################################
-struct Mechanism174{T,D,NB,NC,C}
+struct Mechanism175{T,D,NB,NC,C}
     variables::Vector{T}
     parameters::Vector{T}
     solver::Solver{T}
-    bodies::Vector{Body174{T}}
+    bodies::Vector{Body175{T}}
     contacts::Vector{C}
-    dimensions::MechanismDimensions174
+    dimensions::MechanismDimensions175
     # equalities::Vector{Equality{T}}
     # inequalities::Vector{Inequality{T}}
 end
 
-function Mechanism174(residual, bodies::Vector, contacts::Vector;
+function Mechanism175(residual, bodies::Vector, contacts::Vector;
         options::Options{T}=Options(), D::Int=2) where {T}
 
     # Dimensions
-    dim = MechanismDimensions174(bodies, contacts)
+    dim = MechanismDimensions175(bodies, contacts)
 
     # indexing
     indexing!([bodies; contacts])
@@ -86,16 +86,6 @@ function Mechanism174(residual, bodies::Vector, contacts::Vector;
             method_type=:finite_difference,
             options=options
             )
-    # solver = Solver(
-    #         nothing,
-    #         dim.primals,
-    #         dim.cone,
-    #         parameters=parameters,
-    #         nonnegative_indices=collect(1:dim.cone),
-    #         second_order_indices=[collect(1:0)],
-    #         methods=methods,
-    #         options=options
-    #         )
 
     # vectors
     variables = solver.solution.all
@@ -103,7 +93,7 @@ function Mechanism174(residual, bodies::Vector, contacts::Vector;
 
     nb = length(bodies)
     nc = length(contacts)
-    mechanism = Mechanism174{T,D,nb,nc,eltype(contacts)}(
+    mechanism = Mechanism175{T,D,nb,nc,eltype(contacts)}(
         variables,
         parameters,
         solver,

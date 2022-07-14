@@ -1,11 +1,11 @@
-mutable struct NodeIndices174
+mutable struct NodeIndices175
     e::Vector{Int} # equality
     x::Vector{Int} # variables
     θ::Vector{Int} # parameters
 end
 
-function NodeIndices174()
-    return NodeIndices174(
+function NodeIndices175()
+    return NodeIndices175(
         collect(1:0),
         collect(1:0),
         collect(1:0),

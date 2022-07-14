@@ -1,10 +1,9 @@
 ################################################################################
 # contact
 ################################################################################
-struct Contact175{T,D,NP,NC}
+struct Halfspace175{T,D,NP}
     name::Symbol
     parent_name::Symbol
-    child_name::Symbol
     node_index::NodeIndices175
     friction_coefficient::Vector{T}
     A_parent_collider::Matrix{T} #polytope
@@ -13,26 +12,21 @@ struct Contact175{T,D,NP,NC}
     b_child_collider::Vector{T} #polytope
 end
 
-function Contact175(parent_body::Body175{T}, child_body::Body175{T};
+function Halfspace175(parent_body::Body175{T}, Ac::AbstractMatrix, bc::AbstractVector;
         parent_collider_id::Int=1, 
-        child_collider_id::Int=1, 
-        name::Symbol=:contact, 
+        name::Symbol=:halfspace, 
         friction_coefficient=0.2) where {T}
 
     parent_name = parent_body.name
-    child_name = child_body.name
     Ap = parent_body.A_colliders[parent_collider_id]
     bp = parent_body.b_colliders[parent_collider_id]
-    Ac = child_body.A_colliders[child_collider_id]
-    bc = child_body.b_colliders[child_collider_id]
 
-    return Contact175(parent_name, child_name, friction_coefficient, Ap, bp, Ac, bc;
+    return Halfspace175(parent_name, friction_coefficient, Ap, bp, Ac, bc;
         name=name)
 end
 
-function Contact175(
+function Halfspace175(
         parent_name::Symbol,
-        child_name::Symbol,
         friction_coefficient,
         Ap::Matrix{T},
         bp::Vector{T},
@@ -44,7 +38,7 @@ function Contact175(
     np = size(Ap, 1)
     nc = size(Ac, 1)
     node_index = NodeIndices175()
-    return Contact175{T,d,np,nc}(
+    return Halfspace175{T,d,np,nc}(
         name,
         parent_name,
         child_name,
@@ -57,12 +51,12 @@ function Contact175(
     )
 end
 
-primal_dimension(contact::Contact175{T,D}) where {T,D} = D + 1 # x, ϕ
-cone_dimension(contact::Contact175{T,D,NP,NC}) where {T,D,NP,NC} = 1 + 1 + 2 + NP + NC # γ ψ β λp, λc
-variable_dimension(contact::Contact175{T,D}) where {T,D} = primal_dimension(contact) + 2 * cone_dimension(contact)
-equality_dimension(contact::Contact175{T,D}) where {T,D} = primal_dimension(contact) + cone_dimension(contact)
+primal_dimension(contact::Halfspace175{T,D}) where {T,D} = D + 1 # x, ϕ
+cone_dimension(contact::Halfspace175{T,D,NP,NC}) where {T,D,NP,NC} = 1 + 1 + 2 + NP + 1 # γ ψ β λp, λc
+variable_dimension(contact::Halfspace175{T,D}) where {T,D} = primal_dimension(contact) + 2 * cone_dimension(contact)
+equality_dimension(contact::Halfspace175{T,D}) where {T,D} = primal_dimension(contact) + cone_dimension(contact)
 
-function parameter_dimension(contact::Contact175{T,D}) where {T,D}
+function parameter_dimension(contact::Halfspace175{T,D}) where {T,D}
     nAp = length(contact.A_parent_collider)
     nbp = length(contact.b_parent_collider)
     nAc = length(contact.A_child_collider)
@@ -71,17 +65,7 @@ function parameter_dimension(contact::Contact175{T,D}) where {T,D}
     return nθ
 end
 
-# function subparameter_dimension(contact::Contact175{T,D,NP,NC}) where {T,D,NP,NC}
-#     nθl = contact.contact_solver.num_parameters
-#     return nθl
-# end
-
-# function subvariable_dimension(contact::Contact175{T,D,NP,NC}) where {T,D,NP,NC}
-#     nxl = contact.contact_solver.num_outvariables
-#     return nxl
-# end
-
-function unpack_variables(x::Vector{T}, contact::Contact175{T,D,NP,NC}) where {T,D,NP,NC}
+function unpack_variables(x::Vector{T}, contact::Halfspace175{T,D,NP,NC}) where {T,D,NP,NC}
     num_cone = cone_dimension(contact)
     off = 0
     c = x[off .+ (1:2)]; off += 2
@@ -101,7 +85,7 @@ function unpack_variables(x::Vector{T}, contact::Contact175{T,D,NP,NC}) where {T
     return c, ϕ, γ, ψ, β, λp, λc, sγ, sψ, sβ, sp, sc
 end
 
-function get_parameters(contact::Contact175{T,D}) where {T,D}
+function get_parameters(contact::Halfspace175{T,D}) where {T,D}
     θ = [
         contact.friction_coefficient;
         vec(contact.A_parent_collider); contact.b_parent_collider;
@@ -110,7 +94,7 @@ function get_parameters(contact::Contact175{T,D}) where {T,D}
     return θ
 end
 
-function set_parameters!(contact::Contact175{T,D,NP,NC}, θ) where {T,D,NP,NC}
+function set_parameters!(contact::Halfspace175{T,D,NP,NC}, θ) where {T,D,NP,NC}
     friction_coefficient, A_parent_collider, b_parent_collider, A_child_collider, b_child_collider = 
         unpack_parameters(θ, contact)
     contact.friction_coefficient .= friction_coefficient
@@ -121,7 +105,7 @@ function set_parameters!(contact::Contact175{T,D,NP,NC}, θ) where {T,D,NP,NC}
     return nothing
 end
 
-function unpack_parameters(θ::Vector, contact::Contact175{T,D,NP,NC}) where {T,D,NP,NC}
+function unpack_parameters(θ::Vector, contact::Halfspace175{T,D,NP,NC}) where {T,D,NP,NC}
     @assert D == 2
     off = 0
     friction_coefficient = θ[off .+ (1:1)]; off += 1
@@ -132,7 +116,7 @@ function unpack_parameters(θ::Vector, contact::Contact175{T,D,NP,NC}) where {T,
     return friction_coefficient, A_parent_collider, b_parent_collider, A_child_collider, b_child_collider
 end
 
-function contact_residual!(e, x, θ, contact::Contact175{T,D,NP,NC}, 
+function contact_residual!(e, x, θ, contact::Halfspace175{T,D,NP,NC}, 
         pbody::Body175, cbody::Body175) where {T,D,NP,NC}
     
     # unpack parameters
