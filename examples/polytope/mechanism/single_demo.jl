@@ -28,25 +28,36 @@ include("mechanism.jl")
 # parameters
 Af = [0.0  +1.0]
 bf = [0.0]
+# Ap2 = [
+#      1.0  0.0;
+#      0.0  1.0;
+#     -1.0  0.0;
+#      0.0 -1.0;
+#     ] .- 0.00ones(4,2);
+# bp2 = 0.5*[
+#     +0,
+#     +2,
+#     +0,
+#      2,
+#     ];    
 Ap = [
      1.0  0.0;
      0.0  1.0;
     -1.0  0.0;
      0.0 -1.0;
-    ] .- 0.00ones(4,2);
+    ] .- 0.30ones(4,2);
 bp = 0.5*[
     +1,
     +1,
     +1,
      1,
-     # 2,
     ];
 Ac = [
      1.0  0.0;
      0.0  1.0;
     -1.0  0.0;
      0.0 -1.0;
-    ] .+ 0.00ones(4,2);
+    ] .+ 0.20ones(4,2);
 bc = 0.4*[
      1,
      1,
@@ -63,11 +74,11 @@ inertia = 0.2 * ones(1,1);
 pbody = Body177(timestep, mass, inertia, [Ap], [bp], gravity=+gravity, name=:pbody);
 cbody = Body177(timestep, 1e1*mass, 1e1*inertia, [Ac], [bc], gravity=+gravity, name=:cbody);
 bodies = [pbody, cbody];
-contacts = [Contact177(bodies[1], bodies[2], friction_coefficient=0.3, name=:contact)]
+contacts = [Contact177(bodies[1], bodies[2], friction_coefficient=0.9, name=:contact)]
 # contacts = []
 hspaces = [
-    Halfspace177(bodies[1], Af, bf, friction_coefficient=0.3, name=:phalfspace),
-    Halfspace177(bodies[2], Af, bf, friction_coefficient=0.3, name=:phalfspace)]
+    Halfspace177(bodies[1], Af, bf, friction_coefficient=0.9, name=:phalfspace),
+    Halfspace177(bodies[2], Af, bf, friction_coefficient=0.9, name=:phalfspace)]
 # hspaces = []
 indexing!([bodies; contacts; hspaces])
 
@@ -128,63 +139,14 @@ solver = Solver(
     options=Options(
         # verbose=false,#true, 
         verbose=true, 
-        complementarity_tolerance=1e-5,
+        complementarity_tolerance=3e-3,
         compressed_search_direction=false, 
         max_iterations=30,
         sparse_solver=false,
         warm_start=false,
     ));
 
-
-solver.indices
-
 solve!(solver)
-# solver.problem.equality_constraint[1:20]
-# solver.problem.cone_product[1:20]
-
-# initialize_primals!(solver)
-# initialize_duals!(solver)
-# initialize_slacks!(solver)
-# initialize_interior_point!(solver)
-
-
-# evaluate!(solver.problem,
-#         solver.methods,
-#         solver.cone_methods,
-#         solver.solution,
-#         solver.parameters,
-#         equality_constraint=true,
-#         equality_jacobian_variables=true,
-#         equality_jacobian_parameters=true,
-#         cone_constraint=true,
-#         cone_jacobian=true,
-#         cone_jacobian_inverse=true,
-#         sparse_solver=true,
-#         ) 
-
-# norm(solver.problem.equality_constraint)
-
-# solver.problem.equality_constraint
-# solver.problem.equality_jacobian_variables_sparse
-# solver.problem.equality_jacobian_parameters_sparse
-# solver.problem.cone_product
-# solver.problem.cone_product_jacobian_duals_sparse
-# solver.problem.cone_product_jacobian_slacks_sparse
-# solver.problem.cone_product_jacobian_inverse_duals_sparse
-# solver.problem.cone_product_jacobian_inverse_slacks_sparse
-# solver.problem.cone_target
-
-
-# norm(solver.problem.equality_constraint, Inf)
-# norm(solver.problem.equality_jacobian_variables_sparse, Inf)
-# norm(solver.problem.equality_jacobian_parameters_sparse, Inf)
-# norm(solver.problem.cone_product, Inf)
-# norm(solver.problem.cone_product_jacobian_duals_sparse, Inf)
-# norm(solver.problem.cone_product_jacobian_slacks_sparse, Inf)
-# norm(solver.problem.cone_product_jacobian_inverse_duals_sparse, Inf)
-# norm(solver.problem.cone_product_jacobian_inverse_slacks_sparse, Inf)
-# norm(solver.problem.cone_target, Inf)
-
 
 
 ################################################################################
@@ -323,14 +285,12 @@ for i = 2:H+1
 end;
 MeshCat.setanimation!(vis, anim)
 # open(vis)
-# convert_frames_to_video_and_gif("single_level_hard_offset")
-# convert_frames_to_video_and_gif("single_level_hard_tilted")
-# convert_frames_to_video_and_gif("single_level_hard")
+convert_frames_to_video_and_gif("polytope_drop_slow")
 
 ex = solver.data.jacobian_variables_dense
-plot(Gray.(abs.(ex)))
-plot(Gray.(abs.(ex - ex')))
-plot(Gray.(abs.(ex + ex')))
+# plot(Gray.(abs.(ex)))
+# plot(Gray.(abs.(ex - ex')))
+# plot(Gray.(abs.(ex + ex')))
 # plot(Gray.(1e3abs.(solver.data.jacobian_variables_dense)))
 
 # scatter(solver.solution.all)
