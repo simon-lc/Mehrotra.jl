@@ -1,7 +1,7 @@
 ################################################################################
 # dimensions
 ################################################################################
-struct MechanismDimensions175
+struct MechanismDimensions177
     body_configuration::Int
     body_velocity::Int
     body_state::Int
@@ -16,7 +16,7 @@ struct MechanismDimensions175
     equality::Int
 end
 
-function MechanismDimensions175(bodies::Vector, contacts::Vector)
+function MechanismDimensions177(bodies::Vector, contacts::Vector)
     # dimensions
     body_configuration = 3 # in 2D
     body_velocity = 3 # in 2D
@@ -34,7 +34,7 @@ function MechanismDimensions175(bodies::Vector, contacts::Vector)
     num_slacks = num_cone
     num_equality = sum(equality_dimension.(nodes))
 
-    return MechanismDimensions175(
+    return MechanismDimensions177(
         body_configuration,
         body_velocity,
         body_state,
@@ -52,22 +52,22 @@ end
 ################################################################################
 # mechanism
 ################################################################################
-struct Mechanism175{T,D,NB,NC,C}
+struct Mechanism177{T,D,NB,NC,C}
     variables::Vector{T}
     parameters::Vector{T}
     solver::Solver{T}
-    bodies::Vector{Body175{T}}
+    bodies::Vector{Body177{T}}
     contacts::Vector{C}
-    dimensions::MechanismDimensions175
+    dimensions::MechanismDimensions177
     # equalities::Vector{Equality{T}}
     # inequalities::Vector{Inequality{T}}
 end
 
-function Mechanism175(residual, bodies::Vector, contacts::Vector;
+function Mechanism177(residual, bodies::Vector, contacts::Vector;
         options::Options{T}=Options(), D::Int=2) where {T}
 
     # Dimensions
-    dim = MechanismDimensions175(bodies, contacts)
+    dim = MechanismDimensions177(bodies, contacts)
 
     # indexing
     indexing!([bodies; contacts])
@@ -93,7 +93,7 @@ function Mechanism175(residual, bodies::Vector, contacts::Vector;
 
     nb = length(bodies)
     nc = length(contacts)
-    mechanism = Mechanism175{T,D,nb,nc,eltype(contacts)}(
+    mechanism = Mechanism177{T,D,nb,nc,eltype(contacts)}(
         variables,
         parameters,
         solver,

@@ -1,10 +1,10 @@
 ################################################################################
 # contact
 ################################################################################
-struct Friction175{T,D,NP,NC}
+struct Friction177{T,D,NP,NC}
     name::Symbol
-    node_index::NodeIndices175
-    contact_solver::ContactSolver175
+    index::NodeIndices177
+    contact_solver::ContactSolver177
     μ::Vector{T}
     A_parent_collider::Matrix{T} #polytope
     b_parent_collider::Vector{T} #polytope
@@ -12,22 +12,22 @@ struct Friction175{T,D,NP,NC}
     b_child_collider::Vector{T} #polytope
 end
 
-function Friction175(
+function Friction177(
         μ::Vector{T},
         Ap::Matrix{T},
         bp::Vector{T},
         Ac::Matrix{T},
         bc::Vector{T};
         name::Symbol=:contact,
-        node_index::NodeIndices175=NodeIndices175()) where {T}
+        index::NodeIndices177=NodeIndices177()) where {T}
 
     contact_solver = ContactSolver(Ap, bp, Ac, bc)
     d = size(Ap, 2)
     np = size(Ap, 1)
     nc = size(Ac, 1)
-    return Friction175{T,d,np,nc}(
+    return Friction177{T,d,np,nc}(
         name,
-        node_index,
+        index,
         contact_solver,
         μ,
         Ap,
@@ -37,8 +37,8 @@ function Friction175(
     )
 end
 
-function Friction175(parent_body::Body175, child_body::Body175, μ) where {T}
-    return Friction175(
+function Friction177(parent_body::Body177, child_body::Body177, μ) where {T}
+    return Friction177(
         μ,
         parent_body.A_colliders[1],
         parent_body.b_colliders[1],
@@ -47,7 +47,7 @@ function Friction175(parent_body::Body175, child_body::Body175, μ) where {T}
     )
 end
 
-function variable_dimension(contact::Friction175{T,D}) where {T,D}
+function variable_dimension(contact::Friction177{T,D}) where {T,D}
     if D == 2
         nγ = 2*1 # impact (dual and slack)
         nψ = 2*1 # friction cone (dual and slack)
@@ -59,7 +59,7 @@ function variable_dimension(contact::Friction175{T,D}) where {T,D}
     return nx
 end
 
-function equality_dimension(contact::Friction175{T,D}) where {T,D}
+function equality_dimension(contact::Friction177{T,D}) where {T,D}
     if D == 2
         nγ = 1*1 # impact (dual and slack)
         nψ = 1*1 # friction cone (dual and slack)
@@ -71,7 +71,7 @@ function equality_dimension(contact::Friction175{T,D}) where {T,D}
     return ne
 end
 
-function parameter_dimension(contact::Friction175{T,D}) where {T,D}
+function parameter_dimension(contact::Friction177{T,D}) where {T,D}
     nμ = 1
     nAp = length(contact.A_parent_collider)
     nbp = length(contact.b_parent_collider)
@@ -81,12 +81,12 @@ function parameter_dimension(contact::Friction175{T,D}) where {T,D}
     return nθ
 end
 
-function subparameter_dimension(contact::Friction175{T,D,NP,NC}) where {T,D,NP,NC}
+function subparameter_dimension(contact::Friction177{T,D,NP,NC}) where {T,D,NP,NC}
     nθl = contact.contact_solver.num_parameters
     return nθl
 end
 
-function subvariable_dimension(contact::Friction175{T,D,NP,NC}) where {T,D,NP,NC}
+function subvariable_dimension(contact::Friction177{T,D,NP,NC}) where {T,D,NP,NC}
     nxl = contact.contact_solver.num_outparameters
     return nxl
 end
@@ -102,7 +102,7 @@ function unpack_contact_variables(x::Vector{T}) where T
     return γ, ψ, β, sγ, sψ, sβ
 end
 
-function get_parameters(contact::Friction175{T,D}) where {T,D}
+function get_parameters(contact::Friction177{T,D}) where {T,D}
     θ = [
         contact.μ;
         vec(contact.A_parent_collider); contact.b_parent_collider;
@@ -111,7 +111,7 @@ function get_parameters(contact::Friction175{T,D}) where {T,D}
     return θ
 end
 
-function set_parameters!(contact::Friction175{T,D,NP,NC}, θ) where {T,D,NP,NC}
+function set_parameters!(contact::Friction177{T,D,NP,NC}, θ) where {T,D,NP,NC}
     off = 0
     contact.μ .= θ[off .+ (1:1)]; off += 1
     contact.A_parent_collider .= reshape(θ[off .+ (1:NP*D)], (NP,D)); off += NP*D
@@ -121,7 +121,7 @@ function set_parameters!(contact::Friction175{T,D,NP,NC}, θ) where {T,D,NP,NC}
     return nothing
 end
 
-function unpack_contact_parameters(θ::Vector, contact::Friction175{T,D,NP,NC}) where {T,D,NP,NC}
+function unpack_contact_parameters(θ::Vector, contact::Friction177{T,D,NP,NC}) where {T,D,NP,NC}
     @assert D == 2
     off = 0
     μ = θ[off .+ (1:1)]; off += 1
@@ -132,7 +132,7 @@ function unpack_contact_parameters(θ::Vector, contact::Friction175{T,D,NP,NC}) 
     return μ, A_parent_collider, b_parent_collider, A_child_collider, b_child_collider
 end
 
-function unpack_contact_subvariables(xl::Vector, contact::Friction175{T,D,NP,NC}) where {T,D,NP,NC}
+function unpack_contact_subvariables(xl::Vector, contact::Friction177{T,D,NP,NC}) where {T,D,NP,NC}
     nθl = subparameter_dimension(contact)
 
     off = 0
@@ -155,14 +155,14 @@ function x_2d_rotation(q)
     return R
 end
 
-function contact_residual!(e, x, θ, contact::Friction175, pbody::Body175, cbody::Body175)
+function contact_residual!(e, x, θ, contact::Friction177, pbody::Body177, cbody::Body177)
 
     contact_solver = contact.contact_solver
 
-    xp2, vp15, up2, timestep_p = unpack_body_parameters(θ[pbody.node_index.θ], pbody)
-    xc2, vc15, uc2, timestep_c = unpack_body_parameters(θ[cbody.node_index.θ], cbody)
-    vp25 = unpack_body_variables(x[pbody.node_index.x])
-    vc25 = unpack_body_variables(x[cbody.node_index.x])
+    xp2, vp15, up2, timestep_p = unpack_body_parameters(θ[pbody.index.θ], pbody)
+    xc2, vc15, uc2, timestep_c = unpack_body_parameters(θ[cbody.index.θ], cbody)
+    vp25 = unpack_body_variables(x[pbody.index.x])
+    vc25 = unpack_body_variables(x[cbody.index.x])
     xp3 = xp2 + timestep_p[1] * vp25
     xc3 = xc2 + timestep_c[1] * vc25
     xp4 = xp2 + 2timestep_p[1] * vp25
@@ -196,8 +196,8 @@ function contact_residual!(e, x, θ, contact::Friction175, pbody::Body175, cbody
     # variables
     # @show typeof(x)
     # @show typeof(contact)
-    # @show typeof(contact.node_index)
-    γ, ψ, β, sγ, sψ, sβ = unpack_contact_variables(x[contact.node_index.x])
+    # @show typeof(contact.index)
+    γ, ψ, β, sγ, sψ, sβ = unpack_contact_variables(x[contact.index.x])
 
     # jacobians
     # D = ∂ϕt / ∂q
@@ -205,12 +205,12 @@ function contact_residual!(e, x, θ, contact::Friction175, pbody::Body175, cbody
          -D]
 
     # dynamics
-    e[contact.node_index.e] .+= [
+    e[contact.index.e] .+= [
         sγ - (ϕ3 .- 0.0);
         sψ - (μ .* γ - [sum(β)]);
         sβ - (P * [vp25; vc25] + ψ[1] * ones(2));
         ]
 
-    e[[pbody.node_index.e; cbody.node_index.e]] .+= -N3'*γ - P'*β
+    e[[pbody.index.e; cbody.index.e]] .+= -N3'*γ - P'*β
     return nothing
 end

@@ -1,26 +1,26 @@
 
-# function step!(mechanism::Mechanism175{T}, x::Vector{T}, u::Vector{T}) where T
+# function step!(mechanism::Mechanism177{T}, x::Vector{T}, u::Vector{T}) where T
 # end
 #
-# function input_gradient(du, x, u, mechanism::Mechanism175{T})
+# function input_gradient(du, x, u, mechanism::Mechanism177{T})
 # end
 #
-# function state_gradient(dx, x, u, mechanism::Mechanism175{T})
+# function state_gradient(dx, x, u, mechanism::Mechanism177{T})
 # end
 #
-# function set_input!(mechanism::Mechanism175{T})
+# function set_input!(mechanism::Mechanism177{T})
 # end
 #
-# function set_current_state!(mechanism::Mechanism175{T})
+# function set_current_state!(mechanism::Mechanism177{T})
 # end
 #
-# function set_next_state!(mechanism::Mechanism175{T})
+# function set_next_state!(mechanism::Mechanism177{T})
 # end
 #
-# function get_current_state!(mechanism::Mechanism175{T})
+# function get_current_state!(mechanism::Mechanism177{T})
 # end
 #
-# function get_next_state!(mechanism::Mechanism175{T})
+# function get_next_state!(mechanism::Mechanism177{T})
 # end
 
 
@@ -51,7 +51,7 @@ include("contact.jl")
 ################################################################################
 # dimensions
 ################################################################################
-struct MechanismDimensions175
+struct MechanismDimensions177
     body_configuration::Int
     body_velocity::Int
     body_state::Int
@@ -64,7 +64,7 @@ struct MechanismDimensions175
     equality::Int
 end
 
-function MechanismDimensions175(bodies::Vector, contacts::Vector)
+function MechanismDimensions177(bodies::Vector, contacts::Vector)
     # dimensions
     nq = 3 # in 2D
     nv = 3 # in 2D
@@ -76,28 +76,28 @@ function MechanismDimensions175(bodies::Vector, contacts::Vector)
     num_primals = sum(variable_dimension.(bodies))
     num_cone = Int(sum(variable_dimension.(contacts)) / 2)
     num_equality = num_primals + num_cone
-    return MechanismDimensions175(nq, nv, nx, nb, nc, nx, nθ, num_primals, num_cone, num_equality)
+    return MechanismDimensions177(nq, nv, nx, nb, nc, nx, nθ, num_primals, num_cone, num_equality)
 end
 
 ################################################################################
 # mechanism
 ################################################################################
-struct Mechanism175{T,D,NB,NC}
+struct Mechanism177{T,D,NB,NC}
     variables::Vector{T}
     parameters::Vector{T}
     solver::Solver{T}
-    bodies::Vector{Body175{T}}
-    contacts::Vector{Contact175{T}}
-    dimensions::MechanismDimensions175
+    bodies::Vector{Body177{T}}
+    contacts::Vector{Contact177{T}}
+    dimensions::MechanismDimensions177
     # equalities::Vector{Equality{T}}
     # inequalities::Vector{Inequality{T}}
 end
 
-function Mechanism175(residual, bodies::Vector, contacts::Vector;
+function Mechanism177(residual, bodies::Vector, contacts::Vector;
         options::Options{T}=Options(), D::Int=2) where {T}
 
     # Dimensions
-    dim = MechanismDimensions175(bodies, contacts)
+    dim = MechanismDimensions177(bodies, contacts)
 
     # indexing
     indexing!([bodies; contacts])
@@ -133,7 +133,7 @@ function Mechanism175(residual, bodies::Vector, contacts::Vector;
 
     nb = length(bodies)
     nc = length(contacts)
-    mechanism = Mechanism175{T,D,nb,nc}(
+    mechanism = Mechanism177{T,D,nb,nc}(
         variables,
         parameters,
         solver,
@@ -152,9 +152,9 @@ function indexing!(nodes::Vector)
         ne = equality_dimension(node)
         nx = variable_dimension(node)
         nθ = parameter_dimension(node)
-        node.node_index.e = collect(eoff .+ (1:ne)); eoff += ne
-        node.node_index.x = collect(xoff .+ (1:nx)); xoff += nx
-        node.node_index.θ = collect(θoff .+ (1:nθ)); θoff += nθ
+        node.index.e = collect(eoff .+ (1:ne)); eoff += ne
+        node.index.x = collect(xoff .+ (1:nx)); xoff += nx
+        node.index.θ = collect(θoff .+ (1:nθ)); θoff += nθ
     end
     return nothing
 end
@@ -193,12 +193,12 @@ timestep = 0.01
 gravity = -0.0*9.81
 mass = 1.0
 inertia = 0.2 * ones(1,1)
-bodya = Body175(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
-bodyb = Body175(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
+bodya = Body177(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
+bodyb = Body177(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
 bodies = [bodya, bodyb]
-contacts = [Contact175(bodies[1], bodies[2])]
+contacts = [Contact177(bodies[1], bodies[2])]
 
-dim = MechanismDimensions175(bodies, contacts)
+dim = MechanismDimensions177(bodies, contacts)
 indexing!([bodies; contacts])
 
 x0 = rand(dim.variables)
@@ -208,7 +208,7 @@ ex0 = zeros(dim.variables, dim.variables)
 eθ0 = zeros(dim.variables, dim.parameters)
 
 
-function mechanism_residual(primals, duals, slacks, parameters; dim::MechanismDimensions175)
+function mechanism_residual(primals, duals, slacks, parameters; dim::MechanismDimensions177)
     e = zeros(dim.equality)
     x = [primals; duals; slacks]
     θ = parameters
@@ -227,7 +227,7 @@ end
 
 local_residual(primals, duals, slacks, parameters) =
     mechanism_residual(primals, duals, slacks, parameters, dim)
-mech = Mechanism175(local_residual, bodies, contacts)
+mech = Mechanism177(local_residual, bodies, contacts)
 solver = mech.solver
 solve!(solver)
 
@@ -242,7 +242,7 @@ solve!(solver)
 
 
 contact_solver = ContactSolver(Ap, bp, Ac, bc)
-contact_methods = ContactMethods175(contacts[1], bodies..., dim)
+contact_methods = ContactMethods177(contacts[1], bodies..., dim)
 
 problem_methods0 = mechanism_methods(bodies, contacts, dim)
 methods0 = problem_methods0.methods
@@ -364,7 +364,7 @@ Main.@code_warntype evaluate!(problem,
 ################################################################################
 # test mechanism
 ################################################################################
-mech = Mechanism175(bodies, contacts)
+mech = Mechanism177(bodies, contacts)
 solver = mech.solver
 
 bodies[1].pose .= [+10,0,0.0]
@@ -485,7 +485,7 @@ Main.@profiler [solve!(mech.solver) for i=1:1000]
 # test simulation
 ################################################################################
 
-mech = Mechanism175(bodies, contacts)
+mech = Mechanism177(bodies, contacts)
 mech.solver.methods.methods[3].contact_solver.solver.options.complementarity_tolerance=1e-2
 mech.solver.methods.methods[3].contact_solver.solver.options.residual_tolerance=1e-10
 # mech.solver.methods.methods[3].contact_solver.solver.options.verbose=true
@@ -510,7 +510,7 @@ for i = 1:H
     mech.parameters .= [θb1; θb2; θc1]
     mech.solver.parameters .= [θb1; θb2; θc1]
 
-    # mech = Mechanism175(bodies, contacts)
+    # mech = Mechanism177(bodies, contacts)
     solve!(mech.solver)
     va25 = deepcopy(mech.solver.solution.all[1:3])
     vb25 = deepcopy(mech.solver.solution.all[4:6])

@@ -63,10 +63,10 @@ inertia = 0.2 * ones(1,1)
 μ = [0.3]
 
 # nodes
-bodya = Body175(timestep, mass, inertia, [Ap], [bp], gravity=+gravity, name=:bodya)
-bodyb = Body175(timestep, 1e6*mass, 1e6*inertia, [Ac], [bc], gravity=-0*gravity, name=:bodyb)
+bodya = Body177(timestep, mass, inertia, [Ap], [bp], gravity=+gravity, name=:bodya)
+bodyb = Body177(timestep, 1e6*mass, 1e6*inertia, [Ac], [bc], gravity=-0*gravity, name=:bodyb)
 bodies = [bodya, bodyb]
-contacts = [Friction175(bodies[1], bodies[2], μ)]
+contacts = [Friction177(bodies[1], bodies[2], μ)]
 indexing!([bodies; contacts])
 
 contacts[1]
@@ -74,7 +74,7 @@ contacts[1]
 # mechanism
 local_residual(primals, duals, slacks, parameters) =
     mechanism_residual(primals, duals, slacks, parameters, bodies, contacts)
-mech = Mechanism175(local_residual, bodies, contacts)
+mech = Mechanism177(local_residual, bodies, contacts)
 
 
 ################################################################################

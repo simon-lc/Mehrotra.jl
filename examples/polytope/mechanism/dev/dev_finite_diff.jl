@@ -1,11 +1,11 @@
 
 
-function body_residual!(e, x, θ, body::Body175)
-    node_index = body.node_index
+function body_residual!(e, x, θ, body::Body177)
+    index = body.index
     # variables = primals = velocity
-    v25 = unpack_body_variables(x[node_index.x])
+    v25 = unpack_body_variables(x[index.x])
     # parameters
-    p2, v15, u, timestep, gravity, mass, inertia = unpack_body_parameters(θ[node_index.θ], body)
+    p2, v15, u, timestep, gravity, mass, inertia = unpack_body_parameters(θ[index.θ], body)
     # integrator
     p1 = p2 - timestep[1] * v15
     p3 = p2 + timestep[1] * v25
@@ -13,21 +13,21 @@ function body_residual!(e, x, θ, body::Body175)
     M = Diagonal([mass[1]; mass[1]; inertia[1]])
     # dynamics
     dynamics = M * (p3 - 2*p2 + p1)/timestep[1] - timestep[1] * [0; mass .* gravity; 0] - u * timestep[1];
-    e[node_index.e] .+= dynamics
+    e[index.e] .+= dynamics
     return nothing
 end
 
 
-function contact_residual!(e, x, xl2, xl3, θ, contact::Contact175, pbody::Body175, cbody::Body175)
+function contact_residual!(e, x, xl2, xl3, θ, contact::Contact177, pbody::Body177, cbody::Body177)
     # variables
-    γ, sγ = unpack_contact_variables(x[contact.node_index.x])
+    γ, sγ = unpack_contact_variables(x[contact.index.x])
     # subvariables
     _, _, _, N2, _, _ = unpack_contact_subvariables(xl2, contact)
     ϕ, p_parent, p_child, N, ∂p_parent, ∂p_child = unpack_contact_subvariables(xl3, contact)
     # @show ϕ
     # dynamics
-    e[contact.node_index.e] .+= sγ - (ϕ .- 0.0)
-    e[[pbody.node_index.e; cbody.node_index.e]] .+= -N2'*γ
+    e[contact.index.e] .+= sγ - (ϕ .- 0.0)
+    e[[pbody.index.e; cbody.index.e]] .+= -N2'*γ
     return nothing
 end
 
@@ -39,12 +39,12 @@ function equality_residual(x, θ, bodies, contacts, contact_solver)
     end
     for contact in contacts
         num_subvariables = 131
-        xp2 = unpack_body_parameters(θ[bodies[1].node_index.θ], bodies[1])[1]
-        xc2 = unpack_body_parameters(θ[bodies[2].node_index.θ], bodies[2])[1]
-        timestep = unpack_body_parameters(θ[bodies[2].node_index.θ], bodies[2])[4]
+        xp2 = unpack_body_parameters(θ[bodies[1].index.θ], bodies[1])[1]
+        xc2 = unpack_body_parameters(θ[bodies[2].index.θ], bodies[2])[1]
+        timestep = unpack_body_parameters(θ[bodies[2].index.θ], bodies[2])[4]
 
-        vp25 = unpack_body_variables(x[bodies[1].node_index.x])
-        vc25 = unpack_body_variables(x[bodies[2].node_index.x])
+        vp25 = unpack_body_variables(x[bodies[1].index.x])
+        vc25 = unpack_body_variables(x[bodies[2].index.x])
         xp3 = xp2 + timestep[1] * vp25
         xc3 = xc2 + timestep[1] * vc25
 
@@ -98,10 +98,10 @@ timestep = 0.01
 gravity = -0.0*9.81
 mass = 1.0
 inertia = 0.2 * ones(1,1)
-bodya = Body175(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
-bodyb = Body175(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
+bodya = Body177(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
+bodyb = Body177(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
 bodies = [bodya, bodyb]
-contacts = [Contact175(bodies[1], bodies[2])]
+contacts = [Contact177(bodies[1], bodies[2])]
 indexing!([bodies; contacts])
 contact_solver = ContactSolver(Ap, bp, Ac, bc,
     options=Options(

@@ -1,28 +1,68 @@
-mutable struct NodeIndices175
-    e::Vector{Int} # equality
-    x::Vector{Int} # variables
-    θ::Vector{Int} # parameters
+mutable struct NodeIndices177
+    optimality::Vector{Int}
+    slackness::Vector{Int}
+    equality::Vector{Int}
+    primals::Vector{Int}
+    duals::Vector{Int}
+    slacks::Vector{Int}
+    variables::Vector{Int}
+    parameters::Vector{Int}
 end
 
-function NodeIndices175()
-    return NodeIndices175(
+function NodeIndices177()
+    return NodeIndices177(
+        collect(1:0),
+        collect(1:0),
+        collect(1:0),
+        collect(1:0),
+        collect(1:0),
         collect(1:0),
         collect(1:0),
         collect(1:0),
     )
 end
 
+
 function indexing!(nodes::Vector)
-    eoff = 0
-    xoff = 0
-    θoff = 0
+    # residual
+    off = 0        
     for node in nodes
-        ne = equality_dimension(node)
-        nx = variable_dimension(node)
-        nθ = parameter_dimension(node)
-        node.node_index.e = collect(eoff .+ (1:ne)); eoff += ne
-        node.node_index.x = collect(xoff .+ (1:nx)); xoff += nx
-        node.node_index.θ = collect(θoff .+ (1:nθ)); θoff += nθ
+        n = optimality_dimension(node)
+        node.index.optimality = collect(off .+ (1:n)); off += n
+    end
+    for node in nodes
+        n = slackness_dimension(node)
+        node.index.slackness = collect(off .+ (1:n)); off += n
+    end    
+    for node in nodes
+        index = node.index
+        index.equality = [index.optimality; index.slackness]
+    end
+    
+    # variables
+    off = 0
+    for node in nodes
+        n = primal_dimension(node)
+        node.index.primals = collect(off .+ (1:n)); off += n
+    end   
+    for node in nodes
+        n = cone_dimension(node)
+        node.index.duals = collect(off .+ (1:n)); off += n
+    end
+    for node in nodes
+        n = cone_dimension(node)
+        node.index.slacks = collect(off .+ (1:n)); off += n
+    end
+    for node in nodes
+        index = node.index
+        index.variables = [index.primals; index.duals; index.slacks]
+    end
+    
+    # parameters
+    off = 0
+    for node in nodes
+        n = parameter_dimension(node)
+        node.index.parameters = collect(off .+ (1:n)); off += n
     end
     return nothing
 end
