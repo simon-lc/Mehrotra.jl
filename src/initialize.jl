@@ -36,6 +36,14 @@ function initialize_interior_point!(solver)
     return
 end
 
+function initialize_solver!(solver)
+    initialize_primals!(solver)
+    initialize_duals!(solver)
+    initialize_slacks!(solver)
+    initialize_interior_point!(solver)
+    return nothing
+end
+
 
 
 # solver

@@ -67,7 +67,8 @@ function Mechanism177(residual, bodies::Vector, contacts::Vector;
         options::Options{T}=Options(), D::Int=2) where {T}
 
     # # Dimensions
-    # dim = MechanismDimensions177(bodies, contacts)
+    num_primals = sum(primal_dimension.(nodes))
+    num_cone = sum(cone_dimension.(nodes))
 
     # indexing
     indexing!([bodies; contacts])
@@ -78,10 +79,10 @@ function Mechanism177(residual, bodies::Vector, contacts::Vector;
     # methods = mechanism_methods(bodies, contacts, dim)
     solver = Solver(
             residual,
-            dim.primals,
-            dim.cone,
+            num_primals,
+            num_cone,
             parameters=parameters,
-            nonnegative_indices=collect(1:dim.cone),
+            nonnegative_indices=collect(1:num_cone),
             second_order_indices=[collect(1:0)],
             method_type=:finite_difference,
             options=options
@@ -139,3 +140,4 @@ function residual!(e, x, θ, contact::PolyHalfSpace177, bodies::Vector)
     residual!(e, x, θ, contact, pbody)
     return nothing
 end
+

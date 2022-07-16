@@ -120,7 +120,7 @@ function unpack_parameters(θ::Vector, contact::PolyHalfSpace177{T,D,NP}) where 
     return friction_coefficient, A_parent_collider, b_parent_collider, A_child_collider, b_child_collider
 end
 
-function contact_residual!(e, x, θ, contact::PolyHalfSpace177{T,D,NP},
+function residual!(e, x, θ, contact::PolyHalfSpace177{T,D,NP},
         pbody::Body177) where {T,D,NP}
     NC = 1
     # unpack parameters

@@ -19,6 +19,7 @@ include("body.jl")
 include("poly_poly.jl")
 include("poly_halfspace.jl")
 include("mechanism.jl")
+include("simulate.jl")
 
 
 
@@ -79,86 +80,29 @@ cbody = Body177(timestep, 1e1*mass, 1e1*inertia, [Ac], [bc], gravity=+gravity, n
 bodies = [pbody, cbody];
 contacts = [
     PolyPoly177(bodies[1], bodies[2], friction_coefficient=0.9, name=:contact),
-    PolyPoly177(bodies[1], bodies[2], parent_collider_id=2, friction_coefficient=0.9, name=:contact2)
-    ]
-# contacts = []
-hspaces = [
+    PolyPoly177(bodies[1], bodies[2], parent_collider_id=2, friction_coefficient=0.9, name=:contact2),
     PolyHalfSpace177(bodies[1], Af, bf, friction_coefficient=0.9, name=:phalfspace),
     PolyHalfSpace177(bodies[2], Af, bf, friction_coefficient=0.9, name=:chalfspace),
     PolyHalfSpace177(bodies[1], Af, bf, parent_collider_id=2, friction_coefficient=0.9, name=:p2halfspace),
     ]
-# hspaces = []
-indexing!([bodies; contacts; hspaces])
-
-bodies[1].index
-bodies[2].index
-contacts[1].index
-
-
-function mechanism_residual(primals, duals, slacks, parameters, bodies, contacts, halfspaces)
-    num_duals = length(duals)
-    num_primals = length(primals)
-    num_equality = num_primals + num_duals
-
-    e = zeros(num_equality)
-    x = [primals; duals; slacks]
-    θ = parameters
-
-    # body
-    for body in bodies
-        body_residual!(e, x, θ, body)
-    end
-
-    # contact
-    for contact in contacts
-        pbody = find_body(bodies, contact.parent_name)
-        cbody = find_body(bodies, contact.child_name)
-        contact_residual!(e, x, θ, contact, pbody, cbody)
-    end
-
-    # halfspace
-    for contact in halfspaces
-        pbody = find_body(bodies, contact.parent_name)
-        contact_residual!(e, x, θ, contact, pbody)
-    end
-    return e
-end
-
-nodes = [bodies; contacts; hspaces];
-num_primals = sum(primal_dimension.(nodes))
-num_cone = sum(cone_dimension.(nodes))
-primals = ones(num_primals);
-duals = ones(num_cone);
-slacks = ones(num_cone);
-parameters = vcat(get_parameters.(nodes)...);
-e = mechanism_residual(primals, duals, slacks, parameters, bodies, contacts, hspaces);
+indexing!([bodies; contacts])
 
 local_mechanism_residual(primals, duals, slacks, parameters) = 
-    mechanism_residual(primals, duals, slacks, parameters, bodies, contacts, hspaces)
+    mechanism_residual(primals, duals, slacks, parameters, bodies, contacts)
 
-solver = Solver(
-    local_mechanism_residual,
-    num_primals,
-    num_cone,
-    parameters=parameters,
-    nonnegative_indices=collect(1:num_cone),
-    second_order_indices=[collect(1:0)],
-    method_type=:finite_difference,
-    options=Options(
-        # verbose=false,#true, 
-        verbose=true, 
-        complementarity_tolerance=1e-4,
-        compressed_search_direction=false, 
-        max_iterations=30,
-        sparse_solver=false,
-        warm_start=false,
-    ));
+options=Options(
+    # verbose=false,#true, 
+    verbose=true, 
+    complementarity_tolerance=1e-4,
+    compressed_search_direction=false, 
+    max_iterations=30,
+    sparse_solver=false,
+    warm_start=false,
+)
+mech = Mechanism177(local_mechanism_residual, bodies, contacts, options=options)
 
-initialize_primals!(solver)
-initialize_duals!(solver)
-initialize_slacks!(solver)
-initialize_interior_point!(solver)
-# solve!(solver)
+initialize_solver!(mech.solver)
+solve!(mech.solver)
 
 
 ################################################################################
@@ -175,6 +119,22 @@ Tp = [[[1,0.0]] for i=1:3]
 Tc = [[[0,1.0]] for i=1:3]
 iter = []
 solutions = []
+
+z0 = [Xp2[1]; Vp15[1]; Xc2[1]; Vc15[1]]
+set_current_state!(mech, z0)
+update_parameters!(mech)
+
+function step!(mechanism::Mechanism177, z0, u)
+    set_current_state!(mechanism, z0)
+    set_input!(mechanism, u)
+    update_parameters!(mechanism)
+    solve!(mechanism.solver)
+    z1 = get_next_state(mechanism)
+    return z1
+end
+
+
+
 
 
 H = 55

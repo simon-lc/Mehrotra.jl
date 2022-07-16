@@ -110,7 +110,7 @@ function find_body(bodies::AbstractVector{<:Body177}, name::Symbol)
     return bodies[idx]
 end
 
-function body_residual!(e, x, θ, body::Body177)
+function residual!(e, x, θ, body::Body177)
     index = body.index
     # variables = primals = velocity
     v25 = unpack_variables(x[index.variables], body)
