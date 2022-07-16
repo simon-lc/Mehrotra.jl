@@ -38,7 +38,7 @@ using Mehrotra
 - [ ] exploit sparsity
 - [ ] @turbo loop vectorization
 - [ ] in-place addition to a vector using symbolics
-- [ ] my sparse solver
+- [ ] custom pure-julia sparse solver
 - [ ] custom residual methods to do nested optimization
 - [ ] improve upon compressed step
 - [ ] think about a general framework to handle QP, LP, DynamicsLCP, DynamicsNCP
