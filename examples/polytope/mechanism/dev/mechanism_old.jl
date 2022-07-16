@@ -87,7 +87,7 @@ struct Mechanism177{T,D,NB,NC}
     parameters::Vector{T}
     solver::Solver{T}
     bodies::Vector{Body177{T}}
-    contacts::Vector{Contact177{T}}
+    contacts::Vector{PolyPoly177{T}}
     dimensions::MechanismDimensions177
     # equalities::Vector{Equality{T}}
     # inequalities::Vector{Inequality{T}}
@@ -196,7 +196,7 @@ inertia = 0.2 * ones(1,1)
 bodya = Body177(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
 bodyb = Body177(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
 bodies = [bodya, bodyb]
-contacts = [Contact177(bodies[1], bodies[2])]
+contacts = [PolyPoly177(bodies[1], bodies[2])]
 
 dim = MechanismDimensions177(bodies, contacts)
 indexing!([bodies; contacts])

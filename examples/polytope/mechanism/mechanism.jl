@@ -66,8 +66,8 @@ end
 function Mechanism177(residual, bodies::Vector, contacts::Vector;
         options::Options{T}=Options(), D::Int=2) where {T}
 
-    # Dimensions
-    dim = MechanismDimensions177(bodies, contacts)
+    # # Dimensions
+    # dim = MechanismDimensions177(bodies, contacts)
 
     # indexing
     indexing!([bodies; contacts])
@@ -99,12 +99,14 @@ function Mechanism177(residual, bodies::Vector, contacts::Vector;
         solver,
         bodies,
         contacts,
-        dim,
+        # dim,
         )
     return mechanism
 end
 
-function mechanism_residual(primals, duals, slacks, parameters, bodies, contacts)
+function mechanism_residual(primals, duals, slacks, parameters, 
+        bodies::Vector, contacts::Vector)
+
     num_duals = length(duals)
     num_primals = length(primals)
     num_equality = num_primals + num_duals
@@ -115,12 +117,25 @@ function mechanism_residual(primals, duals, slacks, parameters, bodies, contacts
 
     # body
     for body in bodies
-        body_residual!(e, x, θ, body)
+        residual!(e, x, θ, body)
     end
 
     # contact
     for contact in contacts
-        contact_residual!(e, x, θ, contact, bodies[1], bodies[2])
+        residual!(e, x, θ, contact, bodies)
     end
     return e
+end
+
+function residual!(e, x, θ, contact::PolyPoly177, bodies::Vector)
+    pbody = find_body(bodies, contact.parent_name)
+    cbody = find_body(bodies, contact.child_name)
+    residual!(e, x, θ, contact, pbody, cbody)
+    return nothing
+end
+
+function residual!(e, x, θ, contact::PolyHalfSpace177, bodies::Vector)
+    pbody = find_body(bodies, contact.parent_name)
+    residual!(e, x, θ, contact, pbody)
+    return nothing
 end

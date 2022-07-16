@@ -47,7 +47,7 @@ inertia = 0.2 * ones(1,1)
 bodya = Body177(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
 bodyb = Body177(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
 bodies = [bodya, bodyb]
-contacts = [Contact177(bodies[1], bodies[2])]
+contacts = [PolyPoly177(bodies[1], bodies[2])]
 
 contact_solver = ContactSolver(Ap, bp, Ac, bc,
     options=Options(
@@ -98,7 +98,7 @@ lp_contact_solver(Aa, ba, Ab, bb; d::Int=2,
 
 bodya = Body177(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
 bodyb = Body177(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
-contacts = [Contact177(bodies[1], bodies[2])]
+contacts = [PolyPoly177(bodies[1], bodies[2])]
 
 
 

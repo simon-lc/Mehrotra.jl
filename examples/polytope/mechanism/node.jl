@@ -1,3 +1,5 @@
+abstract type Node{T} end
+
 mutable struct NodeIndices177
     optimality::Vector{Int}
     slackness::Vector{Int}

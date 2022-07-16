@@ -74,8 +74,8 @@ inertia = 0.2 * ones(1,1)
 bodya = Body177(timestep, mass, inertia, [Ap], [bp], gravity=+gravity, name=:bodya);
 bodyb = Body177(timestep, 1e6*mass, 1e6*inertia, [Ac], [bc], gravity=-0*gravity, name=:bodyb);
 bodies = [bodya, bodyb];
-contact = Contact177(bodies[1], bodies[2], friction_coefficient=0.3);
-# contact2 = Contact177(:bodya, :bodyb, 0.3, Ap2, bp2, Ac, bc; name=:contact2);
+contact = PolyPoly177(bodies[1], bodies[2], friction_coefficient=0.3);
+# contact2 = PolyPoly177(:bodya, :bodyb, 0.3, Ap2, bp2, Ac, bc; name=:contact2);
 # contacts = [contact, contact2];
 contacts = [contact];
 indexing!([bodies; contacts])

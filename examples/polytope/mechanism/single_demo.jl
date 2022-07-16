@@ -16,8 +16,8 @@ render(vis)
 
 include("node.jl")
 include("body.jl")
-include("contact.jl")
-include("halfspace_contact.jl")
+include("poly_poly.jl")
+include("poly_halfspace.jl")
 include("mechanism.jl")
 
 
@@ -78,14 +78,14 @@ pbody = Body177(timestep, mass, inertia, [Ap, Ap2], [bp, bp2], gravity=+gravity,
 cbody = Body177(timestep, 1e1*mass, 1e1*inertia, [Ac], [bc], gravity=+gravity, name=:cbody);
 bodies = [pbody, cbody];
 contacts = [
-    Contact177(bodies[1], bodies[2], friction_coefficient=0.9, name=:contact),
-    Contact177(bodies[1], bodies[2], parent_collider_id=2, friction_coefficient=0.9, name=:contact2)
+    PolyPoly177(bodies[1], bodies[2], friction_coefficient=0.9, name=:contact),
+    PolyPoly177(bodies[1], bodies[2], parent_collider_id=2, friction_coefficient=0.9, name=:contact2)
     ]
 # contacts = []
 hspaces = [
-    Halfspace177(bodies[1], Af, bf, friction_coefficient=0.9, name=:phalfspace),
-    Halfspace177(bodies[2], Af, bf, friction_coefficient=0.9, name=:chalfspace),
-    Halfspace177(bodies[1], Af, bf, parent_collider_id=2, friction_coefficient=0.9, name=:p2halfspace),
+    PolyHalfSpace177(bodies[1], Af, bf, friction_coefficient=0.9, name=:phalfspace),
+    PolyHalfSpace177(bodies[2], Af, bf, friction_coefficient=0.9, name=:chalfspace),
+    PolyHalfSpace177(bodies[1], Af, bf, parent_collider_id=2, friction_coefficient=0.9, name=:p2halfspace),
     ]
 # hspaces = []
 indexing!([bodies; contacts; hspaces])

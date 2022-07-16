@@ -18,7 +18,7 @@ function body_residual!(e, x, θ, body::Body177)
 end
 
 
-function contact_residual!(e, x, xl2, xl3, θ, contact::Contact177, pbody::Body177, cbody::Body177)
+function contact_residual!(e, x, xl2, xl3, θ, contact::PolyPoly177, pbody::Body177, cbody::Body177)
     # variables
     γ, sγ = unpack_contact_variables(x[contact.index.x])
     # subvariables
@@ -101,7 +101,7 @@ inertia = 0.2 * ones(1,1)
 bodya = Body177(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
 bodyb = Body177(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
 bodies = [bodya, bodyb]
-contacts = [Contact177(bodies[1], bodies[2])]
+contacts = [PolyPoly177(bodies[1], bodies[2])]
 indexing!([bodies; contacts])
 contact_solver = ContactSolver(Ap, bp, Ac, bc,
     options=Options(

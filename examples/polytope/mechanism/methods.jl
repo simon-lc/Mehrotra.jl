@@ -83,7 +83,7 @@ struct ContactMethods177{T,E,EX,Eθ,C,S} <: NodeMethods177{T,E,EX,Eθ}
     equality_jacobian_parameters_sparsity::Vector{Tuple{Int,Int}}
 end
 
-function ContactMethods177(contact::Contact177, pbody::Body177, cbody::Body177,
+function ContactMethods177(contact::PolyPoly177, pbody::Body177, cbody::Body177,
         dimensions::MechanismDimensions177;
         checkbounds=true,
         threads=false)

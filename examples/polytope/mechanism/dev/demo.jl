@@ -60,7 +60,7 @@ inertia = 0.2 * ones(1,1)
 bodya = Body177(timestep, mass, inertia, [Ap], [bp], gravity=+gravity, name=:bodya)
 bodyb = Body177(timestep, 1e6*mass, 1e6*inertia, [Ac], [bc], gravity=-0*gravity, name=:bodyb)
 bodies = [bodya, bodyb]
-contacts = [Contact177(bodies[1], bodies[2])]
+contacts = [PolyPoly177(bodies[1], bodies[2])]
 indexing!([bodies; contacts])
 
 contacts[1]
