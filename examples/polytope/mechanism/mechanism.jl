@@ -58,7 +58,7 @@ struct Mechanism177{T,D,NB,NC,C}
     solver::Solver{T}
     bodies::Vector{Body177{T}}
     contacts::Vector{C}
-    dimensions::MechanismDimensions177
+    # dimensions::MechanismDimensions177
     # equalities::Vector{Equality{T}}
     # inequalities::Vector{Inequality{T}}
 end

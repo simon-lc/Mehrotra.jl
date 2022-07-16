@@ -73,16 +73,6 @@ function parameter_dimension(contact::Contact177{T,D}) where {T,D}
     return nθ
 end
 
-# function subparameter_dimension(contact::Contact177{T,D,NP,NC}) where {T,D,NP,NC}
-#     nθl = contact.contact_solver.num_parameters
-#     return nθl
-# end
-
-# function subvariable_dimension(contact::Contact177{T,D,NP,NC}) where {T,D,NP,NC}
-#     nxl = contact.contact_solver.num_outvariables
-#     return nxl
-# end
-
 function unpack_variables(x::Vector{T}, contact::Contact177{T,D,NP,NC}) where {T,D,NP,NC}
     num_cone = cone_dimension(contact)
     off = 0
@@ -139,15 +129,19 @@ function contact_residual!(e, x, θ, contact::Contact177{T,D,NP,NC},
 
     # unpack parameters
     friction_coefficient, Ap, bp, Ac, bc = unpack_parameters(θ[contact.index.parameters], contact)
-    pp2, vp15, up2, timestep_p, gravity_p, mass_p, inertia_p = unpack_parameters(θ[pbody.index.parameters], pbody)
-    pc2, vc15, uc2, timestep_c, gravity_c, mass_c, inertia_c = unpack_parameters(θ[cbody.index.parameters], cbody)
+    pp2, dvp15, up2, timestep_p, gravity_p, mass_p, inertia_p = unpack_parameters(θ[pbody.index.parameters], pbody)
+    pc2, dvc15, uc2, timestep_c, gravity_c, mass_c, inertia_c = unpack_parameters(θ[cbody.index.parameters], cbody)
 
     # unpack variables
     c, ϕ, γ, ψ, β, λp, λc, sγ, sψ, sβ, sp, sc = unpack_variables(x[contact.index.variables], contact)
     vp25 = unpack_variables(x[pbody.index.variables], pbody)
     vc25 = unpack_variables(x[cbody.index.variables], cbody)
+    # vp25 = dvp25 / timestep_p[1]
+    # vc25 = dvc25 / timestep_c[1]
     pp3 = pp2 + timestep_p[1] * vp25
+    # pp3 = pp2 + dvp25
     pc3 = pc2 + timestep_c[1] * vc25
+    # pc3 = pc2 + dvc25
 
     # contact position in the world frame
     contact_w = c + (pp3 + pc3)[1:2] / 2
@@ -203,7 +197,7 @@ function contact_residual!(e, x, θ, contact::Contact177{T,D,NP,NC},
     # fill the equality vector (residual of the equality constraints)
     e[contact.index.optimality] .+= optimality
     e[contact.index.slackness] .+= slackness
-    e[pbody.index.optimality] .-= wrench_p
-    e[cbody.index.optimality] .-= wrench_c
+    e[pbody.index.optimality] .-= wrench_p * 10
+    e[cbody.index.optimality] .-= wrench_c * 10
     return nothing
 end

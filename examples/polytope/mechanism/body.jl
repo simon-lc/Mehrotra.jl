@@ -118,7 +118,10 @@ function body_residual!(e, x, θ, body::Body177)
     p2, v15, u, timestep, gravity, mass, inertia = unpack_parameters(θ[index.parameters], body)
     # integrator
     p1 = p2 - timestep[1] * v15
+    # p1 = p2 - dv15
     p3 = p2 + timestep[1] * v25
+    # p3 = p2 + dv25
+
     # mass matrix
     M = Diagonal([mass[1]; mass[1]; inertia[1]])
     # dynamics

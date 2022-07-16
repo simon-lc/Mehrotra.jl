@@ -28,25 +28,25 @@ include("mechanism.jl")
 # parameters
 Af = [0.0  +1.0]
 bf = [0.0]
-# Ap2 = [
-#      1.0  0.0;
-#      0.0  1.0;
-#     -1.0  0.0;
-#      0.0 -1.0;
-#     ] .- 0.00ones(4,2);
-# bp2 = 0.5*[
-#     +0,
-#     +2,
-#     +0,
-#      2,
-#     ];    
+Ap2 = [
+     1.0  0.0;
+     0.0  1.0;
+    -1.0  0.0;
+     0.0 -1.0;
+    ] .+ 0.20ones(4,2);
+bp2 = 0.2*[
+    -0.5,
+    +1,
+    +1.5,
+     1,
+    ];  
 Ap = [
      1.0  0.0;
      0.0  1.0;
     -1.0  0.0;
      0.0 -1.0;
     ] .- 0.30ones(4,2);
-bp = 0.5*[
+bp = 0.2*[
     +1,
     +1,
     +1,
@@ -58,12 +58,15 @@ Ac = [
     -1.0  0.0;
      0.0 -1.0;
     ] .+ 0.20ones(4,2);
-bc = 0.4*[
+bc = 0.2*[
      1,
      1,
      1,
      1,
     ];
+build_2d_polytope!(vis, Ap, bp, name=:pbody, color=RGBA(0.2,0.2,0.2,0.7))
+build_2d_polytope!(vis, Ap2, bp2, name=:pbody2, color=RGBA(0.2,0.2,0.2,0.7))
+build_2d_polytope!(vis, Ac, bc, name=:cbody, color=RGBA(0.9,0.9,0.9,0.7))
 
 timestep = 0.05;
 gravity = -9.81;
@@ -71,14 +74,19 @@ mass = 1.0;
 inertia = 0.2 * ones(1,1);
 
 # nodes
-pbody = Body177(timestep, mass, inertia, [Ap], [bp], gravity=+gravity, name=:pbody);
+pbody = Body177(timestep, mass, inertia, [Ap, Ap2], [bp, bp2], gravity=+gravity, name=:pbody);
 cbody = Body177(timestep, 1e1*mass, 1e1*inertia, [Ac], [bc], gravity=+gravity, name=:cbody);
 bodies = [pbody, cbody];
-contacts = [Contact177(bodies[1], bodies[2], friction_coefficient=0.9, name=:contact)]
+contacts = [
+    Contact177(bodies[1], bodies[2], friction_coefficient=0.9, name=:contact),
+    Contact177(bodies[1], bodies[2], parent_collider_id=2, friction_coefficient=0.9, name=:contact2)
+    ]
 # contacts = []
 hspaces = [
     Halfspace177(bodies[1], Af, bf, friction_coefficient=0.9, name=:phalfspace),
-    Halfspace177(bodies[2], Af, bf, friction_coefficient=0.9, name=:phalfspace)]
+    Halfspace177(bodies[2], Af, bf, friction_coefficient=0.9, name=:chalfspace),
+    Halfspace177(bodies[1], Af, bf, parent_collider_id=2, friction_coefficient=0.9, name=:p2halfspace),
+    ]
 # hspaces = []
 indexing!([bodies; contacts; hspaces])
 
@@ -139,21 +147,25 @@ solver = Solver(
     options=Options(
         # verbose=false,#true, 
         verbose=true, 
-        complementarity_tolerance=3e-3,
+        complementarity_tolerance=1e-4,
         compressed_search_direction=false, 
         max_iterations=30,
         sparse_solver=false,
         warm_start=false,
     ));
 
-solve!(solver)
+initialize_primals!(solver)
+initialize_duals!(solver)
+initialize_slacks!(solver)
+initialize_interior_point!(solver)
+# solve!(solver)
 
 
 ################################################################################
 # test simulation
 ################################################################################
-Xp2 = [[+0.1,5.0,+1.0]]
-Xc2 = [[-0.1,2.0,-1.0]]
+Xp2 = [[+0.1,3.0,+1.0]]
+Xc2 = [[-0.1,1.0,-1.0]]
 Vp15 = [[-0,0,-0.0]]
 Vc15 = [[+0,0,+0.0]]
 C = [[[0,0.0]] for i=1:3]
@@ -165,7 +177,7 @@ iter = []
 solutions = []
 
 
-H = 35
+H = 55
 Up = [zeros(3) for i=1:H]
 Uc = [zeros(3) for i=1:H]
 for i = 1:H
@@ -189,13 +201,17 @@ for i = 1:H
     vp25 = unpack_variables(x[bodies[1].index.variables], bodies[1])
     vc25 = unpack_variables(x[bodies[2].index.variables], bodies[2])
     
+    # push!(Vp15, dvp25 / timestep)
+    # push!(Vc15, dvc25 / timestep)
     push!(Vp15, vp25)
     push!(Vc15, vc25)
     push!(Xp2, Xp2[end] + timestep * vp25)
+    # push!(Xp2, Xp2[end] + dvp25)
     push!(Xc2, Xc2[end] + timestep * vc25)
+    # push!(Xc2, Xc2[end] + dvc25)
     
     # contacts and halfspaces
-    for (j,contact) in enumerate(contacts)
+    for (j,contact) in enumerate(contacts[1:1])
         c, ϕ, γ, ψ, β, λp, λc, sγ, sψ, sβ, sp, sc = unpack_variables(x[contact.index.variables], contact)
         normal_pw = -x_2d_rotation(Xp2[end][3:3]) * Ap' * λp
         normal_cw = +x_2d_rotation(Xc2[end][3:3]) * Ac' * λc
@@ -210,7 +226,7 @@ for i = 1:H
         push!(Tc[j], tangent_cw)
     end
 
-    for (j,contact) in enumerate(hspaces)
+    for (j,contact) in enumerate(hspaces[1:2])
         c, ϕ, γ, ψ, β, λp, λc, sγ, sψ, sβ, sp, sc = unpack_variables(x[contact.index.variables], contact)
         normal_pw = (j==1) ? -x_2d_rotation(Xp2[end][3:3]) * Ap' * λp :
             -x_2d_rotation(Xc2[end][3:3]) * Ac' * λp
@@ -220,25 +236,39 @@ for i = 1:H
         tangent_pw = R * normal_pw
         tangent_cw = R * normal_cw
 
-        j == 1 ? push!(C[length(contacts) + j], c + Xp2[end][1:2]) :
-            push!(C[length(contacts) + j], c + Xc2[end][1:2])
+        j == 1 ? push!(C[length(contacts[1:1]) + j], c + Xp2[end][1:2]) :
+            push!(C[length(contacts[1:1]) + j], c + Xc2[end][1:2])
 
-        push!(Np[length(contacts) + j], normal_pw)
-        push!(Nc[length(contacts) + j], normal_cw)
-        push!(Tp[length(contacts) + j], tangent_pw)
-        push!(Tc[length(contacts) + j], tangent_cw)
+        push!(Np[length(contacts[1:1]) + j], normal_pw)
+        push!(Nc[length(contacts[1:1]) + j], normal_cw)
+        push!(Tp[length(contacts[1:1]) + j], tangent_pw)
+        push!(Tc[length(contacts[1:1]) + j], tangent_cw)
     end
 
 end
 
 
 scatter(iter)
-plot!(hcat([s[solver.indices.primals] for s in solutions]...)', legend=false)
+plot!(hcat([abs.(s[solver.indices.primals]) for s in solutions]...)', legend=false)
 scatter(iter)
-plot!(hcat([s[solver.indices.duals] for s in solutions]...)', legend=false)
+plot!(hcat([abs.(s[solver.indices.duals]) for s in solutions]...)', legend=false)
 scatter(iter)
-plot!(hcat([s[solver.indices.slacks] for s in solutions]...)', legend=false)
+plot!(hcat([abs.(s[solver.indices.slacks]) for s in solutions]...)', legend=false)
 
+solver.indices.variables
+[s[1] for s in solutions]
+bodies[1].index.primals
+
+# velocity of body 1 along y
+plot(hcat([abs.(s[solver.indices.primals])[2:2] for s in solutions]...)', legend=false)
+
+plot(hcat([abs.(s[solver.indices.duals])[1:12] for s in solutions]...)', legend=false)
+plot(hcat([abs.(s[solver.indices.duals])[13:21] for s in solutions]...)', legend=false)
+plot(hcat([abs.(s[solver.indices.duals])[22:30] for s in solutions]...)', legend=false)
+plot(hcat([abs.(s[solver.indices.duals])[22:30][3:3] for s in solutions]...)', legend=false)
+
+solver.indices.duals
+hspaces[2].index.duals
 
 ################################################################################
 # visualization
@@ -249,6 +279,7 @@ set_background!(vis)
 set_light!(vis)
 
 build_2d_polytope!(vis, Ap, bp, name=:pbody, color=RGBA(0.2,0.2,0.2,0.7))
+build_2d_polytope!(vis, Ap2, bp2, name=:pbody2, color=RGBA(0.2,0.2,0.2,0.7))
 build_2d_polytope!(vis, Ac, bc, name=:cbody, color=RGBA(0.9,0.9,0.9,0.7))
 for j = 1:3
     setobject!(vis[Symbol(:contact,j)],
@@ -280,14 +311,15 @@ for i = 2:H+1
             # set_straight_rope(vis, [0; C[j][i]], [0; C[j][i]+Tc[j][i]]; N=1, name=Symbol(:tangent_p,j));
         end
         set_2d_polytope!(vis, Xp2[i][1:2], Xp2[i][3:3], name=:pbody);
+        set_2d_polytope!(vis, Xp2[i][1:2], Xp2[i][3:3], name=:pbody2);
         set_2d_polytope!(vis, Xc2[i][1:2], Xc2[i][3:3], name=:cbody);
     end;
 end;
 MeshCat.setanimation!(vis, anim)
 # open(vis)
-convert_frames_to_video_and_gif("polytope_drop_slow")
+# convert_frames_to_video_and_gif("polytope_drop_slow")
 
-ex = solver.data.jacobian_variables_dense
+# ex = solver.data.jacobian_variables_dense
 # plot(Gray.(abs.(ex)))
 # plot(Gray.(abs.(ex - ex')))
 # plot(Gray.(abs.(ex + ex')))

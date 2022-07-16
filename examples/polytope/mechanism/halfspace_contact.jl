@@ -129,8 +129,11 @@ function contact_residual!(e, x, θ, contact::Halfspace177{T,D,NP},
 
     # unpack variables
     c, ϕ, γ, ψ, β, λp, λc, sγ, sψ, sβ, sp, sc = unpack_variables(x[contact.index.variables], contact)
+    # vp25 = unpack_variables(x[pbody.index.variables], pbody)
     vp25 = unpack_variables(x[pbody.index.variables], pbody)
+    # vp25 = dvp25 / timestep_p[1]
     pp3 = pp2 + timestep_p[1] * vp25
+    # pp3 = pp2 + dvp25
     pc3 = zeros(3)
 
     # contact position in the world frame
@@ -179,6 +182,6 @@ function contact_residual!(e, x, θ, contact::Halfspace177{T,D,NP},
     # fill the equality vector (residual of the equality constraints)
     e[contact.index.optimality] .+= optimality
     e[contact.index.slackness] .+= slackness
-    e[pbody.index.optimality] .-= wrench_p
+    e[pbody.index.optimality] .-= wrench_p * 1
     return nothing
 end
