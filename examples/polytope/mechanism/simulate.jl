@@ -1,4 +1,4 @@
-function update_parameters!(mechanism::Mechanism181)
+function update_parameters!(mechanism::Mechanism182)
     bodies = mechanism.bodies
     contacts = mechanism.contacts
     solver = mechanism.solver
@@ -12,7 +12,7 @@ function update_parameters!(mechanism::Mechanism181)
     return nothing
 end
 
-function update_nodes!(mechanism::Mechanism181)
+function update_nodes!(mechanism::Mechanism182)
     bodies = mechanism.bodies
     contacts = mechanism.contacts
     solver = mechanism.solver
@@ -26,7 +26,7 @@ function update_nodes!(mechanism::Mechanism181)
     return nothing
 end
 
-function set_input!(mechanism::Mechanism181, u)
+function set_input!(mechanism::Mechanism182, u)
     off = 0
     nu = length(mechanism.bodies[1].input)
     for body in mechanism.bodies
@@ -35,7 +35,7 @@ function set_input!(mechanism::Mechanism181, u)
     return nothing
 end
 
-function get_input(mechanism::Mechanism181{T,D,NB}) where {T,D,NB}
+function get_input(mechanism::Mechanism182{T,D,NB}) where {T,D,NB}
     nu = length(mechanism.bodies[1].input)
     
     off = 0
@@ -46,7 +46,7 @@ function get_input(mechanism::Mechanism181{T,D,NB}) where {T,D,NB}
     return u
 end
 
-function set_current_state!(mechanism::Mechanism181, z)
+function set_current_state!(mechanism::Mechanism182, z)
     off = 0
     nx = length(mechanism.bodies[1].pose)
     nv = length(mechanism.bodies[1].velocity)
@@ -57,7 +57,7 @@ function set_current_state!(mechanism::Mechanism181, z)
     return nothing
 end
 
-function get_current_state(mechanism::Mechanism181{T,D,NB}) where {T,D,NB}
+function get_current_state(mechanism::Mechanism182{T,D,NB}) where {T,D,NB}
     nx = length(mechanism.bodies[1].pose)
     nv = length(mechanism.bodies[1].velocity)
     
@@ -70,7 +70,7 @@ function get_current_state(mechanism::Mechanism181{T,D,NB}) where {T,D,NB}
     return z
 end
 
-function get_next_state(mechanism::Mechanism181{T,D,NB}) where {T,D,NB}
+function get_next_state(mechanism::Mechanism182{T,D,NB}) where {T,D,NB}
     nx = length(mechanism.bodies[1].pose)
     nv = length(mechanism.bodies[1].velocity)
     variables = mechanism.solver.solution.all
@@ -87,8 +87,7 @@ function get_next_state(mechanism::Mechanism181{T,D,NB}) where {T,D,NB}
     return z
 end
 
-
-function step!(mechanism::Mechanism181, z0, u)
+function step!(mechanism::Mechanism182, z0, u)
     set_current_state!(mechanism, z0)
     set_input!(mechanism, u)
     update_parameters!(mechanism)
@@ -97,7 +96,7 @@ function step!(mechanism::Mechanism181, z0, u)
     return z1
 end
 
-function step!(mechanism::Mechanism181, z0; controller::Function=m->nothing)
+function step!(mechanism::Mechanism182, z0; controller::Function=m->nothing)
     set_current_state!(mechanism, z0)
     controller(mechanism) # sets the control inputs u
     update_parameters!(mechanism)
@@ -106,25 +105,33 @@ function step!(mechanism::Mechanism181, z0; controller::Function=m->nothing)
     return z1
 end
 
-mutable struct Storage113{T,H}
+mutable struct Storage116{T,H}
     z::Vector{Vector{T}} # H x nz
     u::Vector{Vector{T}} # H x nu
     x::Vector{Vector{Vector{T}}} # H x nb x nx
     v::Vector{Vector{Vector{T}}} # H x nb x nv
-    iterations::Vector{Int}
+    contact_point::Vector{Vector{Vector{T}}} # H x nc x d
+    normal::Vector{Vector{Vector{T}}} # H x nc x d
+    tangent::Vector{Vector{Vector{T}}} # H x nc x d
+    variables::Vector{Vector{T}} # H x variables
+    iterations::Vector{Int} # H
 end
 
-function Storage(dim::MechanismDimensions181, H::Int, T=Float64)
+function Storage(dim::MechanismDimensions182, H::Int, T=Float64)
     z = [zeros(T, dim.state) for i = 1:H]
     u = [zeros(T, dim.input) for i = 1:H]
     x = [[zeros(T, dim.body_configuration) for j = 1:dim.bodies] for i = 1:H]
     v = [[zeros(T, dim.body_velocity) for j = 1:dim.bodies] for i = 1:H]
+    contact_point = [[zeros(T, 2) for j = 1:dim.contacts] for i = 1:H]
+    normal = [[zeros(T, 2) for j = 1:dim.contacts] for i = 1:H]
+    tangent = [[zeros(T, 2) for j = 1:dim.contacts] for i = 1:H]
+    variables = [zeros(Int, dim.variables) for i = 1:H]
     iterations = zeros(Int, H)
-    storage = Storage113{T,H}(z, u, x, v, iterations)
+    storage = Storage116{T,H}(z, u, x, v, contact_point, normal, tangent, variables, iterations)
     return storage
 end
 
-function simulate!(mechanism::Mechanism181{T}, z0, H::Int; 
+function simulate!(mechanism::Mechanism182{T}, z0, H::Int; 
         controller::Function=(m,i)->nothing) where T
 
     storage = Storage(mechanism.dimensions, H, T)
@@ -136,14 +143,42 @@ function simulate!(mechanism::Mechanism181{T}, z0, H::Int;
     return storage
 end
 
-function record!(storage::Storage113{T,H}, mechanism::Mechanism181{T,D,NB}, i::Int) where {T,H,D,NB}
+function record!(storage::Storage116{T,H}, mechanism::Mechanism182{T,D,NB,NC}, i::Int) where {T,H,D,NB,NC}
     storage.z[i] .= get_current_state(mechanism)
     storage.u[i] .= get_input(mechanism)
+
     for j = 1:NB
         storage.x[i][j] .= mechanism.bodies[j].pose
         storage.v[i][j] .= mechanism.bodies[j].velocity
     end
+
+    variables = mechanism.solver.solution.all
+    parameters = mechanism.solver.parameters
+    for (j, contact) in enumerate(mechanism.contacts)
+        #############################################
+        # contact_point, normal, tangent = contact_frame(contact, pbody, variables, parameters)
+        # TODO need to get rid of this into its own function, will be possible when pbody and cbody normal computation will be unified
+        pbody = find_body(bodies, contact.parent_name)
+        c, ϕ, γ, ψ, β, λp, λc, sγ, sψ, sβ, sp, sc = 
+            unpack_variables(variables[contact.index.variables], contact)
+        friction_coefficient, Ap, bp, Ac, bc = 
+            unpack_parameters(parameters[contact.index.parameters], contact)
+        vp25 = unpack_variables(variables[pbody.index.variables], pbody)
+        pp2, vp15, up2, timestep_p, gravity_p, mass_p, inertia_p = unpack_parameters(parameters[pbody.index.parameters], pbody)
+        pp3 = pp2 + timestep_p[1] * vp25        
+        normal = -x_2d_rotation(pp3[3:3]) * Ap' * λp
+        R = [0 1; -1 0]
+        tangent = R * normal
+        #####################################################
+
+        storage.contact_point[i][j] .= c
+        storage.normal[i][j] .= normal
+        storage.tangent[i][j] .= tangent
+    end
+
+    storage.variables[i] .= variables
     storage.iterations[i] = mechanism.solver.trace.iterations
+
     return nothing
 end
 
@@ -159,7 +194,7 @@ end
 
 
 
-# function get_next_state!(mechanism::Mechanism181{T}) where T
+# function get_next_state!(mechanism::Mechanism182{T}) where T
 #     bodies = mechanism.bodies
 #     num_bodies = length(bodies)
 #     nx = 6
@@ -170,7 +205,7 @@ end
 #     return x
 # end
 
-# function get_next_velocity!(mechanism::Mechanism181{T}) where T
+# function get_next_velocity!(mechanism::Mechanism182{T}) where T
 #     bodies = mechanism.bodies
 #     num_bodies = length(bodies)
 #     nv = 3
@@ -181,7 +216,7 @@ end
 #     return v
 # end
 
-# function get_next_configuration!(mechanism::Mechanism181{T}) where T
+# function get_next_configuration!(mechanism::Mechanism182{T}) where T
 #     bodies = mechanism.bodies
 #     num_bodies = length(bodies)
 #     nq = 3
@@ -192,23 +227,23 @@ end
 #     return q
 # end
 
-# function step!(mechanism::Mechanism181{T}, x::Vector{T}, u::Vector{T}) where T
+# function step!(mechanism::Mechanism182{T}, x::Vector{T}, u::Vector{T}) where T
 # end
 #
-# function input_gradient(du, x, u, mechanism::Mechanism181{T})
+# function input_gradient(du, x, u, mechanism::Mechanism182{T})
 # end
 #
-# function state_gradient(dx, x, u, mechanism::Mechanism181{T})
+# function state_gradient(dx, x, u, mechanism::Mechanism182{T})
 # end
 #
-# function set_input!(mechanism::Mechanism181{T})
+# function set_input!(mechanism::Mechanism182{T})
 # end
 #
-# function set_current_state!(mechanism::Mechanism181{T})
+# function set_current_state!(mechanism::Mechanism182{T})
 # end
 #
-# function set_next_state!(mechanism::Mechanism181{T})
+# function set_next_state!(mechanism::Mechanism182{T})
 # end
 #
-# function get_current_state!(mechanism::Mechanism181{T})
+# function get_current_state!(mechanism::Mechanism182{T})
 # end

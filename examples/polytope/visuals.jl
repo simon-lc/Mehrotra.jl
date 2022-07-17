@@ -58,6 +58,67 @@ function plot_halfspace(plt, a, b)
     return plt
 end
 
+function build_body!(vis::Visualizer, body::Body182;
+        name::Symbol=body.name, 
+        collider_color=RGBA(0.2, 0.2, 0.2, 0.8),
+        center_of_mass_color=RGBA(1, 1, 1, 1.0),
+        center_of_mass_radius=0.05,
+        ) where T
+
+    # colliders
+    num_colliders = length(body.b_colliders)
+    for i = 1:num_colliders
+        A = body.A_colliders[i]
+        b = body.b_colliders[i]
+        build_2d_polytope!(vis[:bodies][name], A, b, name=Symbol(i), color=collider_color)
+    end
+    
+    # center of mass
+    setobject!(vis[:bodies][name][:com],
+        HyperSphere(GeometryBasics.Point(0,0,0.), center_of_mass_radius),
+        MeshPhongMaterial(color=center_of_mass_color));
+    return nothing
+end
+
+bodies
+render(vis)
+set_floor!(vis)
+set_light!(vis)
+set_background!(vis)
+build_body!(vis, bodies[1])
+build_2d_frame!(vis)
+
+function build_2d_frame!(vis::Visualizer;
+    name::Symbol=:contact, 
+    origin_color=RGBA(0.2, 0.2, 0.2, 0.8),
+    normal_axis_color=RGBA(1, 0, 0, 0.8),
+    tangent_axis_color=RGBA(0, 1, 0, 0.8),
+    origin_radius=0.05,
+    ) where T
+
+    # axes
+    build_rope(vis[:contacts][name]; 
+        N=1, 
+        color=tangent_axis_color,
+        rope_type=:cylinder, 
+        rope_radius=origin_radius/2, 
+        name=:tangent)
+
+    build_rope(vis[:contacts][name]; 
+        N=1, 
+        color=normal_axis_color,
+        rope_type=:cylinder, 
+        rope_radius=origin_radius/2, 
+        name=:normal)
+
+    # origin
+    setobject!(vis[:contacts][name][:origin],
+        HyperSphere(GeometryBasics.Point(0,0,0.), origin_radius),
+        MeshPhongMaterial(color=origin_color));
+    return nothing
+end
+
+
 function plot_polytope(p, θ, poly::Polytope{T,N,D};
         xlims=(-1,1), ylims=(-1,1), S::Int=100) where {T,N,D}
 

@@ -44,10 +44,10 @@ timestep = 0.01
 gravity = -0.0*9.81
 mass = 1.0
 inertia = 0.2 * ones(1,1)
-bodya = Body181(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
-bodyb = Body181(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
+bodya = Body182(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
+bodyb = Body182(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
 bodies = [bodya, bodyb]
-contacts = [PolyPoly181(bodies[1], bodies[2])]
+contacts = [PolyPoly182(bodies[1], bodies[2])]
 
 contact_solver = ContactSolver(Ap, bp, Ac, bc,
     options=Options(
@@ -96,9 +96,9 @@ lp_contact_solver(Aa, ba, Ab, bb; d::Int=2,
 
 
 
-bodya = Body181(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
-bodyb = Body181(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
-contacts = [PolyPoly181(bodies[1], bodies[2])]
+bodya = Body182(timestep, mass, inertia, [Ap], [bp], gravity=gravity, name=:bodya)
+bodyb = Body182(timestep, mass, inertia, [Ac], [bc], gravity=gravity, name=:bodyb)
+contacts = [PolyPoly182(bodies[1], bodies[2])]
 
 
 

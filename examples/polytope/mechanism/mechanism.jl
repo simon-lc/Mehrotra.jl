@@ -1,7 +1,7 @@
 ################################################################################
 # dimensions
 ################################################################################
-struct MechanismDimensions181
+struct MechanismDimensions182
     body_configuration::Int
     body_velocity::Int
     body_state::Int
@@ -10,8 +10,8 @@ struct MechanismDimensions181
     input::Int
     bodies::Int
     contacts::Int
-    # variables::Int
-    # parameters::Int
+    variables::Int
+    parameters::Int
     # primals::Int
     # duals::Int
     # slacks::Int
@@ -19,7 +19,7 @@ struct MechanismDimensions181
     # equality::Int
 end
 
-function MechanismDimensions181(bodies::Vector, contacts::Vector)
+function MechanismDimensions182(bodies::Vector, contacts::Vector)
     # dimensions
     body_configuration = 3 # in 2D
     body_velocity = 3 # in 2D
@@ -33,16 +33,16 @@ function MechanismDimensions181(bodies::Vector, contacts::Vector)
     state = num_bodies * body_state
     input = num_bodies * body_input
 
-    # nodes = [bodies; contacts]
-    # num_variables = sum(variable_dimension.(nodes))
-    # num_parameters = sum(parameter_dimension.(nodes))
+    nodes = [bodies; contacts]
+    num_variables = sum(variable_dimension.(nodes))
+    num_parameters = sum(parameter_dimension.(nodes))
     # num_primals = sum(primal_dimension.(nodes))
     # num_cone = sum(cone_dimension.(nodes))
     # num_duals = num_cone
     # num_slacks = num_cone
     # num_equality = sum(equality_dimension.(nodes))
 
-    return MechanismDimensions181(
+    return MechanismDimensions182(
         body_configuration,
         body_velocity,
         body_state,
@@ -51,8 +51,8 @@ function MechanismDimensions181(bodies::Vector, contacts::Vector)
         input,
         num_bodies,
         num_contacts,
-        # num_variables,
-        # num_parameters,
+        num_variables,
+        num_parameters,
         # num_primals,
         # num_duals,
         # num_slacks,
@@ -64,23 +64,23 @@ end
 ################################################################################
 # mechanism
 ################################################################################
-struct Mechanism181{T,D,NB,NC,C}
+struct Mechanism182{T,D,NB,NC,C}
     variables::Vector{T}
     parameters::Vector{T}
     solver::Solver{T}
-    bodies::Vector{Body181{T}}
+    bodies::Vector{Body182{T}}
     contacts::Vector{C}
-    dimensions::MechanismDimensions181
+    dimensions::MechanismDimensions182
     # equalities::Vector{Equality{T}}
     # inequalities::Vector{Inequality{T}}
 end
 
-function Mechanism181(residual, bodies::Vector, contacts::Vector;
+function Mechanism182(residual, bodies::Vector, contacts::Vector;
         options::Options{T}=Options(), D::Int=2) where {T}
 
     # # Dimensions
     nodes = [bodies; contacts]
-    dim = MechanismDimensions181(bodies, contacts)
+    dim = MechanismDimensions182(bodies, contacts)
     num_primals = sum(primal_dimension.(nodes))
     num_cone = sum(cone_dimension.(nodes))
 
@@ -108,7 +108,7 @@ function Mechanism181(residual, bodies::Vector, contacts::Vector;
 
     nb = length(bodies)
     nc = length(contacts)
-    mechanism = Mechanism181{T,D,nb,nc,eltype(contacts)}(
+    mechanism = Mechanism182{T,D,nb,nc,eltype(contacts)}(
         variables,
         parameters,
         solver,
@@ -142,14 +142,14 @@ function mechanism_residual(primals, duals, slacks, parameters,
     return e
 end
 
-function residual!(e, x, θ, contact::PolyPoly181, bodies::Vector)
+function residual!(e, x, θ, contact::PolyPoly182, bodies::Vector)
     pbody = find_body(bodies, contact.parent_name)
     cbody = find_body(bodies, contact.child_name)
     residual!(e, x, θ, contact, pbody, cbody)
     return nothing
 end
 
-function residual!(e, x, θ, contact::PolyHalfSpace181, bodies::Vector)
+function residual!(e, x, θ, contact::PolyHalfSpace182, bodies::Vector)
     pbody = find_body(bodies, contact.parent_name)
     residual!(e, x, θ, contact, pbody)
     return nothing
