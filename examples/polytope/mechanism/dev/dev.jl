@@ -58,16 +58,16 @@ mass = 1.0
 inertia = 0.2 * ones(1,1)
 
 # nodes
-bodya = Body177(timestep, mass, inertia, [Ap], [bp], gravity=+gravity, name=:bodya)
-bodyb = Body177(timestep, 1e6*mass, 1e6*inertia, [Ac], [bc], gravity=-0*gravity, name=:bodyb)
+bodya = Body181(timestep, mass, inertia, [Ap], [bp], gravity=+gravity, name=:bodya)
+bodyb = Body181(timestep, 1e6*mass, 1e6*inertia, [Ac], [bc], gravity=-0*gravity, name=:bodyb)
 bodies = [bodya, bodyb]
-contacts = [PolyPoly177(bodies[1], bodies[2], friction_coefficient=0.9990)]
+contacts = [PolyPoly181(bodies[1], bodies[2], friction_coefficient=0.9990)]
 indexing!([bodies; contacts])
 
 # mechanism
 local_residual(primals, duals, slacks, parameters) =
     mechanism_residual(primals, duals, slacks, parameters, bodies, contacts)
-mech = Mechanism177(local_residual, bodies, contacts)
+mech = Mechanism181(local_residual, bodies, contacts)
 
 
 ################################################################################

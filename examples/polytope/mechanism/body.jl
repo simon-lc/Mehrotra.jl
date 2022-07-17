@@ -1,9 +1,9 @@
 ################################################################################
 # body
 ################################################################################
-struct Body177{T,D} <: Node{T}
+struct Body181{T,D} <: Node{T}
     name::Symbol
-    index::NodeIndices177
+    index::NodeIndices181
     pose::Vector{T}
     velocity::Vector{T}
     input::Vector{T}
@@ -15,17 +15,17 @@ struct Body177{T,D} <: Node{T}
     b_colliders::Vector{Vector{T}} #polytope
 end
 
-function Body177(timestep, mass, inertia::Matrix,
+function Body181(timestep, mass, inertia::Matrix,
         A_colliders::Vector{Matrix{T}},
         b_colliders::Vector{Vector{T}};
         gravity=-9.81,
         name::Symbol=:body,
-        index::NodeIndices177=NodeIndices177()) where T
+        index::NodeIndices181=NodeIndices181()) where T
 
     D = size(A_colliders[1],2)
     @assert D == 2
 
-    return Body177{T,D}(
+    return Body181{T,D}(
         name,
         index,
         zeros(D+1),
@@ -40,14 +40,14 @@ function Body177(timestep, mass, inertia::Matrix,
     )
 end
 
-primal_dimension(body::Body177{T,D}) where {T,D} = 3
-cone_dimension(body::Body177{T,D}) where {T,D} = 0
-variable_dimension(body::Body177{T,D}) where {T,D} = primal_dimension(body) + 2 * cone_dimension(body)
-optimality_dimension(body::Body177{T,D}) where {T,D} = primal_dimension(body)
-slackness_dimension(body::Body177{T,D}) where {T,D} = cone_dimension(body)
-equality_dimension(body::Body177{T,D}) where {T,D} = optimality_dimension(body) + slackness_dimension(body)
+primal_dimension(body::Body181{T,D}) where {T,D} = 3
+cone_dimension(body::Body181{T,D}) where {T,D} = 0
+variable_dimension(body::Body181{T,D}) where {T,D} = primal_dimension(body) + 2 * cone_dimension(body)
+optimality_dimension(body::Body181{T,D}) where {T,D} = primal_dimension(body)
+slackness_dimension(body::Body181{T,D}) where {T,D} = cone_dimension(body)
+equality_dimension(body::Body181{T,D}) where {T,D} = optimality_dimension(body) + slackness_dimension(body)
 
-function parameter_dimension(body::Body177{T,D}) where {T,D}
+function parameter_dimension(body::Body181{T,D}) where {T,D}
     @assert D == 2
     nq = 3 # configuration
     nv = 3 # velocity
@@ -60,11 +60,11 @@ function parameter_dimension(body::Body177{T,D}) where {T,D}
     return nθ
 end
 
-function unpack_variables(x::Vector{T}, body::Body177{T}) where T
+function unpack_variables(x::Vector{T}, body::Body181{T}) where T
     return x
 end
 
-function get_parameters(body::Body177{T,D}) where {T,D}
+function get_parameters(body::Body181{T,D}) where {T,D}
     @assert D == 2
     pose = body.pose
     velocity = body.velocity
@@ -78,7 +78,7 @@ function get_parameters(body::Body177{T,D}) where {T,D}
     return θ
 end
 
-function set_parameters!(body::Body177{T,D}, θ) where {T,D}
+function set_parameters!(body::Body181{T,D}, θ) where {T,D}
     pose, velocity, input, timestep, gravity, mass, inertia = unpack_parameters(θ, body)
     body.pose .= pose
     body.velocity .= velocity
@@ -91,7 +91,7 @@ function set_parameters!(body::Body177{T,D}, θ) where {T,D}
     return nothing
 end
 
-function unpack_parameters(θ::Vector, body::Body177{T,D}) where {T,D}
+function unpack_parameters(θ::Vector, body::Body181{T,D}) where {T,D}
     @assert D == 2
     off = 0
     pose = θ[off .+ (1:D+1)]; off += D+1
@@ -105,12 +105,12 @@ function unpack_parameters(θ::Vector, body::Body177{T,D}) where {T,D}
     return pose, velocity, input, timestep, gravity, mass, inertia
 end
 
-function find_body(bodies::AbstractVector{<:Body177}, name::Symbol)
+function find_body(bodies::AbstractVector{<:Body181}, name::Symbol)
     idx = findfirst(x -> x == name, getfield.(bodies, :name))
     return bodies[idx]
 end
 
-function residual!(e, x, θ, body::Body177)
+function residual!(e, x, θ, body::Body181)
     index = body.index
     # variables = primals = velocity
     v25 = unpack_variables(x[index.variables], body)

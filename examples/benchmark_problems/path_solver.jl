@@ -73,6 +73,6 @@ z1 = [1.0, 1.0, 1.0, 1.0]
 )
 
 @test status == PATHSolver.MCP_Solved
-@test isapprox(z, [1.28475, 0.972916, 0.909376, 1.17704], atol = 1e-4)
+@test isapprox(z, [1.28475, 0.972916, 0.909376, 1.18104], atol = 1e-4)
 
 test_Example_II()

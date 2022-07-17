@@ -118,7 +118,7 @@ end
 ################################################################################
 # ContactSolver
 ################################################################################
-struct ContactSolver177{T,S,NP,NC,FO,Fϕ,FP,FC,FN}
+struct ContactSolver181{T,S,NP,NC,FO,Fϕ,FP,FC,FN}
     solver::S
 
     ϕ::Vector{T}
@@ -197,7 +197,7 @@ function ContactSolver(Ap::Matrix{T}, bp::Vector{T}, Ac::Matrix{T}, bc::Vector{T
 
     exprs = [xl_expr; ϕ_expr; p_parent_expr; p_child_expr; N_child_expr]
 
-    return ContactSolver177{T, typeof(solver), np, nc, typeof.(exprs)...}(
+    return ContactSolver181{T, typeof(solver), np, nc, typeof.(exprs)...}(
         solver,
         zeros(1),#ϕ
         zeros(d),#x
@@ -236,7 +236,7 @@ end
 
 
 
-function update_outvariables!(contact_solver::ContactSolver177, parameters::Vector{T}) where T
+function update_outvariables!(contact_solver::ContactSolver181, parameters::Vector{T}) where T
     update_outvariables!(
         contact_solver.outvariables,
         parameters,

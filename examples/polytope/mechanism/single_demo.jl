@@ -75,15 +75,15 @@ mass = 1.0;
 inertia = 0.2 * ones(1,1);
 
 # nodes
-pbody = Body177(timestep, mass, inertia, [Ap, Ap2], [bp, bp2], gravity=+gravity, name=:pbody);
-cbody = Body177(timestep, 1e1*mass, 1e1*inertia, [Ac], [bc], gravity=+gravity, name=:cbody);
+pbody = Body181(timestep, mass, inertia, [Ap, Ap2], [bp, bp2], gravity=+gravity, name=:pbody);
+cbody = Body181(timestep, 1e1*mass, 1e1*inertia, [Ac], [bc], gravity=+gravity, name=:cbody);
 bodies = [pbody, cbody];
 contacts = [
-    PolyPoly177(bodies[1], bodies[2], friction_coefficient=0.9, name=:contact),
-    PolyPoly177(bodies[1], bodies[2], parent_collider_id=2, friction_coefficient=0.9, name=:contact2),
-    PolyHalfSpace177(bodies[1], Af, bf, friction_coefficient=0.9, name=:phalfspace),
-    PolyHalfSpace177(bodies[2], Af, bf, friction_coefficient=0.9, name=:chalfspace),
-    PolyHalfSpace177(bodies[1], Af, bf, parent_collider_id=2, friction_coefficient=0.9, name=:p2halfspace),
+    PolyPoly181(bodies[1], bodies[2], friction_coefficient=0.9, name=:contact),
+    PolyPoly181(bodies[1], bodies[2], parent_collider_id=2, friction_coefficient=0.9, name=:contact2),
+    PolyHalfSpace181(bodies[1], Af, bf, friction_coefficient=0.9, name=:phalfspace),
+    PolyHalfSpace181(bodies[2], Af, bf, friction_coefficient=0.9, name=:chalfspace),
+    PolyHalfSpace181(bodies[1], Af, bf, parent_collider_id=2, friction_coefficient=0.9, name=:p2halfspace),
     ]
 indexing!([bodies; contacts])
 
@@ -99,7 +99,7 @@ options=Options(
     sparse_solver=false,
     warm_start=false,
 )
-mech = Mechanism177(local_mechanism_residual, bodies, contacts, options=options)
+mech = Mechanism181(local_mechanism_residual, bodies, contacts, options=options)
 
 initialize_solver!(mech.solver)
 solve!(mech.solver)
@@ -120,11 +120,16 @@ Tc = [[[0,1.0]] for i=1:3]
 iter = []
 solutions = []
 
-z0 = [Xp2[1]; Vp15[1]; Xc2[1]; Vc15[1]]
-set_current_state!(mech, z0)
-update_parameters!(mech)
+xp2 = [+0.1,3.0,+1.0]
+xc2 = [-0.1,1.0,-1.0]
+vp15 = [-0,0,-0.0]
+vc15 = [+0,0,+0.0]
+z0 = [xp2; vp15; xc2; vc15]
+u0 = zeros(6)
+H0 = 10
+storage = simulate!(mech, z0, H0);
 
-function step!(mechanism::Mechanism177, z0, u)
+function step!(mechanism::Mechanism181, z0, u)
     set_current_state!(mechanism, z0)
     set_input!(mechanism, u)
     update_parameters!(mechanism)
@@ -133,6 +138,52 @@ function step!(mechanism::Mechanism177, z0, u)
     return z1
 end
 
+function step!(mechanism::Mechanism181, z0; controller::Function=m->nothing)
+    set_current_state!(mechanism, z0)
+    controller(mechanism) # sets the control inputs u
+    update_parameters!(mechanism)
+    solve!(mechanism.solver)
+    z1 = get_next_state(mechanism)
+    return z1
+end
+
+mutable struct Storage112{T,H}
+    z::Vector{Vector{T}} # H x nz
+    u::Vector{Vector{T}} # H x nu
+    x::Vector{Vector{Vector{T}}} # H x nb x nx
+    v::Vector{Vector{Vector{T}}} # H x nb x nv
+end
+
+function Storage(dim::MechanismDimensions181, H::Int, T=Float64)
+    z = [zeros(T, dim.state) for i = 1:H]
+    u = [zeros(T, dim.input) for i = 1:H]
+    x = [[zeros(T, dim.body_configuration) for j = 1:dim.bodies] for i = 1:H]
+    v = [[zeros(T, dim.body_velocity) for j = 1:dim.bodies] for i = 1:H]
+    storage = Storage112{T,H}(z, u, x, v)
+    return storage
+end
+
+function simulate!(mechanism::Mechanism181{T}, z0, H::Int; 
+        controller::Function=(m,i)->nothing) where T
+
+    storage = Storage(mechanism.dimensions, H, T)
+    z = copy(z0)
+    for i = 1:H
+        z .= step!(mechanism, z, controller=m -> controller(m,i))
+        record!(storage, mechanism, i)
+    end
+    return storage
+end
+
+function record!(storage::Storage112{T,H}, mechanism::Mechanism181{T,D,NB}, i::Int) where {T,H,D,NB}
+    storage.z[i] .= get_current_state(mechanism)
+    storage.u[i] .= get_input(mechanism)
+    for j = 1:NB
+        storage.x[i][j] .= mechanism.bodies[j].pose
+        storage.v[i][j] .= mechanism.bodies[j].velocity
+    end
+    return nothing
+end
 
 
 
