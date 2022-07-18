@@ -1,3 +1,6 @@
+######################################################################
+# polytope
+######################################################################
 function build_polytope!(vis::Visualizer, A::Matrix{T}, b::Vector{T};
         name::Symbol=:polytope,
         color=RGBA(0.8, 0.8, 0.8, 1.0)) where T
@@ -46,6 +49,9 @@ function set_2d_polytope!(vis::Visualizer, p::Vector{T}, q::Vector{T};
     return nothing
 end
 
+######################################################################
+# body
+######################################################################
 function build_body!(vis::Visualizer, body::Body182;
         name::Symbol=body.name, 
         collider_color=RGBA(0.2, 0.2, 0.2, 0.8),
@@ -68,6 +74,21 @@ function build_body!(vis::Visualizer, body::Body182;
     return nothing
 end
 
+function set_body!(vis::Visualizer, body::Body182, pose; name=body.name)
+    p = pose[1:2]
+    q = pose[3:3]
+    pe = [0; p]
+    settransform!(vis[:bodies][name], MeshCat.compose(
+        MeshCat.Translation(SVector{3}(pe)),
+        MeshCat.LinearMap(rotationmatrix(RotX(q[1]))),
+        )
+    )
+    return nothing
+end
+
+######################################################################
+# 2D frame
+######################################################################
 function build_2d_frame!(vis::Visualizer;
     name::Symbol=:contact, 
     origin_color=RGBA(0.2, 0.2, 0.2, 0.8),
@@ -98,18 +119,6 @@ function build_2d_frame!(vis::Visualizer;
     return nothing
 end
 
-function set_body!(vis::Visualizer, body::Body182, pose; name=body.name)
-    p = pose[1:2]
-    q = pose[3:3]
-    pe = [0; p]
-    settransform!(vis[:bodies][name], MeshCat.compose(
-        MeshCat.Translation(SVector{3}(pe)),
-        MeshCat.LinearMap(rotationmatrix(RotX(q[1]))),
-        )
-    )
-    return nothing
-end
-
 function set_2d_frame!(vis::Visualizer, contact, origin, normal, tangent; name=contact.name)
     settransform!(vis[:contacts][name][:origin], 
         MeshCat.Translation(SVector{3}(0, origin...)))
@@ -118,6 +127,9 @@ function set_2d_frame!(vis::Visualizer, contact, origin, normal, tangent; name=c
     return nothing
 end
 
+######################################################################
+# mechanism
+######################################################################
 function build_mechanism!(vis::Visualizer, mechanism::Mechanism182)
     for body in mechanism.bodies
         build_body!(vis, body)
@@ -154,42 +166,3 @@ function visualize!(vis::Visualizer, mechanism::Mechanism182, storage::Storage11
     return vis, animation
 end
 
-function plot_halfspace(plt, a, b)
-    R = [0 1; -1 0]
-    v = R * a[1,:]
-    x0 = a \ b
-    xl = x0 - 100*v
-    xu = x0 + 100*v
-    plt = plot!(plt, [xl[1], xu[1]], [xl[2], xu[2]], linewidth=5.0, color=:white)
-    display(plt)
-    return plt
-end
-
-function plot_polytope(p, θ, poly::Polytope{T,N,D};
-        xlims=(-1,1), ylims=(-1,1), S::Int=100) where {T,N,D}
-
-    X = range(xlims..., length=S)
-    Y = range(ylims..., length=S)
-    V = zeros(S,S)
-
-    for i = 1:S
-        for j = 1:S
-            p = [X[i], Y[j]]
-            V[j,i] = signed_distance(p, poly)[1]
-        end
-    end
-
-    plt = heatmap(
-        X, Y, V,
-        aspectratio=1.0,
-        xlims=xlims,
-        ylims=ylims,
-        c=cgrad([:blue, :white,:red, :yellow]),
-        xlabel="x", ylabel="y",
-        )
-    for i = 1:N
-        plt = plot_halfspace(plt, poly.A[i:i,:], poly.b[i:i])
-    end
-    plt = contour(plt, X,Y,V, levels=[0.0], color=:black)
-    return plt
-end

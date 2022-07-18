@@ -125,18 +125,5 @@ function residual!(e, x, θ, body::Body182)
     # dynamics
     optimality = M * (p3 - 2*p2 + p1)/timestep[1] - timestep[1] * [0; mass .* gravity; 0] - u * timestep[1];
     e[index.optimality] .+= optimality
-    # @show optimality
-    # @show M * (p3 - 2*p2 + p1)/timestep[1]
-    # @show timestep[1] * [0; mass .* gravity; 0]
-    # @show u * timestep[1]
-
     return nothing
-end
-
-function x_2d_rotation(q)
-    c = cos(q[1])
-    s = sin(q[1])
-    R = [c -s;
-         s  c]
-    return R
 end
