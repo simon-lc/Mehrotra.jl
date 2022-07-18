@@ -155,23 +155,8 @@ function record!(storage::Storage116{T,H}, mechanism::Mechanism182{T,D,NB,NC}, i
     variables = mechanism.solver.solution.all
     parameters = mechanism.solver.parameters
     for (j, contact) in enumerate(mechanism.contacts)
-        #############################################
-        # contact_point, normal, tangent = contact_frame(contact, pbody, variables, parameters)
-        # TODO need to get rid of this into its own function, will be possible when pbody and cbody normal computation will be unified
-        pbody = find_body(bodies, contact.parent_name)
-        c, ϕ, γ, ψ, β, λp, λc, sγ, sψ, sβ, sp, sc = 
-            unpack_variables(variables[contact.index.variables], contact)
-        friction_coefficient, Ap, bp, Ac, bc = 
-            unpack_parameters(parameters[contact.index.parameters], contact)
-        vp25 = unpack_variables(variables[pbody.index.variables], pbody)
-        pp2, vp15, up2, timestep_p, gravity_p, mass_p, inertia_p = unpack_parameters(parameters[pbody.index.parameters], pbody)
-        pp3 = pp2 + timestep_p[1] * vp25        
-        normal = -x_2d_rotation(pp3[3:3]) * Ap' * λp
-        R = [0 1; -1 0]
-        tangent = R * normal
-        #####################################################
-
-        storage.contact_point[i][j] .= c
+        contact_point, normal, tangent = contact_frame(contact, mechanism)
+        storage.contact_point[i][j] .= contact_point
         storage.normal[i][j] .= normal
         storage.tangent[i][j] .= tangent
     end
@@ -180,6 +165,54 @@ function record!(storage::Storage116{T,H}, mechanism::Mechanism182{T,D,NB,NC}, i
     storage.iterations[i] = mechanism.solver.trace.iterations
 
     return nothing
+end
+
+function contact_frame(contact::PolyPoly182, mechanism::Mechanism182)
+    pbody = find_body(bodies, contact.parent_name)
+    cbody = find_body(bodies, contact.child_name)
+    
+    variables = mechanism.solver.solution.all
+    parameters = mechanism.solver.parameters
+
+    c, ϕ, γ, ψ, β, λp, λc, sγ, sψ, sβ, sp, sc = 
+        unpack_variables(variables[contact.index.variables], contact)
+    friction_coefficient, Ap, bp, Ac, bc = 
+        unpack_parameters(parameters[contact.index.parameters], contact)
+    vp25 = unpack_variables(variables[pbody.index.variables], pbody)
+    vc25 = unpack_variables(variables[cbody.index.variables], cbody)
+    pp2, vp15, up2, timestep_p, gravity_p, mass_p, inertia_p = unpack_parameters(parameters[pbody.index.parameters], pbody)
+    pc2, vc15, uc2, timestep_c, gravity_c, mass_c, inertia_c = unpack_parameters(parameters[cbody.index.parameters], cbody)
+    pp3 = pp2 + timestep_p[1] * vp25        
+    pc3 = pc2 + timestep_c[1] * vc25        
+    contact_point = c + (pp3 + pc3)[1:2] ./ 2
+    normal = -x_2d_rotation(pp3[3:3]) * Ap' * λp
+    R = [0 1; -1 0]
+    tangent = R * normal
+
+    return contact_point, normal, tangent
+end
+
+function contact_frame(contact::PolyHalfSpace182, mechanism::Mechanism182)
+    pbody = find_body(bodies, contact.parent_name)
+    
+    variables = mechanism.solver.solution.all
+    parameters = mechanism.solver.parameters
+
+    c, ϕ, γ, ψ, β, λp, λc, sγ, sψ, sβ, sp, sc = 
+        unpack_variables(variables[contact.index.variables], contact)
+    friction_coefficient, Ap, bp, Ac, bc = 
+        unpack_parameters(parameters[contact.index.parameters], contact)
+    vp25 = unpack_variables(variables[pbody.index.variables], pbody)
+    pp2, vp15, up2, timestep_p, gravity_p, mass_p, inertia_p = unpack_parameters(parameters[pbody.index.parameters], pbody)
+    pp3 = pp2 + timestep_p[1] * vp25        
+    # pc3 = zeros(3)
+    # contact_point = c + (pp3 + pc3)[1:2] ./ 2
+    contact_point = c + pp3[1:2]
+    normal = -x_2d_rotation(pp3[3:3]) * Ap' * λp
+    R = [0 1; -1 0]
+    tangent = R * normal
+
+    return contact_point, normal, tangent
 end
 
 

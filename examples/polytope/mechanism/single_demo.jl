@@ -5,9 +5,7 @@ using StaticArrays
 using Quaternions
 using Plots
 
-
 include("../polytope.jl")
-include("../visuals.jl")
 include("../rotate.jl")
 include("../quaternion.jl")
 
@@ -21,6 +19,7 @@ include("poly_halfspace.jl")
 include("mechanism.jl")
 include("simulate.jl")
 
+include("../visuals.jl")
 
 
 ################################################################################
@@ -76,13 +75,15 @@ inertia = 0.2 * ones(1,1);
 
 # nodes
 pbody = Body182(timestep, mass, inertia, [Ap, Ap2], [bp, bp2], gravity=+gravity, name=:pbody);
-cbody = Body182(timestep, 1e1*mass, 1e1*inertia, [Ac], [bc], gravity=+gravity, name=:cbody);
+cbody = Body182(timestep, mass, inertia, [Ac], [bc], gravity=+gravity, name=:cbody);
 bodies = [pbody, cbody];
+# bodies = [cbody];
 contacts = [
     PolyPoly182(bodies[1], bodies[2], friction_coefficient=0.9, name=:contact),
     PolyPoly182(bodies[1], bodies[2], parent_collider_id=2, friction_coefficient=0.9, name=:contact2),
     PolyHalfSpace182(bodies[1], Af, bf, friction_coefficient=0.9, name=:phalfspace),
     PolyHalfSpace182(bodies[2], Af, bf, friction_coefficient=0.9, name=:chalfspace),
+    # PolyHalfSpace182(bodies[1], Af, bf, friction_coefficient=0.9, name=:chalfspace),
     PolyHalfSpace182(bodies[1], Af, bf, parent_collider_id=2, friction_coefficient=0.9, name=:p2halfspace),
     ]
 indexing!([bodies; contacts])
@@ -97,37 +98,72 @@ options=Options(
     compressed_search_direction=false, 
     max_iterations=30,
     sparse_solver=false,
-    warm_start=false,
+    warm_start=true,
 )
 mech = Mechanism182(local_mechanism_residual, bodies, contacts, options=options)
 
 initialize_solver!(mech.solver)
 solve!(mech.solver)
 
-
 ################################################################################
 # test simulation
 ################################################################################
-xp2 = [+0.1,3.0,+1.0]
+xp2 = [+0.1,3.0,+3.0]
 xc2 = [-0.1,1.0,-1.0]
 vp15 = [-0,0,-0.0]
 vc15 = [+0,0,+0.0]
 z0 = [xp2; vp15; xc2; vc15]
+# z0 = [xc2; vc15]
 u0 = zeros(6)
-H0 = 20
+H0 = 50
 storage = simulate!(mech, z0, H0);
 
-storage.contact_point
+scatter(storage.iterations)
+plot!(hcat(storage.variables...)')
 
 scatter(storage.iterations)
-plot(hcat(storage.variables...)')
+plot!(hcat([abs.(v)[bodies[1].index.variables] for v in storage.variables]...)', 
+    linewidth=3, color=:red, legend=false)
+
+scatter(storage.iterations)
+plot!(hcat([abs.(v)[bodies[2].index.variables] for v in storage.variables]...)', 
+    linewidth=3, color=:black, legend=false)
+
+scatter(storage.iterations)
+plot!(hcat([abs.(v)[contacts[1].index.variables] for v in storage.variables]...)', 
+    linewidth=3, color=:green, legend=false)
+    
+scatter(storage.iterations)
+plot!(hcat([abs.(v)[contacts[2].index.variables] for v in storage.variables]...)', 
+    linewidth=3, color=:green, legend=false)
+    
+scatter(storage.iterations)
+plot!(hcat([abs.(v)[contacts[3].index.variables] for v in storage.variables]...)', 
+    linewidth=3, color=:green, legend=false)
+    
+scatter(storage.iterations)
+plot!(hcat([abs.(v)[contacts[4].index.variables] for v in storage.variables]...)', 
+    linewidth=3, color=:green, legend=false)
+    
+scatter(storage.iterations)
+plot!(hcat([abs.(v)[contacts[5].index.variables] for v in storage.variables]...)', 
+    linewidth=3, color=:green, legend=false)
+
+
+
+plot(mech.solver.solution.all)
+scatter(mech.solver.solution.all[contacts[4].index.variables])
+
+mech.solver.solution.all[contacts[4].index.variables]
 
 
 
 
-
-
-
+render(vis)
+set_floor!(vis)
+set_light!(vis)
+set_background!(vis)
+visualize!(vis, mech, storage)
 
 # velocity of body 1 along y
 plot(hcat([abs.(s[solver.indices.primals])[2:2] for s in solutions]...)', legend=false)
@@ -186,8 +222,8 @@ for i = 2:H+1
     end;
 end;
 MeshCat.setanimation!(vis, anim)
-# open(vis)
-# convert_frames_to_video_and_gif("polytope_drop_slow")
+open(vis)
+# convert_frames_to_video_and_gif("convex_bundle_slow_no_contact")
 
 # ex = solver.data.jacobian_variables_dense
 # plot(Gray.(abs.(ex)))

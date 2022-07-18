@@ -50,7 +50,7 @@ function build_body!(vis::Visualizer, body::Body182;
         name::Symbol=body.name, 
         collider_color=RGBA(0.2, 0.2, 0.2, 0.8),
         center_of_mass_color=RGBA(1, 1, 1, 1.0),
-        center_of_mass_radius=0.05,
+        center_of_mass_radius=0.025,
         ) where T
 
     # colliders
@@ -73,7 +73,7 @@ function build_2d_frame!(vis::Visualizer;
     origin_color=RGBA(0.2, 0.2, 0.2, 0.8),
     normal_axis_color=RGBA(0, 1, 0, 0.8),
     tangent_axis_color=RGBA(1, 0, 0, 0.8),
-    origin_radius=0.05,
+    origin_radius=0.025,
     ) where T
 
     # axes
@@ -98,9 +98,9 @@ function build_2d_frame!(vis::Visualizer;
     return nothing
 end
 
-function set_body!(vis::Visualizer, body::Body182; name=body.name)
-    p = body.pose[1:2]
-    q = body.pose[3:3]
+function set_body!(vis::Visualizer, body::Body182, pose; name=body.name)
+    p = pose[1:2]
+    q = pose[3:3]
     pe = [0; p]
     settransform!(vis[:bodies][name], MeshCat.compose(
         MeshCat.Translation(SVector{3}(pe)),
@@ -129,8 +129,8 @@ function build_mechanism!(vis::Visualizer, mechanism::Mechanism182)
 end
 
 function set_mechanism!(vis::Visualizer, mechanism::Mechanism182, storage::Storage116, i::Int)
-    for body in mechanism.bodies
-        set_body!(vis, body)
+    for (j,body) in enumerate(mechanism.bodies)
+        set_body!(vis, body, storage.x[i][j])
     end
     for (j, contact) in enumerate(mechanism.contacts)
         origin = storage.contact_point[i][j]
@@ -150,22 +150,9 @@ function visualize!(vis::Visualizer, mechanism::Mechanism182, storage::Storage11
             set_mechanism!(vis, mechanism, storage, i)
         end
     end
-    MeshCat.setanimation!(vis, anim)
-    return vis, anim
+    MeshCat.setanimation!(vis, animation)
+    return vis, animation
 end
-
-vis = Visualizer()
-render(vis)
-bodies
-render(vis)
-set_floor!(vis)
-set_light!(vis)
-set_background!(vis)
-# build_body!(vis, bodies[1])
-# build_2d_frame!(vis)
-build_mechanism!(vis, mech)
-storage
-set_mechanism!(vis, mech, storage, 1)
 
 function plot_halfspace(plt, a, b)
     R = [0 1; -1 0]
