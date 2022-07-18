@@ -127,6 +127,8 @@ plot(hcat(storage.variables...)')
 
 
 
+
+
 # velocity of body 1 along y
 plot(hcat([abs.(s[solver.indices.primals])[2:2] for s in solutions]...)', legend=false)
 
