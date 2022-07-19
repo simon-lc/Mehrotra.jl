@@ -6,7 +6,7 @@ using Quaternions
 using Plots
 
 vis = Visualizer()
-render(vis)
+open(vis)
 
 include("../src/polytope.jl")
 include("../src/rotate.jl")
@@ -18,6 +18,8 @@ include("../src/poly_halfspace.jl")
 include("../src/mechanism.jl")
 include("../src/simulate.jl")
 include("../src/visuals.jl")
+
+include("../environment/convex_bundle.jl")
 
 
 ################################################################################
@@ -34,29 +36,41 @@ mech = get_convex_bundle(;
     gravity=-9.81, 
     mass=1.0, 
     inertia=0.2 * ones(1,1),
-    friction_coefficient=0.9,
+    friction_coefficient=0.1,
     options=Options(
         # verbose=false, 
         complementarity_tolerance=1e-4,
         compressed_search_direction=false, 
         max_iterations=30,
         sparse_solver=false,
-        warm_start=true,
+        # warm_start=true,
         )
     );
 
 ################################################################################
 # test simulation
 ################################################################################
-xp2 = [+0.1,3.0,+3.0]
-xc2 = [-0.1,1.0,-1.0]
+xp2 = [+0.0,1.5,-0.25]
+xc2 = [-0.0,0.5,-2.25]
 vp15 = [-0,0,-0.0]
 vc15 = [+0,0,+0.0]
 z0 = [xp2; vp15; xc2; vc15]
 
 u0 = zeros(6)
-H0 = 50
+H0 = 150
 storage = simulate!(mech, z0, H0);
+
+
+################################################################################
+# visualization
+################################################################################
+set_floor!(vis)
+set_light!(vis)
+set_background!(vis)
+visualize!(vis, mech, storage)
+
+
+
 
 scatter(storage.iterations)
 plot!(hcat(storage.variables...)')
@@ -99,14 +113,6 @@ mech.solver.solution.all[contacts[4].index.variables]
 
 
 
-################################################################################
-# visualization
-################################################################################
-render(vis)
-set_floor!(vis)
-set_light!(vis)
-set_background!(vis)
-visualize!(vis, mech, storage)
 
 # velocity of body 1 along y
 plot(hcat([abs.(s[solver.indices.primals])[2:2] for s in solutions]...)', legend=false)
@@ -115,3 +121,6 @@ plot(hcat([abs.(s[solver.indices.duals])[1:12] for s in solutions]...)', legend=
 plot(hcat([abs.(s[solver.indices.duals])[13:21] for s in solutions]...)', legend=false)
 plot(hcat([abs.(s[solver.indices.duals])[22:30] for s in solutions]...)', legend=false)
 plot(hcat([abs.(s[solver.indices.duals])[22:30][3:3] for s in solutions]...)', legend=false)
+
+# open(vis)
+# RobotVisualizer.convert_frames_to_video_and_gif("non_convex_bundle_slow_low_friction")

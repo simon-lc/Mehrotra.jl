@@ -168,8 +168,8 @@ function record!(storage::Storage116{T,H}, mechanism::Mechanism182{T,D,NB,NC}, i
 end
 
 function contact_frame(contact::PolyPoly182, mechanism::Mechanism182)
-    pbody = find_body(bodies, contact.parent_name)
-    cbody = find_body(bodies, contact.child_name)
+    pbody = find_body(mechanism.bodies, contact.parent_name)
+    cbody = find_body(mechanism.bodies, contact.child_name)
     
     variables = mechanism.solver.solution.all
     parameters = mechanism.solver.parameters
@@ -193,7 +193,7 @@ function contact_frame(contact::PolyPoly182, mechanism::Mechanism182)
 end
 
 function contact_frame(contact::PolyHalfSpace182, mechanism::Mechanism182)
-    pbody = find_body(bodies, contact.parent_name)
+    pbody = find_body(mechanism.bodies, contact.parent_name)
     
     variables = mechanism.solver.solution.all
     parameters = mechanism.solver.parameters

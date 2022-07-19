@@ -74,9 +74,6 @@ function get_convex_bundle(;
         1,
         1,
         ];
-    build_2d_polytope!(vis, Ap1, bp1, name=:pbody1, color=RGBA(0.2,0.2,0.2,0.7))
-    build_2d_polytope!(vis, Ap2, bp2, name=:pbody2, color=RGBA(0.2,0.2,0.2,0.7))
-    build_2d_polytope!(vis, Ac, bc, name=:cbody, color=RGBA(0.9,0.9,0.9,0.7))
 
     # nodes
     bodies = [
