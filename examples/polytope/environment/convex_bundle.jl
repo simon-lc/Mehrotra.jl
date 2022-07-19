@@ -1,19 +1,19 @@
-using Polyhedra
-using MeshCat
-using RobotVisualizer
-using StaticArrays
-using Quaternions
+# using Polyhedra
+# using MeshCat
+# using RobotVisualizer
+# using StaticArrays
+# using Quaternions
 
-include("../src/polytope.jl")
-include("../src/rotate.jl")
-include("../src/quaternion.jl")
-include("../src/node.jl")
-include("../src/body.jl")
-include("../src/poly_poly.jl")
-include("../src/poly_halfspace.jl")
-include("../src/mechanism.jl")
-include("../src/simulate.jl")
-include("../src/visuals.jl")
+# include("../src/polytope.jl")
+# include("../src/rotate.jl")
+# include("../src/quaternion.jl")
+# include("../src/node.jl")
+# include("../src/body.jl")
+# include("../src/poly_poly.jl")
+# include("../src/poly_halfspace.jl")
+# include("../src/mechanism.jl")
+# include("../src/simulate.jl")
+# include("../src/visuals.jl")
 
 ################################################################################
 # demo
@@ -26,6 +26,7 @@ function get_convex_bundle(;
     mass=1.0, 
     inertia=0.2 * ones(1,1),
     friction_coefficient=0.9,
+    method_type::Symbol=:finite_difference,
     options=Options(
         # verbose=false, 
         complementarity_tolerance=1e-4,
@@ -104,7 +105,12 @@ function get_convex_bundle(;
     local_mechanism_residual(primals, duals, slacks, parameters) = 
         mechanism_residual(primals, duals, slacks, parameters, bodies, contacts)
 
-    mechanism = Mechanism182(local_mechanism_residual, bodies, contacts, options=options)
+    mechanism = Mechanism182(
+        local_mechanism_residual, 
+        bodies, 
+        contacts, 
+        options=options,
+        method_type=method_type)
 
     initialize_solver!(mechanism.solver)
     return mechanism

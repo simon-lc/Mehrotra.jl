@@ -160,6 +160,9 @@ function allocate_sparse_matrices!(data::ProblemData, methods::ProblemMethods,
     for idx in methods.equality_jacobian_variables_sparsity
         data.equality_jacobian_variables_sparse[idx...] = 1.0
     end
+    for idx in methods.equality_jacobian_variables_compressed_sparsity
+        data.equality_jacobian_variables_compressed_sparse[idx...] = 1.0
+    end
     for idx in methods.equality_jacobian_parameters_sparsity
         data.equality_jacobian_parameters_sparse[idx...] = 1.0
     end

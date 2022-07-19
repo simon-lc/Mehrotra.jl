@@ -76,7 +76,9 @@ struct Mechanism182{T,D,NB,NC,C}
 end
 
 function Mechanism182(residual, bodies::Vector, contacts::Vector;
-        options::Options{T}=Options(), D::Int=2) where {T}
+        options::Options{T}=Options(), 
+        D::Int=2, 
+        method_type::Symbol=:finite_difference) where {T}
 
     # # Dimensions
     nodes = [bodies; contacts]
@@ -98,7 +100,7 @@ function Mechanism182(residual, bodies::Vector, contacts::Vector;
             parameters=parameters,
             nonnegative_indices=collect(1:num_cone),
             second_order_indices=[collect(1:0)],
-            method_type=:finite_difference,
+            method_type=method_type,
             options=options
             )
 
@@ -119,14 +121,15 @@ function Mechanism182(residual, bodies::Vector, contacts::Vector;
     return mechanism
 end
 
-function mechanism_residual(primals, duals, slacks, parameters, 
-        bodies::Vector, contacts::Vector)
+function mechanism_residual(primals::Vector{T}, duals::Vector{T}, 
+        slacks::Vector{T}, parameters::Vector{T}, 
+        bodies::Vector, contacts::Vector) where T
 
     num_duals = length(duals)
     num_primals = length(primals)
     num_equality = num_primals + num_duals
 
-    e = zeros(num_equality)
+    e = zeros(T, num_equality)
     x = [primals; duals; slacks]
     θ = parameters
 

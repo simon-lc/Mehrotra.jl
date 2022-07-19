@@ -60,7 +60,7 @@ function parameter_dimension(body::Body182{T,D}) where {T,D}
     return nθ
 end
 
-function unpack_variables(x::Vector{T}, body::Body182{T}) where T
+function unpack_variables(x::Vector, body::Body182{T}) where T
     return x
 end
 

@@ -73,7 +73,7 @@ function parameter_dimension(contact::PolyPoly182{T,D}) where {T,D}
     return nθ
 end
 
-function unpack_variables(x::Vector{T}, contact::PolyPoly182{T,D,NP,NC}) where {T,D,NP,NC}
+function unpack_variables(x::Vector, contact::PolyPoly182{T,D,NP,NC}) where {T,D,NP,NC}
     num_cone = cone_dimension(contact)
     off = 0
     c = x[off .+ (1:2)]; off += 2
@@ -197,3 +197,59 @@ function residual!(e, x, θ, contact::PolyPoly182{T,D,NP,NC},
     e[cbody.index.optimality] .-= wrench_c
     return nothing
 end
+
+
+
+options=Options(
+        verbose=false, 
+        complementarity_tolerance=1e-4,
+        # compressed_search_direction=true,
+        max_iterations=30,
+        sparse_solver=false,
+        warm_start=true,
+        )
+
+bodies, contacts = get_convex_drop(; 
+    timestep=0.05, 
+    gravity=-9.81, 
+    mass=1.0, 
+    inertia=0.2 * ones(1,1),
+    friction_coefficient=0.9,
+    options=options,
+    )
+
+nodes = [bodies; contacts]
+num_variables = sum(variable_dimension.(nodes))
+num_primals = sum(primal_dimension.(nodes))
+num_cone = sum(cone_dimension.(nodes))
+num_parameters = sum(parameter_dimension.(nodes))
+num_equality = num_primals + num_cone
+
+dim = Dimensions(num_primals, num_cone, num_parameters);
+idx = Indices(num_primals, num_cone, num_parameters);
+
+contact = contacts[1]
+pbody = find_body(bodies, contact.parent_name)
+cbody = find_body(bodies, contact.child_name)
+
+x = Symbolics.variables(:x, 1:dim.variables);
+θ = Symbolics.variables(:θ, 1:dim.parameters);
+e = Symbolics.variables(:e, 1:dim.equality);
+f = Symbolics.variables(:e, 1:dim.equality);
+f .= e;
+
+# residual!(f, x, θ, pbody);
+residual!(f, x, θ, contacts[1], pbody, cbody);
+# residual!(f, x, θ, contacts[2], pbody);
+
+f;
+# fx = Matrix(Symbolics.sparsejacobian(f, x))
+# fθ = Matrix(Symbolics.sparsejacobian(f, θ))
+fx = Symbolics.sparsejacobian(f, x).nzval
+# fθ = Symbolics.sparsejacobian(f, θ).nzval
+for entry in Symbolics.sparsejacobian(f, x).nzval
+    @show entry
+end
+
+
+a = 1

@@ -1,5 +1,5 @@
 function evaluate!(problem::ProblemData{T},
-        methods::AbstractProblemMethods{T,E,EX,EP},
+        methods::AbstractProblemMethods{T,E,EC,EX,EXC,EP},
         cone_methods::ConeMethods{B,BX,P,PX,PXI,TA},
         solution::Point{T},
         parameters::Vector{T};
@@ -10,7 +10,8 @@ function evaluate!(problem::ProblemData{T},
         cone_jacobian=false,
         cone_jacobian_inverse=false,
         sparse_solver::Bool=false,
-        ) where {T,E,EX,EP,B,BX,P,PX,PXI,TA}
+        compressed::Bool=false,
+        ) where {T,E,EC,EX,EXC,EP,B,BX,P,PX,PXI,TA}
 
     x = solution.all
     y = solution.primals
@@ -24,31 +25,35 @@ function evaluate!(problem::ProblemData{T},
     # equality
     ne = length(problem.equality_constraint)
 
-    (equality_constraint && ne > 0) && methods.equality_constraint(problem.equality_constraint, x, θ)
+    if equality_constraint && ne > 0
+        if compressed
+            methods.equality_constraint_compressed(
+                problem.equality_constraint_compressed, x, θ)
+        else
+            methods.equality_constraint(
+                problem.equality_constraint, x, θ)
+        end
+    end
 
     if (equality_jacobian_variables && ne > 0)
-        methods.equality_jacobian_variables(methods.equality_jacobian_variables_cache, x, θ)
-        # if sparse_solver
-        problem.equality_jacobian_variables_sparse.nzval .= methods.equality_jacobian_variables_cache
-        # else
-            # for (i, idx) in enumerate(methods.equality_jacobian_variables_sparsity)
-                # problem.equality_jacobian_variables[idx...] = methods.equality_jacobian_variables_cache[i]
-            # end
-        # end
+        if compressed
+            methods.equality_jacobian_variables_compressed(
+                methods.equality_jacobian_variables_compressed_cache, x, θ)
+            problem.equality_jacobian_variables_compressed_sparse.nzval .= 
+                methods.equality_jacobian_variables_compressed_cache
+        else
+            methods.equality_jacobian_variables(
+                methods.equality_jacobian_variables_cache, x, θ)
+            problem.equality_jacobian_variables_sparse.nzval .= 
+                methods.equality_jacobian_variables_cache
+        end
     end
 
     if (equality_jacobian_parameters && ne > 0 && nθ > 0)
-        methods.equality_jacobian_parameters(methods.equality_jacobian_parameters_cache, x, θ)
-        # @show methods.equality_jacobian_parameters_cache[1:4]
-        # if sparse_solver
-        problem.equality_jacobian_parameters_sparse.nzval .= methods.equality_jacobian_parameters_cache
-            # @show problem.equality_jacobian_parameters_sparse[1:2,1:4]
-        # else
-            # for (i, idx) in enumerate(methods.equality_jacobian_parameters_sparsity)
-                # problem.equality_jacobian_parameters[idx...] = methods.equality_jacobian_parameters_cache[i]
-                # @show problem.equality_jacobian_parameters[1:2,1:4]
-            # end
-        # end
+        methods.equality_jacobian_parameters(
+            methods.equality_jacobian_parameters_cache, x, θ)
+        problem.equality_jacobian_parameters_sparse.nzval .= 
+            methods.equality_jacobian_parameters_cache
     end
 
     # evaluate candidate cone product constraint, cone target and jacobian
