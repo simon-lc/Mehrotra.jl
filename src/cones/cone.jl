@@ -126,8 +126,5 @@ function cone!(problem::ProblemData{T}, methods::ConeMethods, solution::Point{T}
     #     end
     # end
 
-    # cone target
-    cone_target && methods.target(problem.cone_target, z, s)
-
     return
 end

@@ -116,7 +116,7 @@ solver.data.cone_product_jacobian_duals
 solver.data.cone_product_jacobian_ratio
 solver.data.cone_product_jacobian_ratio
 
-solver.data.jacobian_variables_sparse_compressed
+solver.data.jacobian_variables_compressed_sparse
 
 typeof(solver.solution.equality)
 
@@ -131,10 +131,10 @@ solution = solver.solution
 data = solver.data
 residual = solver.data.residual
 @benchmark $linear_solve!($linear_solver, $solution.equality,
-    $data.jacobian_variables_dense_compressed, $residual.equality)
+    $data.jacobian_variables_compressed_dense, $residual.equality)
 
 Main.@code_warntype linear_solve!(linear_solver, solution.equality,
-    data.jacobian_variables_dense_compressed, residual.equality)
+    data.jacobian_variables_compressed_dense, residual.equality)
 
 search_direction!(solver, compressed=true)
 Main.@code_warntype search_direction!(solver, compressed=true)

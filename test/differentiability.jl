@@ -197,7 +197,7 @@ end
 # S0
 # S1
 
-# solver.data.jacobian_variables_dense_compressed
+# solver.data.jacobian_variables_compressed_dense
 # solver.data.jacobian_variables_sparse.matrix
 # solver.data.jacobian_variables_dense
 # solver.data.jacobian_parameters[1:2,1:4]

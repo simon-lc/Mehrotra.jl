@@ -50,7 +50,7 @@ solver.problem
 
 function evaluate!(problem::ProblemData{T},
         methods::StructuredProblemMethods112{T,O,OY,OZ,OP,S,SY,SS,SP},
-        cone_methods::ConeMethods{T,B,BX,P,PX,PXI,TA},
+        cone_methods::ConeMethods{T,B,BX,P,PX,PXI},
         solution::Point{T},
         parameters::Vector{T};
         equality_constraint=false,
@@ -59,7 +59,7 @@ function evaluate!(problem::ProblemData{T},
         cone_constraint=false,
         cone_jacobian=false,
         cone_jacobian_inverse=false,
-        ) where {T,O,OY,OZ,OP,S,SY,SS,SP,B,BX,P,PX,PXI,TA}
+        ) where {T,O,OY,OZ,OP,S,SY,SS,SP,B,BX,P,PX,PXI}
 
     x = solution.all
     y = solution.primals
@@ -108,7 +108,6 @@ function evaluate!(problem::ProblemData{T},
         cone_constraint=cone_constraint,
         cone_jacobian=cone_jacobian,
         cone_jacobian_inverse=cone_jacobian_inverse,
-        cone_target=true # TODO this should only be true once at the beginning of the solve
     )
     return
 end

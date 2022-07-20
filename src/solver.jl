@@ -64,12 +64,13 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     cone_methods = ConeMethods(num_cone, nonnegative_indices, second_order_indices)
 
     # problem data
-    p_data = ProblemData(dim.variables, num_parameters, dim.equality, num_cone;
+    problem = ProblemData(dim.variables, num_parameters, dim.equality, num_cone;
         custom=custom)
-    allocate_sparse_matrices!(p_data, methods, cone_methods)
+    allocate_sparse_matrices!(problem, methods, cone_methods)
 
     # solver data
-    s_data = SolverData(dim, idx, p_data)
+    data = SolverData(dim, idx, problem)
+    allocate_sparse_matrices!(data, methods)
 
     # points
     solution = Point(dim, idx)
@@ -89,37 +90,37 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     random_solution = Point(dim, idx)
     random_solution.all .= rand(dim.variables)
 
-    # evaluate!(p_data, methods, idx, random_solution, parameters,
+    # evaluate!(problem, methods, idx, random_solution, parameters,
     #     objective_jacobian_variables_variables=true,
     #     equality_jacobian_variables=true,
     #     equality_dual_jacobian_variables_variables=true,
     #     cone_jacobian_variables=true,
     #     cone_dual_jacobian_variables_variables=true,
     # )
-    # cone!(p_data, cone_methods, idx, random_solution,
+    # cone!(problem, cone_methods, idx, random_solution,
     #     jacobian=true,
     # )
-    # residual_jacobian_variables!(s_data, p_data, idx, rand(1), rand(1), randn(num_equality), 1.0e-5, 1.0e-5,
+    # residual_jacobian_variables!(data, problem, idx, rand(1), rand(1), randn(num_equality), 1.0e-5, 1.0e-5,
     #     constraint_tensor=options.constraint_tensor)
-    # residual_jacobian_variables_symmetric!(s_data.jacobian_variables_symmetric, s_data.jacobian_variables, idx,
-    #     p_data.second_order_jacobians, p_data.second_order_jacobians)
+    # residual_jacobian_variables_symmetric!(data.jacobian_variables_symmetric, data.jacobian_variables, idx,
+    #     problem.second_order_jacobians, problem.second_order_jacobians)
 
-    residual!(s_data, p_data, idx, central_paths.central_path;
+    residual!(data, problem, idx, central_paths.central_path;
         compressed=options.compressed_search_direction,
         sparse_solver=options.sparse_solver)
 
     if options.sparse_solver
         if options.compressed_search_direction
-            linear_solver = options.symmetric ? 
-                ldl_solver(s_data.jacobian_variables_sparse_compressed) :
-                sparse_lu_solver(s_data.jacobian_variables_sparse_compressed + 1e3I)
+            linear_solver = options.symmetric ?
+                ldl_solver(data.jacobian_variables_compressed_sparse) :
+                sparse_lu_solver(data.jacobian_variables_compressed_sparse + 1e3I)
         else
-            linear_solver = sparse_lu_solver(s_data.jacobian_variables_sparse.matrix + 1e3I)
+            linear_solver = sparse_lu_solver(data.jacobian_variables_sparse.matrix + 1e3I)
         end
     else
         linear_solver = options.compressed_search_direction ?
-            lu_solver(s_data.jacobian_variables_dense_compressed) :
-            lu_solver(s_data.jacobian_variables_dense)
+            lu_solver(data.jacobian_variables_compressed_dense) :
+            lu_solver(data.jacobian_variables_dense)
     end
 
     # regularization
@@ -130,10 +131,10 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     trace = Trace()
 
     Solver(
-        p_data,
+        problem,
         methods,
         cone_methods,
-        s_data,
+        data,
         solution,
         candidate,
         parameters,
@@ -154,35 +155,102 @@ function Solver(equality, num_primals::Int, num_cone::Int;
 end
 
 
-function allocate_sparse_matrices!(data::ProblemData, methods::ProblemMethods,
+function allocate_sparse_matrices!(problem::ProblemData, methods::ProblemMethods,
         cone_methods::ConeMethods)
 
     for idx in methods.equality_jacobian_variables_sparsity
-        data.equality_jacobian_variables_sparse[idx...] = 1.0
+        problem.equality_jacobian_variables_sparse[idx...] = 1.0
     end
     for idx in methods.equality_jacobian_variables_compressed_sparsity
-        data.equality_jacobian_variables_compressed_sparse[idx...] = 1.0
+        problem.equality_jacobian_variables_compressed_sparse[idx...] = 1.0
     end
     for idx in methods.equality_jacobian_parameters_sparsity
-        data.equality_jacobian_parameters_sparse[idx...] = 1.0
+        problem.equality_jacobian_parameters_sparse[idx...] = 1.0
     end
-    # data.equality_jacobian_variables_sparse .*= 0.0
-    # data.equality_jacobian_parameters_sparse .*= 0.0
+    # problem.equality_jacobian_variables_sparse .*= 0.0
+    # problem.equality_jacobian_parameters_sparse .*= 0.0
 
 
     for idx in cone_methods.product_jacobian_duals_sparsity
-        data.cone_product_jacobian_duals_sparse[idx...] = 1.0
+        problem.cone_product_jacobian_duals_sparse[idx...] = 1.0
     end
     for idx in cone_methods.product_jacobian_slacks_sparsity
-        data.cone_product_jacobian_slacks_sparse[idx...] = 1.0
+        problem.cone_product_jacobian_slacks_sparse[idx...] = 1.0
     end
     for idx in cone_methods.product_jacobian_inverse_duals_sparsity
-        data.cone_product_jacobian_inverse_duals_sparse[idx...] = 1.0
+        problem.cone_product_jacobian_inverse_duals_sparse[idx...] = 1.0
     end
     for idx in cone_methods.product_jacobian_inverse_slacks_sparsity
-        data.cone_product_jacobian_inverse_slacks_sparse[idx...] = 1.0
+        problem.cone_product_jacobian_inverse_slacks_sparse[idx...] = 1.0
     end
-    # data.cone_product_jacobian_duals_sparse .*= 0.0
-    # data.cone_product_jacobian_slacks_sparse .*= 0.0
+    # problem.cone_product_jacobian_duals_sparse .*= 0.0
+    # problem.cone_product_jacobian_slacks_sparse .*= 0.0
     return nothing
 end
+
+
+function allocate_sparse_matrices!(data::SolverData, methods::ProblemMethods)
+
+    for idx in methods.equality_jacobian_variables_sparsity
+        data.jacobian_variables_sparse.matrix[idx...] = 1.0
+    end
+
+    for idx in methods.equality_jacobian_variables_compressed_sparsity
+        data.jacobian_variables_compressed_sparse[idx...] = 1.0
+    end
+
+    for idx in methods.equality_jacobian_parameters_sparsity
+        data.jacobian_parameters_sparse.matrix[idx...] = 1.0
+    end
+    return nothing
+end
+
+
+# using Mehrotra
+# using Random
+
+# include("../examples/benchmark_problems/lcp_utils.jl")
+
+# ################################################################################
+# # coupled constraints
+# ################################################################################
+# # dimensions
+# num_primals = 10
+# num_cone = 10
+# num_parameters = num_primals^2 + num_primals + num_cone^2 + num_cone
+
+# # cone type
+# idx_nn = collect(1:num_cone-3)
+# idx_soc = [collect(num_cone-3+1:num_cone)]
+
+# # Jacobian
+# Random.seed!(0)
+# As = rand(num_primals, num_primals)
+# A = As' * As
+# b = rand(num_primals)
+# Cs = rand(num_cone, num_cone)
+# C = Cs * Cs'
+# d = rand(num_cone)
+# parameters = [vec(A); b; vec(C); d]
+
+# # solver
+# solver = Solver(lcp_residual, num_primals, num_cone,
+#     parameters=parameters,
+#     nonnegative_indices=idx_nn,
+#     second_order_indices=idx_soc,
+#     # method_type=:symbolics,
+#     method_type=:finite_difference,
+#     options=Options(
+#         compressed_search_direction=true,
+#         sparse_solver=true,
+#         differentiate=false,
+#         verbose=true,
+#         symmetric=false,
+#     ));
+
+
+
+# solver.linear_solver
+# # solve
+# Mehrotra.solve!(solver)
+# solver.central_paths

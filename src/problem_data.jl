@@ -11,7 +11,6 @@ struct ProblemData{T,X}
     cone_product_jacobian_slacks_sparse::SparseMatrixCSC{T,Int} #Z
     cone_product_jacobian_inverse_duals_sparse::SparseMatrixCSC{T,Int} #Si
     cone_product_jacobian_inverse_slacks_sparse::SparseMatrixCSC{T,Int} #Zi
-    cone_target::Vector{T} 
     custom::X
 end
 
@@ -29,7 +28,6 @@ function ProblemData(num_variables, num_parameters, num_equality, num_cone;
     cone_product_jacobian_slacks_sparse = spzeros(num_cone, num_cone)
     cone_product_jacobian_inverse_duals_sparse = spzeros(num_cone, num_cone)
     cone_product_jacobian_inverse_slacks_sparse = spzeros(num_cone, num_cone)
-    cone_target = zeros(num_cone)
 
     ProblemData(
         equality_constraint,
@@ -42,7 +40,6 @@ function ProblemData(num_variables, num_parameters, num_equality, num_cone;
         cone_product_jacobian_slacks_sparse,
         cone_product_jacobian_inverse_duals_sparse,
         cone_product_jacobian_inverse_slacks_sparse,
-        cone_target,
         custom,
     )
 end

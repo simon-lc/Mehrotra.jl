@@ -1,6 +1,6 @@
 function evaluate!(problem::ProblemData{T},
         methods::AbstractProblemMethods{T,E,EC,EX,EXC,EP},
-        cone_methods::ConeMethods{B,BX,P,PX,PXI,TA},
+        cone_methods::ConeMethods{B,BX,P,PX,PXI},
         solution::Point{T},
         parameters::Vector{T};
         equality_constraint=false,
@@ -11,12 +11,9 @@ function evaluate!(problem::ProblemData{T},
         cone_jacobian_inverse=false,
         sparse_solver::Bool=false,
         compressed::Bool=false,
-        ) where {T,E,EC,EX,EXC,EP,B,BX,P,PX,PXI,TA}
+        ) where {T,E,EC,EX,EXC,EP,B,BX,P,PX,PXI}
 
     x = solution.all
-    y = solution.primals
-    z = solution.duals
-    s = solution.slacks
     θ = parameters
 
     # dimensions
@@ -61,15 +58,16 @@ function evaluate!(problem::ProblemData{T},
         cone_constraint=cone_constraint,
         cone_jacobian=cone_jacobian,
         cone_jacobian_inverse=cone_jacobian_inverse,
-        cone_target=true, # TODO this should only be true once at the beginning of the solve
         sparse_solver=sparse_solver,
     )
     return
 end
 
+
+
 # function evaluate!(problem::ProblemData112{T},
 #         methods::AbstractProblemMethods{T,E,EX,EP},
-#         cone_methods::ConeMethods{B,BX,P,PX,PXI,TA},
+#         cone_methods::ConeMethods{B,BX,P,PX,PXI},
 #         solution::Point{T},
 #         parameters::Vector{T};
 #         equality_constraint=false,
@@ -78,7 +76,7 @@ end
 #         cone_constraint=false,
 #         cone_jacobian=false,
 #         cone_jacobian_inverse=false,
-#         ) where {T,E,EX,EP,B,BX,P,PX,PXI,TA}
+#         ) where {T,E,EX,EP,B,BX,P,PX,PXI}
 #
 #     x = solution.all
 #     y = solution.primals
@@ -109,7 +107,6 @@ end
 #         cone_constraint=cone_constraint,
 #         cone_jacobian=cone_jacobian,
 #         cone_jacobian_inverse=cone_jacobian_inverse,
-#         cone_target=true # TODO this should only be true once at the beginning of the solve
 #     )
 #     return
 # end

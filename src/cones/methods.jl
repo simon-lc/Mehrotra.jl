@@ -1,10 +1,9 @@
-struct ConeMethods{T,B,BX,P,PX,PXI,TA}
+struct ConeMethods{T,B,BX,P,PX,PXI}
     barrier::B
     barrier_gradient::BX
     product::P
     product_jacobian::PX
     product_jacobian_inverse::PXI
-    target::TA
     product_jacobian_duals_cache::Vector{T}
     product_jacobian_slacks_cache::Vector{T}
     product_jacobian_inverse_duals_cache::Vector{T}

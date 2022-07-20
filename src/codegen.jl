@@ -132,8 +132,8 @@ function generate_full_gradients(func::Function, dim::Dimensions, ind::Indices;
     parallel = threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()
     parallel_parameters = (threads && num_parameters > 0) ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()
 
-    idx_nn = idx.cone_nonnegative
-    idx_soc = idx.cone_second_order
+    idx_nn = ind.cone_nonnegative
+    idx_soc = ind.cone_second_order
 
     x = Symbolics.variables(:x, 1:dim.variables) # variables
     θ = Symbolics.variables(:θ, 1:dim.parameters) # parameters
@@ -157,11 +157,11 @@ function generate_full_gradients(func::Function, dim::Dimensions, ind::Indices;
     rs = cone_product(s, z, idx_nn, idx_soc)
 
     # compressed equality residual
-    fc = f
+    fc = copy(f)
     fc[ind.slackness] .-= D * Zi * rs
 
     # compressed equality jacobians
-    fxc = fx[ind.equality, [ind.primals; ind.duals]]
+    fxc = copy(fx[ind.equality, [ind.primals; ind.duals]])
     fxc[ind.slackness, ind.duals] .-= D * Zi * S
     fxc = sparse(fxc)
 
@@ -175,7 +175,7 @@ function generate_full_gradients(func::Function, dim::Dimensions, ind::Indices;
         parallel=parallel,
         checkbounds=checkbounds,
         expression=Val{false})[2]
-    fc_expr = Symbolics.build_function(f, x, θ, es,
+    fc_expr = Symbolics.build_function(f, x, θ,
         parallel=parallel,
         checkbounds=checkbounds,
         expression=Val{false})[2]

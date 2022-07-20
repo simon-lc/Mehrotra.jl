@@ -40,14 +40,14 @@ function differentiate!(solver)
 
     if compressed
         jacobian_variables_compressed = options.sparse_solver ? 
-            data.jacobian_variables_sparse_compressed : data.jacobian_variables_dense_compressed
+            data.jacobian_variables_compressed_sparse : data.jacobian_variables_compressed_dense
         jacobian_parameters = options.sparse_solver ? 
             data.jacobian_parameters_sparse.matrix : data.jacobian_parameters
         Zi = data.cone_product_jacobian_inverse_slack
         S = data.cone_product_jacobian_duals
 
         # primal dual step
-        # data.jacobian_variables_dense_compressed .= data.jacobian_variables_sparse_compressed
+        # data.jacobian_variables_compressed_dense .= data.jacobian_variables_compressed_sparse
         # @show norm(jacobian_variables_compressed)
         # @show norm(jacobian_parameters)
         linear_solve!(solver.linear_solver,

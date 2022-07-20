@@ -129,9 +129,9 @@ end
 # S1 = solveru.data.solution_sensitivity
 #
 # solverc.data.residual_compressed
-# solverc.data.jacobian_variables_sparse_compressed
+# solverc.data.jacobian_variables_compressed_sparse
 # solverc.data.jacobian_variables
-# inv(Matrix(solverc.data.jacobian_variables_sparse_compressed))
+# inv(Matrix(solverc.data.jacobian_variables_compressed_sparse))
 # @test norm(S0 - S1) < 1e-10
 # norm(S0 - S1, Inf)
 #
@@ -143,7 +143,7 @@ end
 # norm(Δ0 - Δ1, Inf)
 #
 #
-# solverc.data.jacobian_variables_sparse_compressed
+# solverc.data.jacobian_variables_compressed_sparse
 # Δ0
 # Δ1
 # Δ0 - Δ1

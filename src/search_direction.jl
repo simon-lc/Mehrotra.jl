@@ -50,11 +50,11 @@ function compressed_search_direction!(linear_solver::LinearSolver{T},
         ) where T
 
 
-    Zi = data.cone_product_jacobian_inverse_slack
-    S = data.cone_product_jacobian_duals
+    # Zi = data.cone_product_jacobian_inverse_slack
+    # S = data.cone_product_jacobian_duals
     # primal dual step
-    # step.equality .= data.jacobian_variables_sparse_compressed \ residual.equality
-    jacobian_variables_compressed = sparse_solver ? data.jacobian_variables_sparse_compressed : data.jacobian_variables_dense_compressed
+    # step.equality .= data.jacobian_variables_compressed_sparse \ residual.equality
+    jacobian_variables_compressed = sparse_solver ? data.jacobian_variables_compressed_sparse : data.jacobian_variables_compressed_dense
     linear_solve!(linear_solver, 
         step.equality, 
         jacobian_variables_compressed, 
@@ -97,6 +97,9 @@ function uncompressed_search_direction!(linear_solver::LinearSolver{T},
     return nothing
 end
 
+# TODO add the Δs step in compressed cases
+
+
 # using ILUZero
 # n = 10
 # As = sprand(n,n,0.9)
@@ -118,7 +121,7 @@ end
 # data = solver.data
 # residual = solver.data.residual
 # linear_solve!(solver.linear_solver, step0.equality,
-#     data.jacobian_variables_dense_compressed, residual.equality)
+#     data.jacobian_variables_compressed_dense, residual.equality)
 #
 #
 # step0.all[solver.indices.duals]

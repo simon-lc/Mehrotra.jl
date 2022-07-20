@@ -55,9 +55,9 @@ function test_residual_jacobian(solver, residual; mode::Symbol=:variables)
     # reference
     if mode == :variables
         if compressed && sparse_solver
-            J0 = data.jacobian_variables_sparse_compressed
+            J0 = data.jacobian_variables_compressed_sparse
         elseif compressed && !sparse_solver
-            J0 = data.jacobian_variables_dense_compressed
+            J0 = data.jacobian_variables_compressed_dense
         elseif !compressed && sparse_solver
             J0 = data.jacobian_variables_sparse.matrix
         elseif !compressed && !sparse_solver

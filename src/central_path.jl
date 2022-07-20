@@ -9,10 +9,7 @@ end
 function CentralPath(idx_nn::Vector{Int}, idx_soc::Vector{Vector{Int}}, complementarity_tolerance, T=Float64)
 
     num_cone = length(idx_nn) + sum(length.(idx_soc))
-    neutral = ones(T, num_cone)
-    for soc in idx_soc
-        neutral[soc[2:end]] .= 0
-    end
+    neutral = cone_target(idx_nn, idx_soc)
 
     CentralPath{T}(
         0.1*neutral,

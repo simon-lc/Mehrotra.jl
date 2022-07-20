@@ -36,73 +36,143 @@
     compressed: Bool
 
 """
+# function residual!(data::SolverData, problem::ProblemData, idx::Indices, central_path;
+#         compressed::Bool=false,
+#         sparse_solver::Bool=false)
+
+#     # reset
+#     fill!(data.residual.all, 0.0)
+
+#     # Fill residual
+#     # equality
+#     data.residual.equality .= problem.equality_constraint
+#     # cone: z ∘ s - κ e
+#     for (i, ii) in enumerate(idx.cone_product)
+#         data.residual.all[ii] = problem.cone_product[i] - central_path[i]
+#     end
+
+#     if compressed
+#         # Fill D
+#         for (i,ii) in enumerate(idx.slacks)
+#             data.slackness_jacobian_slacks .= problem.equality_jacobian_variables_sparse[idx.slackness[i], ii]
+#         end
+
+#         # compression corrections for the residual
+#         D = data.slackness_jacobian_slacks
+#         Zi = problem.cone_product_jacobian_inverse_slacks_sparse
+#         S = problem.cone_product_jacobian_duals_sparse
+#         data.cone_product_jacobian_inverse_slack .= Zi
+#         data.cone_product_jacobian_duals .= S
+
+
+#         # compute ratio
+#         # data.jacobian_variables_compressed_sparse[idx.duals, idx.duals] .+= -Zi * S # -Z⁻¹ S
+#         mul!(data.cone_product_jacobian_ratio, Zi, S) # -Z⁻¹ S
+#         data.cone_product_jacobian_ratio .*= -1.0 # -Z⁻¹ S
+
+
+#         data.residual_compressed.all .= data.residual.all
+#         # data.residual_compressed.duals .-= D * Zi * data.residual.cone_product # - D Z⁻¹ cone_product
+#         mul!(data.point_temporary.duals, Zi, data.residual.cone_product) # - D Z⁻¹ cone_product
+#         data.point_temporary.duals .*= D # - D Z⁻¹ cone_product
+#         data.point_temporary.duals .*= -1.0 # - D Z⁻¹ cone_product
+#         for (i,ii) in enumerate(idx.duals)
+#             data.residual_compressed.duals[i] += data.point_temporary.duals[i] # - D Z⁻¹ cone_product
+#         end
+#         data.point_temporary.all .= 0.0
+#     end
+
+
+#     # Jacobian variables  
+#     # equality
+#     if !compressed && sparse_solver
+#         fill!(data.jacobian_variables_sparse, problem.equality_jacobian_variables_sparse, :equality_jacobian_variables)
+#     elseif !compressed && !sparse_solver
+#         data.jacobian_variables_dense[idx.equality, idx.variables] .= problem.equality_jacobian_variables_sparse # TODO
+#     elseif compressed && sparse_solver
+#         for (i, ii) in enumerate(idx.equality)
+#             for (j, jj) in enumerate(idx.equality)
+#                 data.jacobian_variables_compressed_sparse[ii,jj] = problem.equality_jacobian_variables_sparse[ii,jj] # TODO
+#             end
+#         end
+#     elseif compressed && !sparse_solver
+#         for (i, ii) in enumerate(idx.equality)
+#             for (j, jj) in enumerate(idx.equality)
+#                 data.jacobian_variables_compressed_dense[ii,jj] = problem.equality_jacobian_variables_sparse[ii,jj] # TODO
+#             end
+#         end
+#     end
+    
+#     # cone product
+#     if !compressed && sparse_solver
+#         fill!(data.jacobian_variables_sparse, problem.cone_product_jacobian_duals_sparse, :cone_jacobian_duals)
+#         fill!(data.jacobian_variables_sparse, problem.cone_product_jacobian_slacks_sparse, :cone_jacobian_slacks)
+#     elseif !compressed && !sparse_solver
+#         data.jacobian_variables_dense[idx.cone_product, idx.duals] .= problem.cone_product_jacobian_duals_sparse # TODO
+#         data.jacobian_variables_dense[idx.cone_product, idx.slacks] .= problem.cone_product_jacobian_slacks_sparse # TODO    
+#     elseif compressed
+#         for (i,ii) in enumerate(idx.duals)
+#             for (j,jj) in enumerate(idx.duals)
+#                 if sparse_solver
+#                     data.jacobian_variables_compressed_sparse[ii,jj] += data.cone_product_jacobian_ratio[i,j] # -Z⁻¹ S
+#                 else
+#                     data.jacobian_variables_compressed_dense[ii,jj] += data.cone_product_jacobian_ratio[i,j] # -Z⁻¹ S
+#                 end
+#             end
+#         end
+#     end
+
+#     # Jacobian parameters
+#     # equality
+#     if sparse_solver
+#         fill!(data.jacobian_parameters_sparse, problem.equality_jacobian_parameters_sparse, :equality_jacobian_parameters)
+#     else
+#         data.jacobian_parameters[idx.equality, idx.parameters] .= problem.equality_jacobian_parameters_sparse # TODO
+#     end
+#     return
+# end
+
+
 function residual!(data::SolverData, problem::ProblemData, idx::Indices, central_path;
         compressed::Bool=false,
         sparse_solver::Bool=false)
 
-    # reset
-    fill!(data.residual.all, 0.0)
-
-    # Fill residual
+    # residual
+    if compressed 
+        fill!(data.residual_compressed.all, 0.0) # reset
+        # equality
+        data.residual_compressed.equality .= problem.equality_constraint_compressed
+        # cone: z ∘ s - κ e
+        for (i, ii) in enumerate(idx.slackness)
+            data.residual_compressed.all[ii] = - central_path[i] 
+        end
+    end
+    # TODO this is useful for the violation evaluations
+    fill!(data.residual.all, 0.0) # reset
     # equality
     data.residual.equality .= problem.equality_constraint
     # cone: z ∘ s - κ e
     for (i, ii) in enumerate(idx.cone_product)
-        data.residual.all[ii] = problem.cone_product[i] - central_path[i] * problem.cone_target[i]
-    end
-
-    if compressed
-        # Fill D
-        for (i,ii) in enumerate(idx.slacks)
-            data.slackness_jacobian_slacks .= problem.equality_jacobian_variables_sparse[idx.slackness[i], ii]
-        end
-
-        # compression corrections for the residual
-        D = data.slackness_jacobian_slacks
-        Zi = problem.cone_product_jacobian_inverse_slacks_sparse
-        S = problem.cone_product_jacobian_duals_sparse
-        data.cone_product_jacobian_inverse_slack .= Zi
-        data.cone_product_jacobian_duals .= S
-
-
-        # compute ratio
-        # data.jacobian_variables_sparse_compressed[idx.duals, idx.duals] .+= -Zi * S # -Z⁻¹ S
-        mul!(data.cone_product_jacobian_ratio, Zi, S) # -Z⁻¹ S
-        data.cone_product_jacobian_ratio .*= -1.0 # -Z⁻¹ S
-
-
-        data.residual_compressed.all .= data.residual.all
-        # data.residual_compressed.duals .-= D * Zi * data.residual.cone_product # - D Z⁻¹ cone_product
-        mul!(data.point_temporary.duals, Zi, data.residual.cone_product) # - D Z⁻¹ cone_product
-        data.point_temporary.duals .*= D # - D Z⁻¹ cone_product
-        data.point_temporary.duals .*= -1.0 # - D Z⁻¹ cone_product
-        for (i,ii) in enumerate(idx.duals)
-            data.residual_compressed.duals[i] += data.point_temporary.duals[i] # - D Z⁻¹ cone_product
-        end
-        data.point_temporary.all .= 0.0
+        data.residual.all[ii] = problem.cone_product[i] - central_path[i]
     end
 
 
-    # Jacobian variables  
+    # jacobian variables
     # equality
     if !compressed && sparse_solver
         fill!(data.jacobian_variables_sparse, problem.equality_jacobian_variables_sparse, :equality_jacobian_variables)
     elseif !compressed && !sparse_solver
         data.jacobian_variables_dense[idx.equality, idx.variables] .= problem.equality_jacobian_variables_sparse # TODO
     elseif compressed && sparse_solver
-        for (i, ii) in enumerate(idx.equality)
-            for (j, jj) in enumerate(idx.equality)
-                data.jacobian_variables_sparse_compressed[ii,jj] = problem.equality_jacobian_variables_sparse[ii,jj] # TODO
-            end
-        end
+        data.jacobian_variables_compressed_sparse.nzval .= problem.equality_jacobian_variables_compressed_sparse.nzval
     elseif compressed && !sparse_solver
         for (i, ii) in enumerate(idx.equality)
             for (j, jj) in enumerate(idx.equality)
-                data.jacobian_variables_dense_compressed[ii,jj] = problem.equality_jacobian_variables_sparse[ii,jj] # TODO
+                data.jacobian_variables_compressed_dense[ii,jj] = problem.equality_jacobian_variables_compressed_sparse[ii,jj] # TODO
             end
         end
     end
-    
+
     # cone product
     if !compressed && sparse_solver
         fill!(data.jacobian_variables_sparse, problem.cone_product_jacobian_duals_sparse, :cone_jacobian_duals)
@@ -110,19 +180,9 @@ function residual!(data::SolverData, problem::ProblemData, idx::Indices, central
     elseif !compressed && !sparse_solver
         data.jacobian_variables_dense[idx.cone_product, idx.duals] .= problem.cone_product_jacobian_duals_sparse # TODO
         data.jacobian_variables_dense[idx.cone_product, idx.slacks] .= problem.cone_product_jacobian_slacks_sparse # TODO    
-    elseif compressed
-        for (i,ii) in enumerate(idx.duals)
-            for (j,jj) in enumerate(idx.duals)
-                if sparse_solver
-                    data.jacobian_variables_sparse_compressed[ii,jj] += data.cone_product_jacobian_ratio[i,j] # -Z⁻¹ S
-                else
-                    data.jacobian_variables_dense_compressed[ii,jj] += data.cone_product_jacobian_ratio[i,j] # -Z⁻¹ S
-                end
-            end
-        end
     end
 
-    # Jacobian parameters
+    # jacobian parameters
     # equality
     if sparse_solver
         fill!(data.jacobian_parameters_sparse, problem.equality_jacobian_parameters_sparse, :equality_jacobian_parameters)
@@ -131,6 +191,9 @@ function residual!(data::SolverData, problem::ProblemData, idx::Indices, central
     end
     return
 end
+
+
+
 
 # n = 5
 # A = rand(n,n)
