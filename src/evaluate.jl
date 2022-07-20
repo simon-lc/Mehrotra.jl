@@ -1,6 +1,6 @@
 function evaluate!(problem::ProblemData{T},
-        methods::AbstractProblemMethods{T,E,EC,EX,EXC,EP},
-        cone_methods::ConeMethods{B,BX,P,PX,PXI},
+        methods::AbstractProblemMethods{T,E,EC,EX,EXC,EP,C,CC},
+        cone_methods::ConeMethods{T,B,BX,P,PX,PXI},
         solution::Point{T},
         parameters::Vector{T};
         equality_constraint=false,
@@ -11,7 +11,7 @@ function evaluate!(problem::ProblemData{T},
         cone_jacobian_inverse=false,
         sparse_solver::Bool=false,
         compressed::Bool=false,
-        ) where {T,E,EC,EX,EXC,EP,B,BX,P,PX,PXI}
+        ) where {T,E,EC,EX,EXC,EP,C,CC,B,BX,P,PX,PXI}
 
     x = solution.all
     θ = parameters
@@ -26,22 +26,22 @@ function evaluate!(problem::ProblemData{T},
         if compressed
             methods.equality_constraint_compressed(
                 problem.equality_constraint_compressed, x, θ)
-        else
-            methods.equality_constraint(
-                problem.equality_constraint, x, θ)
         end
+        # always useful for violation evaluation
+        methods.equality_constraint(
+            problem.equality_constraint, x, θ)
     end
 
     if (equality_jacobian_variables && ne > 0)
         if compressed
             methods.equality_jacobian_variables_compressed(
                 methods.equality_jacobian_variables_compressed_cache, x, θ)
-            problem.equality_jacobian_variables_compressed_sparse.nzval .= 
+            problem.equality_jacobian_variables_compressed.nzval .= 
                 methods.equality_jacobian_variables_compressed_cache
         else
             methods.equality_jacobian_variables(
                 methods.equality_jacobian_variables_cache, x, θ)
-            problem.equality_jacobian_variables_sparse.nzval .= 
+            problem.equality_jacobian_variables.nzval .= 
                 methods.equality_jacobian_variables_cache
         end
     end
@@ -49,7 +49,7 @@ function evaluate!(problem::ProblemData{T},
     if (equality_jacobian_parameters && ne > 0 && nθ > 0)
         methods.equality_jacobian_parameters(
             methods.equality_jacobian_parameters_cache, x, θ)
-        problem.equality_jacobian_parameters_sparse.nzval .= 
+        problem.equality_jacobian_parameters.nzval .= 
             methods.equality_jacobian_parameters_cache
     end
 

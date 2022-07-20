@@ -68,10 +68,10 @@ plot(Gray.(1e3abs.(solution_sensitivity)))
 # @benchmark $solve!($solver)
 
 
-solver.problem.equality_jacobian_parameters_sparse
-solver.problem.equality_jacobian_variables_sparse[1:7,1:7]
-solver.problem.cone_product_jacobian_duals_sparse
-solver.problem.cone_product_jacobian_slacks_sparse
+solver.problem.equality_jacobian_parameters
+solver.problem.equality_jacobian_variables[1:7,1:7]
+solver.problem.cone_product_jacobian_duals
+solver.problem.cone_product_jacobian_slacks
 
 solver.data.jacobian_variables
 solver.data.jacobian_variables_sparse.matrix

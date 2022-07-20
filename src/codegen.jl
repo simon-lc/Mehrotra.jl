@@ -1,3 +1,95 @@
+function generate_full_gradients(func::Function, dim::Dimensions, ind::Indices;
+        checkbounds=true,
+        threads=false)
+
+    parallel = threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()
+    parallel_parameters = (threads && num_parameters > 0) ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()
+
+    idx_nn = ind.cone_nonnegative
+    idx_soc = ind.cone_second_order
+
+    x = Symbolics.variables(:x, 1:dim.variables) # variables
+    θ = Symbolics.variables(:θ, 1:dim.parameters) # parameters
+    κ = Symbolics.variables(:κ, 1:dim.cone) # central path
+    r = Symbolics.variables(:κ, 1:dim.variables) # residual
+    y = x[ind.primals]
+    z = x[ind.duals]
+    s = x[ind.slacks]
+
+    # equality residual
+    f = dim.parameters > 0 ?
+        func(y, z, s, θ) :
+        func(y, z, s)
+
+    # equality jacobians
+    fx = Symbolics.sparsejacobian(f, x)
+    fθ = Symbolics.sparsejacobian(f, θ)
+
+    # compressed search direction
+    D = fx[ind.slackness, ind.slacks]
+    Zi = cone_product_jacobian_inverse(s, z, idx_nn, idx_soc)
+    S = cone_product_jacobian(z, s, idx_nn, idx_soc)
+    rs = cone_product(s, z, idx_nn, idx_soc)
+
+    # compressed equality residual
+    fc = copy(f)
+    fc[ind.slackness] .-= D * Zi * rs
+
+    # compressed equality jacobians
+    fxc = copy(fx[ind.equality, [ind.primals; ind.duals]])
+    fxc[ind.slackness, ind.duals] .-= D * Zi * S
+    fxc = sparse(fxc)
+
+    # correction
+    c = copy(r)
+    c[ind.cone_product] .-= κ
+    
+    # correction compressed
+    cc = copy(r)
+    cc[ind.cone_product] .-= κ
+    cc[ind.slackness] .+= D * Zi * κ
+
+    # sparsity
+    fx_sparsity = collect(zip([findnz(fx)[1:2]...]...))
+    fxc_sparsity = collect(zip([findnz(fxc)[1:2]...]...))
+    fθ_sparsity = collect(zip([findnz(fθ)[1:2]...]...))
+
+    # expressions
+    f_expr = Symbolics.build_function(f, x, θ,
+        parallel=parallel,
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+    fc_expr = Symbolics.build_function(f, x, θ,
+        parallel=parallel,
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+    fx_expr = Symbolics.build_function(fx.nzval, x, θ,
+        parallel=parallel,
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+    fxc_expr = Symbolics.build_function(fxc.nzval, x, θ,
+        parallel=parallel,
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+    fθ_expr = Symbolics.build_function(fθ.nzval, x, θ,
+        parallel=parallel_parameters,
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+    c_expr = Symbolics.build_function(c, r, κ,
+        parallel=parallel,
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+    cc_expr = Symbolics.build_function(cc, r, x, κ,
+        parallel=parallel,
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+
+    return f_expr, fc_expr, fx_expr, fxc_expr, fθ_expr, c_expr, cc_expr, fx_sparsity, fxc_sparsity, fθ_sparsity
+end
+
+
+
+
 # function generate_gradients(func::Function, dim::Dimensions, ind::Indices;
 #         checkbounds=true,
 #         threads=false)
@@ -124,73 +216,3 @@
 #         sθ_sparsity
 # end
 
-
-function generate_full_gradients(func::Function, dim::Dimensions, ind::Indices;
-        checkbounds=true,
-        threads=false)
-
-    parallel = threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()
-    parallel_parameters = (threads && num_parameters > 0) ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()
-
-    idx_nn = ind.cone_nonnegative
-    idx_soc = ind.cone_second_order
-
-    x = Symbolics.variables(:x, 1:dim.variables) # variables
-    θ = Symbolics.variables(:θ, 1:dim.parameters) # parameters
-    y = x[ind.primals]
-    z = x[ind.duals]
-    s = x[ind.slacks]
-
-    # equality residual
-    f = dim.parameters > 0 ?
-        func(y, z, s, θ) :
-        func(y, z, s)
-
-    # equality jacobians
-    fx = Symbolics.sparsejacobian(f, x)
-    fθ = Symbolics.sparsejacobian(f, θ)
-
-    # compressed search direction
-    D = fx[ind.slackness, ind.slacks]
-    Zi = cone_product_jacobian_inverse(s, z, idx_nn, idx_soc)
-    S = cone_product_jacobian(z, s, idx_nn, idx_soc)
-    rs = cone_product(s, z, idx_nn, idx_soc)
-
-    # compressed equality residual
-    fc = copy(f)
-    fc[ind.slackness] .-= D * Zi * rs
-
-    # compressed equality jacobians
-    fxc = copy(fx[ind.equality, [ind.primals; ind.duals]])
-    fxc[ind.slackness, ind.duals] .-= D * Zi * S
-    fxc = sparse(fxc)
-
-    # sparsity
-    fx_sparsity = collect(zip([findnz(fx)[1:2]...]...))
-    fxc_sparsity = collect(zip([findnz(fxc)[1:2]...]...))
-    fθ_sparsity = collect(zip([findnz(fθ)[1:2]...]...))
-
-    # expressions
-    f_expr = Symbolics.build_function(f, x, θ,
-        parallel=parallel,
-        checkbounds=checkbounds,
-        expression=Val{false})[2]
-    fc_expr = Symbolics.build_function(f, x, θ,
-        parallel=parallel,
-        checkbounds=checkbounds,
-        expression=Val{false})[2]
-    fx_expr = Symbolics.build_function(fx.nzval, x, θ,
-        parallel=parallel,
-        checkbounds=checkbounds,
-        expression=Val{false})[2]
-    fxc_expr = Symbolics.build_function(fxc.nzval, x, θ,
-        parallel=parallel,
-        checkbounds=checkbounds,
-        expression=Val{false})[2]
-    fθ_expr = Symbolics.build_function(fθ.nzval, x, θ,
-        parallel=parallel_parameters,
-        checkbounds=checkbounds,
-        expression=Val{false})[2]
-
-    return f_expr, fc_expr, fx_expr, fxc_expr, fθ_expr, fx_sparsity, fxc_sparsity, fθ_sparsity
-end

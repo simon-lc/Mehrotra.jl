@@ -33,9 +33,9 @@ function SolverData(dim::Dimensions, idx::Indices, p_data::ProblemData;
 
     jacobian_variables_dense = zeros(num_variables, num_variables)
     blocks = [
-        p_data.equality_jacobian_variables_sparse,
-        p_data.cone_product_jacobian_duals_sparse,
-        p_data.cone_product_jacobian_slacks_sparse,
+        p_data.equality_jacobian_variables,
+        p_data.cone_product_jacobian_duals,
+        p_data.cone_product_jacobian_slacks,
         ]
     ranges = [(idx.equality, idx.variables), (idx.cone_product, idx.duals), (idx.cone_product, idx.slacks)]
     names = [:equality_jacobian_variables, :cone_jacobian_duals, :cone_jacobian_slacks]
@@ -51,7 +51,7 @@ function SolverData(dim::Dimensions, idx::Indices, p_data::ProblemData;
     # cone_product_jacobian_duals = zeros(num_cone, num_cone)
     # cone_product_jacobian_ratio = zeros(num_cone, num_cone)
 
-    blocks = [p_data.equality_jacobian_parameters_sparse]
+    blocks = [p_data.equality_jacobian_parameters]
     ranges = [(idx.equality, idx.parameters)]
     names = [:equality_jacobian_parameters]
     jacobian_parameters = spzeros(num_variables, num_parameters)

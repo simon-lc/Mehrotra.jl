@@ -94,14 +94,14 @@ function cone!(problem::ProblemData{T}, methods::ConeMethods, solution::Point{T}
     cone_jacobian && methods.product_jacobian(methods.product_jacobian_duals_cache, z, s)
     cone_jacobian && methods.product_jacobian(methods.product_jacobian_slacks_cache, s, z)
     # if sparse_solver
-    problem.cone_product_jacobian_duals_sparse.nzval .= methods.product_jacobian_duals_cache
+    problem.cone_product_jacobian_duals.nzval .= methods.product_jacobian_duals_cache
     # else
     #     for (i, idx) in enumerate(methods.product_jacobian_duals_sparsity)
     #         problem.cone_product_jacobian_duals[idx...] = methods.product_jacobian_duals_cache[i]
     #     end
     # end
     # if sparse_solver
-    problem.cone_product_jacobian_slacks_sparse.nzval .= methods.product_jacobian_slacks_cache
+    problem.cone_product_jacobian_slacks.nzval .= methods.product_jacobian_slacks_cache
     # else
     #     for (i, idx) in enumerate(methods.product_jacobian_slacks_sparsity)
     #         problem.cone_product_jacobian_slacks[idx...] = methods.product_jacobian_slacks_cache[i]
@@ -112,14 +112,14 @@ function cone!(problem::ProblemData{T}, methods::ConeMethods, solution::Point{T}
     cone_jacobian_inverse && methods.product_jacobian_inverse(methods.product_jacobian_inverse_duals_cache, z, s)
     cone_jacobian_inverse && methods.product_jacobian_inverse(methods.product_jacobian_inverse_slacks_cache, s, z)
     # if sparse_solver
-    problem.cone_product_jacobian_inverse_duals_sparse.nzval .= methods.product_jacobian_inverse_duals_cache
+    problem.cone_product_jacobian_inverse_duals.nzval .= methods.product_jacobian_inverse_duals_cache
     # else
     #     for (i, idx) in enumerate(methods.product_jacobian_inverse_duals_sparsity)
     #         problem.cone_product_jacobian_inverse_duals[idx...] = methods.product_jacobian_inverse_duals_cache[i]
     #     end
     # end
     # if sparse_solver
-    problem.cone_product_jacobian_inverse_slacks_sparse.nzval .= methods.product_jacobian_inverse_slacks_cache
+    problem.cone_product_jacobian_inverse_slacks.nzval .= methods.product_jacobian_inverse_slacks_cache
     # else
     #     for (i, idx) in enumerate(methods.product_jacobian_inverse_slacks_sparsity)
     #         problem.cone_product_jacobian_inverse_slacks[idx...] = methods.product_jacobian_inverse_slacks_cache[i]

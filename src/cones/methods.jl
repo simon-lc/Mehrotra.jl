@@ -15,14 +15,13 @@ struct ConeMethods{T,B,BX,P,PX,PXI}
 end
 
 function ConeMethods(num_cone, idx_nn, idx_soc)
-    Φ_func, Φa_func, p_func, pa_func, pai_func, t_func, pa_sparsity, pai_sparsity = generate_cones(num_cone, idx_nn, idx_soc)
+    Φ_func, Φa_func, p_func, pa_func, pai_func, pa_sparsity, pai_sparsity = generate_cones(num_cone, idx_nn, idx_soc)
     return ConeMethods(
         Φ_func,
         Φa_func,
         p_func,
         pa_func,
         pai_func,
-        t_func,
         zeros(length(pa_sparsity)),
         zeros(length(pa_sparsity)),
         zeros(length(pai_sparsity)),

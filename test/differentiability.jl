@@ -261,5 +261,5 @@ end
 # J0
 # J1
 # Matrix(solver.problem.equality_jacobian_parameters)
-# Matrix(solver.problem.equality_jacobian_parameters_sparse)
+# Matrix(solver.problem.equality_jacobian_parameters)
 

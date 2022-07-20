@@ -1,12 +1,14 @@
-abstract type AbstractProblemMethods{T,E,EC,EX,EXC,EP}
+abstract type AbstractProblemMethods{T,E,EC,EX,EXC,EP,C,CC}
 end
 
-struct ProblemMethods{T,E,EX,EC,EXC,EP} <: AbstractProblemMethods{T,E,EC,EX,EXC,EP}
+struct ProblemMethods{T,E,EC,EX,EXC,EP,C,CC} <: AbstractProblemMethods{T,E,EC,EX,EXC,EP,C,CC}
     equality_constraint::E                             # e
     equality_constraint_compressed::EC                 # ec
     equality_jacobian_variables::EX                    # ex
     equality_jacobian_variables_compressed::EXC        # exc
     equality_jacobian_parameters::EP                   # eθ
+    correction::C                                      # c
+    correction_compressed::CC                          # cc
     equality_jacobian_variables_cache::Vector{T}
     equality_jacobian_variables_compressed_cache::Vector{T}
     equality_jacobian_parameters_cache::Vector{T}
@@ -16,7 +18,7 @@ struct ProblemMethods{T,E,EX,EC,EXC,EP} <: AbstractProblemMethods{T,E,EC,EX,EXC,
 end
 
 function symbolics_methods(equality::Function, dim::Dimensions, idx::Indices)
-    e, ec, ex, exc, eθ, ex_sparsity, exc_sparsity, eθ_sparsity = generate_full_gradients(equality, dim, idx)
+    e, ec, ex, exc, eθ, c, cc, ex_sparsity, exc_sparsity, eθ_sparsity = generate_full_gradients(equality, dim, idx)
 
     methods = ProblemMethods(
         e,
@@ -24,6 +26,8 @@ function symbolics_methods(equality::Function, dim::Dimensions, idx::Indices)
         ex,
         exc,
         eθ,
+        c,
+        cc,
         zeros(length(ex_sparsity)),
         zeros(length(exc_sparsity)),
         zeros(length(eθ_sparsity)),

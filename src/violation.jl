@@ -17,6 +17,12 @@ function cone_violation(solver::Solver)
     return violation
 end
 
+function violation(problem::ProblemData, κ::Vector)
+    equality_violation = norm(problem.equality_constraint, Inf)
+    cone_product_violation = norm(problem.cone_product .- κ, Inf)
+    return equality_violation, cone_product_violation
+end
+
 # cone_violation(solver)
 # Main.@code_warntype cone_violation(solver)
 # @benchmark $cone_violation($solver)

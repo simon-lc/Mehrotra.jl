@@ -130,7 +130,7 @@ function sequence_evaluate!(problem::ProblemData{T},
             sequence_methods.equality_jacobian_variables_cache, 
             sequence_methods.equality_jacobian_variables_cache, 
             x, θ)
-        # problem.equality_jacobian_variables_sparse.nzval .= methods.equality_jacobian_variables_cache
+        # problem.equality_jacobian_variables.nzval .= methods.equality_jacobian_variables_cache
     end
 
     if (equality_jacobian_parameters && ne > 0 && nθ > 0)
@@ -138,7 +138,7 @@ function sequence_evaluate!(problem::ProblemData{T},
             sequence_methods.equality_jacobian_parameters_cache, 
             sequence_methods.equality_jacobian_parameters_cache, 
             x, θ)
-        # problem.equality_jacobian_parameters_sparse.nzval .= methods.equality_jacobian_parameters_cache
+        # problem.equality_jacobian_parameters.nzval .= methods.equality_jacobian_parameters_cache
     end
 
     return
