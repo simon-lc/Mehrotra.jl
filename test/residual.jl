@@ -15,7 +15,7 @@ include("finite_difference_utils.jl")
     As = rand(num_primals, num_primals)
     A = As' * As
     B = rand(num_primals, num_cone)
-    C = rand(num_cone, num_primals)
+    C = B'
     d = rand(num_primals)
     e = zeros(num_cone)
     parameters = [vec(A); vec(B); vec(C); d; e]

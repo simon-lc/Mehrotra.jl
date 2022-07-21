@@ -59,12 +59,15 @@ function centering!(central_path::Vector{T}, solution::Point{T}, step::Point{T},
 
         σ = clamp(ν_affine / ν, 0.0, 1.0)^3
         candidate_central_path = ν * σ
-        central_path .= max(candidate_central_path, options.complementarity_tolerance)
+        # preserve the neutral vector structure e.g. [1, 0, 0] for a second order cone
+        central_path .= max(candidate_central_path, options.complementarity_tolerance) * (central_path .> 0)
     end
 
     return nothing
 end
 
+a = [1e-3, 0]
+(a .> 0) .* 10.0
 # solver.indices
 #
 # central_path = solver.central_paths.target_central_path

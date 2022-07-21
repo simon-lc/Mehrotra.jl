@@ -37,8 +37,10 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/block_2d_ut
             )
         )
     Mehrotra.solve!(solver)
-    @test norm(solver.data.residual.equality, Inf) <= solver.options.residual_tolerance
-    @test Mehrotra.cone_violation(solver) <= solver.options.residual_tolerance
+    equality_violation, cone_product_violation =
+        Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
+    @test equality_violation <= solver.options.residual_tolerance
+    @test cone_product_violation <= solver.options.residual_tolerance
 
     solver = Mehrotra.Solver(linear_particle_residual, num_primals, num_cone,
         parameters=parameters,
@@ -52,8 +54,10 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/block_2d_ut
             )
         )
     Mehrotra.solve!(solver)
-    @test norm(solver.data.residual.equality, Inf) <= solver.options.residual_tolerance
-    @test Mehrotra.cone_violation(solver) <= solver.options.residual_tolerance
+    equality_violation, cone_product_violation =
+        Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
+    @test equality_violation <= solver.options.residual_tolerance
+    @test cone_product_violation <= solver.options.residual_tolerance
 end
 
 
@@ -94,8 +98,10 @@ end
             )
         )
     Mehrotra.solve!(solver)
-    @test norm(solver.data.residual.equality, Inf) <= solver.options.residual_tolerance
-    @test Mehrotra.cone_violation(solver) <= solver.options.residual_tolerance
+    equality_violation, cone_product_violation =
+        Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
+    @test equality_violation <= solver.options.residual_tolerance
+    @test cone_product_violation <= solver.options.residual_tolerance
 end
 
 

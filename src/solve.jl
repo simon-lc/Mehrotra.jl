@@ -100,6 +100,7 @@ function Mehrotra.solve!(solver)
             sparse_solver=sparse_solver)
 
         # search direction
+        @show "predictor search"
         search_direction!(solver)
         # affine line search
         α.affine_step_size .= 1.0
@@ -116,7 +117,23 @@ function Mehrotra.solve!(solver)
         centering!(κ.target_central_path, solution, step, α.affine_step_size, indices, options=options)
 
         ## Corrector step
+        evaluate!(problem, methods, cone_methods, solution, parameters,
+            equality_constraint=true,
+            equality_jacobian_variables=true,
+            cone_constraint=true,
+            cone_jacobian=true,
+            cone_jacobian_inverse=true,
+            sparse_solver=sparse_solver,
+            compressed=compressed,
+        )
+        residual!(data, problem, indices,# κ.zero_central_path,
+            compressed=compressed,
+            sparse_solver=sparse_solver)
+        @show solver.data.residual.cone_product
+        @show κ.target_central_path
         correction!(data, methods, solution, κ.target_central_path; compressed=compressed)
+        @show solver.data.residual.cone_product
+        @show "corrector search"
         search_direction!(solver)
 
         # line search

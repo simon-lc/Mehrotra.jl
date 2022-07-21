@@ -52,7 +52,7 @@ function residual!(data::SolverData, problem::ProblemData, idx::Indices;
     data.residual.equality .= problem.equality_constraint
     # cone: z ∘ s ####- κ e
     for (i, ii) in enumerate(idx.cone_product)
-        data.residual.all[ii] = problem.cone_product[i] #####- central_path[i]
+        data.residual.all[ii] = problem.cone_product[i]
     end
 
 
