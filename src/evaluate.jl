@@ -1,5 +1,5 @@
 function evaluate!(problem::ProblemData{T},
-        methods::AbstractProblemMethods{T,E,EC,EX,EXC,EP,C,CC},
+        methods::AbstractProblemMethods{T,E,EC,EX,EXC,EP,C,CC,S},
         cone_methods::ConeMethods{T,B,BX,P,PX,PXI},
         solution::Point{T},
         parameters::Vector{T};
@@ -11,7 +11,7 @@ function evaluate!(problem::ProblemData{T},
         cone_jacobian_inverse=false,
         sparse_solver::Bool=false,
         compressed::Bool=false,
-        ) where {T,E,EC,EX,EXC,EP,C,CC,B,BX,P,PX,PXI}
+        ) where {T,E,EC,EX,EXC,EP,C,CC,S,B,BX,P,PX,PXI}
 
     x = solution.all
     θ = parameters
@@ -36,12 +36,12 @@ function evaluate!(problem::ProblemData{T},
         if compressed
             methods.equality_jacobian_variables_compressed(
                 methods.equality_jacobian_variables_compressed_cache, x, θ)
-            problem.equality_jacobian_variables_compressed.nzval .= 
+            problem.equality_jacobian_variables_compressed.nzval .=
                 methods.equality_jacobian_variables_compressed_cache
         else
             methods.equality_jacobian_variables(
                 methods.equality_jacobian_variables_cache, x, θ)
-            problem.equality_jacobian_variables.nzval .= 
+            problem.equality_jacobian_variables.nzval .=
                 methods.equality_jacobian_variables_cache
         end
     end
@@ -49,7 +49,7 @@ function evaluate!(problem::ProblemData{T},
     if (equality_jacobian_parameters && ne > 0 && nθ > 0)
         methods.equality_jacobian_parameters(
             methods.equality_jacobian_parameters_cache, x, θ)
-        problem.equality_jacobian_parameters.nzval .= 
+        problem.equality_jacobian_parameters.nzval .=
             methods.equality_jacobian_parameters_cache
     end
 

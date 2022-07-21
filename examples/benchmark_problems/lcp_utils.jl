@@ -1,38 +1,27 @@
-function unpack_lcp_non_negative_cone_parameters(parameters, num_primals, num_cone)
+function unpack_lcp_parameters(parameters, num_primals, num_cone)
     off = 0
     A = reshape(parameters[off .+ (1:num_primals^2)], num_primals, num_primals)
     off += num_primals^2
-    b = reshape(parameters[off .+ (1:num_primals)], num_primals)
+    B = reshape(parameters[off .+ (1:num_primals*num_cone)], num_primals, num_cone)
+    off += num_primals*num_cone
+    C = reshape(parameters[off .+ (1:num_cone*num_primals)], num_cone, num_primals)
+    off += num_cone*num_primals
+    d = reshape(parameters[off .+ (1:num_primals)], num_primals)
     off += num_primals
-    C = reshape(parameters[off .+ (1:num_cone^2)], num_cone, num_cone)
-    off += num_cone^2
-    d = reshape(parameters[off .+ (1:num_cone)], num_cone)
+    e = reshape(parameters[off .+ (1:num_cone)], num_cone)
     off += num_cone
-    return A, b, C, d
-end
-
-function unpack_lcp_second_order_cone_parameters(parameters, num_primals, num_cone)
-    off = 0
-    A = reshape(parameters[off .+ (1:num_primals^2)], num_primals, num_primals)
-    off += num_primals^2
-    b = reshape(parameters[off .+ (1:num_primals)], num_primals)
-    off += num_primals
-    C = reshape(parameters[off .+ (1:num_cone^2)], num_cone, num_cone)
-    off += num_cone^2
-    d = reshape(parameters[off .+ (1:num_cone)], num_cone)
-    off += num_cone
-    return A, b, C, d
+    return A, B, C, d, e
 end
 
 function lcp_residual(primals, duals, slacks, parameters)
     y, z, s = primals, duals, slacks
     num_primals = length(primals)
     num_cone = length(duals)
-    A, b, C, d = unpack_lcp_second_order_cone_parameters(parameters, num_primals, num_cone)
+    A, B, C, d, e = unpack_lcp_parameters(parameters, num_primals, num_cone)
 
     res = [
-        A * y + b;
-        s - C * z + d;
+        A * y + B * z + d;
+        C * y + s + e;
         # z .* s .- κ[1];
         ]
     return res
@@ -62,11 +51,11 @@ function random_lcp(; num_primals::Int=2, num_cone::Int=3,
 
     As = rand(num_primals, num_primals)
     A = As' * As
-    b = rand(num_primals)
-    Cs = rand(num_cone, num_cone)
-    C = Cs * Cs'
-    d = rand(num_cone)
-    parameters = [vec(A); b; vec(C); d]
+    B = rand(num_primals, num_cone)
+    C = rand(num_cone, num_primals)
+    d = rand(num_primals)
+    e = zeros(num_cone)
+    parameters = [vec(A); vec(B); vec(C); d; e]
 
     return solver = Mehrotra.Solver(lcp_residual, num_primals, num_cone,
         parameters=parameters,

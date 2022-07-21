@@ -19,11 +19,11 @@ idx_soc = [collect(1:3), collect(4:6), collect(7:9), collect(10:12), collect(13:
 Random.seed!(0)
 As = rand(num_primals, num_primals)
 A = As' * As
-b = rand(num_primals)
-Cs = rand(num_cone, num_cone)
-C = Cs * Cs'
-d = rand(num_cone)
-parameters = [vec(A); b; vec(C); d]
+B = rand(num_primals, num_cone)
+C = rand(num_cone, num_primals)
+d = rand(num_primals)
+e = zeros(num_cone)
+parameters = [vec(A); vec(B); vec(C); d; e]
 
 # solver
 solver = Solver(lcp_residual, num_primals, num_cone,
@@ -58,11 +58,11 @@ idx_soc = [collect(1:3), collect(4:6), collect(7:9), collect(10:12), collect(13:
 Random.seed!(0)
 As = rand(num_primals, num_primals)
 A = As' * As
-b = rand(num_primals)
-Cs = rand(num_cone, num_cone)
-C = Cs * Cs'
-d = rand(num_cone)
-parameters = [vec(A); b; vec(C); d]
+B = rand(num_primals, num_cone)
+C = rand(num_cone, num_primals)
+d = rand(num_primals)
+e = zeros(num_cone)
+parameters = [vec(A); vec(B); vec(C); d; e]
 
 # solver
 solver = Solver(lcp_residual, num_primals, num_cone,

@@ -1,6 +1,6 @@
-struct Solver{T,E,EC,EX,EXC,EP,C,CC,B,BX,P,PX,PXI,X}
+struct Solver{T,E,EC,EX,EXC,EP,C,CC,S,B,BX,P,PX,PXI,X}
     problem::ProblemData{T,X}
-    methods::ProblemMethods{T,E,EC,EX,EXC,EP,C,CC}
+    methods::ProblemMethods{T,E,EC,EX,EXC,EP,C,CC,S}
     cone_methods::ConeMethods{T,B,BX,P,PX,PXI}
     data::SolverData{T}
 
@@ -55,7 +55,7 @@ function Solver(equality, num_primals::Int, num_cone::Int;
             methods = symbolics_methods(equality, dim, idx)
         elseif method_type == :finite_difference
             methods = finite_difference_methods(equality, dim, idx)
-        else 
+        else
             error("unknown method_type")
         end
     end
@@ -204,6 +204,3 @@ function allocate_sparse_matrices!(data::SolverData, methods::ProblemMethods)
     end
     return nothing
 end
-
-
-

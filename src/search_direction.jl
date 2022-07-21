@@ -28,16 +28,18 @@
 """
 function search_direction!(solver::Solver)
     linear_solver = solver.linear_solver
+    methods = solver.methods
+    solution = solver.solution
     data = solver.data
     step = data.step
     compressed = solver.options.compressed_search_direction
     sparse_solver = solver.options.sparse_solver
 
     if compressed
-        compressed_search_direction!(linear_solver, data, step, 
+        compressed_search_direction!(linear_solver, data, step, methods, solution,
             sparse_solver=sparse_solver)
     else
-        uncompressed_search_direction!(linear_solver, data, step, 
+        uncompressed_search_direction!(linear_solver, data, step,
             sparse_solver=sparse_solver)
     end
     return nothing
@@ -45,31 +47,26 @@ end
 
 function compressed_search_direction!(linear_solver::LinearSolver{T},
         data::SolverData{T},
-        step::Point{T};
+        step::Point{T},
+        methods::ProblemMethods,
+        solution::Point;
         sparse_solver::Bool=false,
         ) where T
 
-
-    # Zi = data.cone_product_jacobian_inverse_slack
-    # S = data.cone_product_jacobian_duals
     # primal dual step
     # step.equality .= data.jacobian_variables_compressed_sparse \ residual.equality
     jacobian_variables_compressed = sparse_solver ? data.jacobian_variables_compressed_sparse : data.jacobian_variables_compressed_dense
-    linear_solve!(linear_solver, 
-        step.equality, 
-        jacobian_variables_compressed, 
-        data.residual_compressed.equality)
+    linear_solve!(linear_solver,
+        step.equality,
+        jacobian_variables_compressed,
+        data.residual_compressed.equality,
+        fact=true)
     step.equality .*= -1.0
 
     # slack step
     # step.slacks .= -Zi * (data.residual_compressed.cone_product + S * step.duals) # -Z⁻¹ (cone_product + S * Δz)
-    data.point_temporary.slacks .= 0.0
-    mul!(data.point_temporary.slacks, S, step.duals)
-    data.point_temporary.slacks .+= data.residual_compressed.cone_product
-    mul!(step.slacks, Zi, data.point_temporary.slacks)
-    step.slacks .*= -1.0
-    data.point_temporary.slacks .= 0.0
-    
+    # we take the cone prduct residual form the non compressed residual
+    methods.slack_direction(step.slacks, step.duals, solution.all, data.residual.cone_product)
     return nothing
 end
 
@@ -93,7 +90,7 @@ function uncompressed_search_direction!(linear_solver::LinearSolver{T},
             fact=true)
     end
     step.all .*= -1.0
-    
+
     return nothing
 end
 

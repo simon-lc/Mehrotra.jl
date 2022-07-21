@@ -11,7 +11,9 @@ function generate_full_gradients(func::Function, dim::Dimensions, ind::Indices;
     x = Symbolics.variables(:x, 1:dim.variables) # variables
     θ = Symbolics.variables(:θ, 1:dim.parameters) # parameters
     κ = Symbolics.variables(:κ, 1:dim.cone) # central path
-    r = Symbolics.variables(:κ, 1:dim.variables) # residual
+    r = Symbolics.variables(:r, 1:dim.variables) # residual
+    rs = Symbolics.variables(:rs, 1:dim.cone) # cone product residual with corrections
+    Δz = Symbolics.variables(:Δz, 1:dim.cone) # dual step
     y = x[ind.primals]
     z = x[ind.duals]
     s = x[ind.slacks]
@@ -29,11 +31,10 @@ function generate_full_gradients(func::Function, dim::Dimensions, ind::Indices;
     D = fx[ind.slackness, ind.slacks]
     Zi = cone_product_jacobian_inverse(s, z, idx_nn, idx_soc)
     S = cone_product_jacobian(z, s, idx_nn, idx_soc)
-    rs = cone_product(s, z, idx_nn, idx_soc)
 
     # compressed equality residual
     fc = copy(f)
-    fc[ind.slackness] .-= D * Zi * rs
+    fc[ind.slackness] .-= D * Zi * cone_product(s, z, idx_nn, idx_soc)
 
     # compressed equality jacobians
     fxc = copy(fx[ind.equality, [ind.primals; ind.duals]])
@@ -43,11 +44,14 @@ function generate_full_gradients(func::Function, dim::Dimensions, ind::Indices;
     # correction
     c = copy(r)
     c[ind.cone_product] .-= κ
-    
+
     # correction compressed
     cc = copy(r)
-    cc[ind.cone_product] .-= κ
     cc[ind.slackness] .+= D * Zi * κ
+    # cc[ind.cone_product] .-= κ
+
+    # slack direction
+    Δs = Zi * (-rs - S * Δz)
 
     # sparsity
     fx_sparsity = collect(zip([findnz(fx)[1:2]...]...))
@@ -59,7 +63,7 @@ function generate_full_gradients(func::Function, dim::Dimensions, ind::Indices;
         parallel=parallel,
         checkbounds=checkbounds,
         expression=Val{false})[2]
-    fc_expr = Symbolics.build_function(f, x, θ,
+    fc_expr = Symbolics.build_function(fc, x, θ,
         parallel=parallel,
         checkbounds=checkbounds,
         expression=Val{false})[2]
@@ -83,8 +87,12 @@ function generate_full_gradients(func::Function, dim::Dimensions, ind::Indices;
         parallel=parallel,
         checkbounds=checkbounds,
         expression=Val{false})[2]
+    s_expr = Symbolics.build_function(Δs, Δz, x, rs,
+        parallel=parallel,
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
 
-    return f_expr, fc_expr, fx_expr, fxc_expr, fθ_expr, c_expr, cc_expr, fx_sparsity, fxc_sparsity, fθ_sparsity
+    return f_expr, fc_expr, fx_expr, fxc_expr, fθ_expr, c_expr, cc_expr, s_expr, fx_sparsity, fxc_sparsity, fθ_sparsity
 end
 
 
@@ -215,4 +223,3 @@ end
 #         ss_sparsity,
 #         sθ_sparsity
 # end
-

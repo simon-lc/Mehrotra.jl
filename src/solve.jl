@@ -54,7 +54,7 @@ function Mehrotra.solve!(solver)
     compressed = options.compressed_search_direction
     decoupling = options.complementarity_decoupling
     sparse_solver = options.sparse_solver
-    
+
     # info
     options.verbose && solver_info(solver)
 
@@ -130,12 +130,6 @@ function Mehrotra.solve!(solver)
             indices.cone_nonnegative, indices.cone_second_order;
             τ_nn=0.9500, τ_soc=0.9500, ϵ=1e-14, decoupling=decoupling)
 
-        # # violations
-        # residual!(data, problem, indices, κ.tolerance_central_path,
-        #     compressed=compressed,
-        #     sparse_solver=sparse_solver) # TODO needs to be only recomputing residual of the cone
-        # equality_violation = norm(data.residual.equality, Inf)
-        # cone_product_violation = cone_violation(solver)
         # violation
         equality_violation, cone_product_violation = violation(problem, κ.tolerance_central_path)
 
@@ -160,14 +154,7 @@ function Mehrotra.solve!(solver)
                 compressed=compressed,
             )
 
-            ## Predictor step
-            # # residual
-            # residual!(data, problem, indices, κ.tolerance_central_path,
-            #     compressed=compressed, sparse_solver=sparse_solver) # TODO needs to be options.complementarity_tolerance
-
-            # # violations
-            # equality_violation_candidate = norm(data.residual.equality, Inf)
-            # cone_product_violation_candidate = cone_violation(solver)
+            # violations
             equality_violation_candidate, cone_product_violation_candidate = violation(problem, κ.tolerance_central_path)
 
             # Test progress

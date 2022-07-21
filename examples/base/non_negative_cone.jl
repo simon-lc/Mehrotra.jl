@@ -36,13 +36,11 @@ idx_soc = [collect(1:0)]
 
 As = rand(num_primals, num_primals)
 A = As' * As
-Af = reshape(A, num_primals^2)
-b = rand(num_primals)
-Cs = rand(num_cone, num_cone)
-C = Cs - Cs'
-Cf = reshape(C, num_cone^2)
-d = rand(num_cone)
-parameters = [Af; b; Cf; d]
+B = rand(num_primals, num_cone)
+C = rand(num_cone, num_primals)
+d = rand(num_primals)
+e = zeros(num_cone)
+parameters = [vec(A); vec(B); vec(C); d; e]
 
 solver = Solver(residual, num_primals, num_cone,
     parameters=parameters,
