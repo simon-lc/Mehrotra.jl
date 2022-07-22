@@ -81,13 +81,12 @@ function uncompressed_search_direction!(linear_solver::LinearSolver{T},
         # ldiv!(step.all, linear_solver, data.residual.all)
         step.all .= data.jacobian_variables_sparse.matrix \ data.residual.all
     else
-        step.all .= data.jacobian_variables_dense \ data.residual.all
-        # linear_solve!(
-        #     linear_solver,
-        #     step.all,
-        #     data.jacobian_variables_dense,
-        #     data.residual.all,
-        #     fact=true)
+        linear_solve!(
+            linear_solver,
+            step.all,
+            data.jacobian_variables_dense,
+            data.residual.all,
+            fact=true)
     end
     step.all .*= -1.0
 

@@ -42,7 +42,16 @@ solver.linear_solver
 # solve
 Mehrotra.solve!(solver)
 
-@benchmark $solve!($solver)
+# @benchmark $solve!($solver)
+solver.options.sparse_solver
+solver.options.compressed_search_direction
+
+search_direction!(solver)
+Main.@code_warntype search_direction!(solver)
+@benchmark $search_direction!($solver)
+
+
+
 
 data = solver.data
 problem = solver.problem
