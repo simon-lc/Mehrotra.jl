@@ -7,9 +7,8 @@ include("lcp_utils.jl")
 # coupled constraints
 ################################################################################
 # dimensions
-num_primals = 10
-num_cone = 10
-num_parameters = num_primals^2 + num_primals + num_cone^2 + num_cone
+num_primals = 20
+num_cone = 20
 
 # cone type
 idx_nn = collect(1:num_cone)
@@ -32,7 +31,7 @@ solver = Solver(lcp_residual, num_primals, num_cone,
     second_order_indices=idx_soc,
     options=Options(
         compressed_search_direction=true,
-        sparse_solver=false,
+        sparse_solver=true,
         differentiate=true,
         verbose=false,
         symmetric=false,
@@ -43,7 +42,7 @@ solver.linear_solver
 # solve
 Mehrotra.solve!(solver)
 
-Main.@profiler [solve!(solver) for i=1:1000]
+Main.@profiler [solve!(solver) for i=1:300]
 
 @benchmark $solve!($solver)
 

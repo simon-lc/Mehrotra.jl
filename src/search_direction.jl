@@ -26,7 +26,7 @@
 
     solver: Solver
 """
-function search_direction!(solver::Solver)
+function search_direction!(solver::Solver; factorize::Bool=true)
     linear_solver = solver.linear_solver
     methods = solver.methods
     solution = solver.solution
@@ -37,10 +37,10 @@ function search_direction!(solver::Solver)
 
     if compressed
         compressed_search_direction!(linear_solver, data, step, methods, solution,
-            sparse_solver=sparse_solver)
+            sparse_solver=sparse_solver, factorize=factorize)
     else
         uncompressed_search_direction!(linear_solver, data, step,
-            sparse_solver=sparse_solver)
+            sparse_solver=sparse_solver, factorize=factorize)
     end
     return nothing
 end
@@ -51,6 +51,7 @@ function compressed_search_direction!(linear_solver::LinearSolver{T},
         methods::ProblemMethods,
         solution::Point;
         sparse_solver::Bool=false,
+        factorize::Bool=true,
         ) where T
 
     ne = length(step.equality)
@@ -61,7 +62,7 @@ function compressed_search_direction!(linear_solver::LinearSolver{T},
         step.equality,
         jacobian_variables_compressed,
         data.residual_compressed.equality,
-        fact=true)
+        fact=factorize)
     step.equality .*= -1.0
 
     # slack direction
@@ -74,6 +75,7 @@ function uncompressed_search_direction!(linear_solver::LinearSolver{T},
         data::SolverData{T},
         step::Point{T};
         sparse_solver::Bool=false,
+        factorize::Bool=true,
         ) where T
 
 
@@ -87,7 +89,7 @@ function uncompressed_search_direction!(linear_solver::LinearSolver{T},
             step.all,
             data.jacobian_variables_dense,
             data.residual.all,
-            fact=true)
+            fact=factorize)
     end
     step.all .*= -1.0
 

@@ -99,22 +99,23 @@ end
 
 function linear_solve!(s::SparseLUSolver{T}, x::AbstractVector{T}, A::SparseMatrixCSC{T,Int},
         b::AbstractVector{T}; reg::T = 0.0, fact::Bool = true) where T
-    # fact && factorize!(s, A)
-    # ldiv!(x, s.factorization, b)
+    fact && factorize!(s, A)
     s.b .= b
-    s.x .= A \ bc
+    ldiv!(s.x, s.factorization, s.b)
+    # s.x .= A \ s.b
     x .= s.x
     return nothing
 end
 
 function linear_solve!(s::SparseLUSolver{T}, x::AbstractMatrix{T}, A::SparseMatrixCSC{T,Int},
-    b::AbstractMatrix{T}; reg::T = 0.0, fact::Bool = true) where T
+        b::AbstractMatrix{T}; reg::T = 0.0, fact::Bool = true) where T
+
     fact && factorize!(s, A)
-    # ldiv!(x, s.factorization, b)
     p = size(b,2)
     for i = 1:p
         s.b .= b[:,i]
-        s.x .= A \ bc
+        ldiv!(s.x, s.factorization, s.b)
+        # s.x .= A \ s.b
         x[:,i] .= s.x
     end
 end

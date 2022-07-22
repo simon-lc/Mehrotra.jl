@@ -38,9 +38,18 @@ solver = Solver(linear_block_2d_residual, num_primals, num_cone,
     parameters=parameters,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,
-    options=Options(max_iterations=30, verbose=true)
+    options=Options(
+        max_iterations=30,
+        verbose=false,
+        compressed_search_direction=true,
+        sparse_solver=true,
+        )
     )
 solve!(solver)
+
+Main.@profiler [solve!(solver) for i=1:300]
+
+@benchmark $solve!($solver)
 
 
 ################################################################################
