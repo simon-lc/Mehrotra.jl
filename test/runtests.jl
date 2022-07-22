@@ -13,7 +13,7 @@ using Mehrotra
 @testset "contact ncp"              verbose=true begin include("contact_ncp.jl") end
 @testset "differentiability"        verbose=true begin include("differentiability.jl") end
 @testset "linear solver"            verbose=true begin include("linear_solver.jl") end
-# @testset "compressed solver"        verbose=true begin include("compressed_solver.jl") end
+@testset "compressed solver"        verbose=true begin include("compressed_solver.jl") end
 @testset "relaxed complementarity"  verbose=true begin include("relaxed_complementarity.jl") end
 @testset "decoupling"               verbose=true begin include("decoupling.jl") end
 @testset "finite difference"        verbose=true begin include("finite_difference.jl") end

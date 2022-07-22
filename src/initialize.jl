@@ -1,5 +1,5 @@
 # solver
-function initialize!(solver::Solver, variables)
+function initialize_variables!(solver::Solver, variables)
     # variables
     solver.solution.all .= variables
     return
@@ -49,9 +49,9 @@ end
 # solver
 # variables = ones(solver.dimensions.variables)
 #
-# initialize!(solver, variables)
-# Main.@code_warntype initialize!(solver, variables)
-# @benchmark $initialize!($solver, $variables)
+# initialize_variables!(solver, variables)
+# Main.@code_warntype initialize_variables!(solver, variables)
+# @benchmark $initialize_variables!($solver, $variables)
 #
 # initialize_primals!(solver)
 # Main.@code_warntype initialize_primals!(solver)

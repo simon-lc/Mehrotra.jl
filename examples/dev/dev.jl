@@ -53,7 +53,7 @@ for v in V
 
             # ## initialize
             x0 = randn(num_variables)
-            initialize!(solver, x0)
+            initialize_variables!(solver, x0)
 
             # ## solve
             solve!(solver)

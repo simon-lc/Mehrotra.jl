@@ -46,12 +46,9 @@ function differentiate!(solver)
             data.jacobian_parameters_sparse.matrix : data.jacobian_parameters
 
         # primal dual step
-        # data.jacobian_variables_compressed_dense .= data.jacobian_variables_compressed_sparse
         linear_solve!(solver.linear_solver,
-            # data.solution_sensitivity[indices.equality, :],
             view(data.solution_sensitivity, 1:dimensions.equality, :),
             jacobian_variables_compressed,
-            # jacobian_parameters[indices.equality, :],
             view(data.jacobian_parameters, 1:dimensions.equality, :),
             fact=true)
         data.solution_sensitivity .*= -1.0
@@ -59,21 +56,12 @@ function differentiate!(solver)
         # slack step
         for i = 1:dimensions.parameters
             methods.slack_direction(
-                data.solution_sensitivity[indices.slacks, i], # Δs
-                data.solution_sensitivity[indices.duals, i], # Δz
+                view(data.solution_sensitivity, indices.slacks, i), # Δs
+                view(data.solution_sensitivity, indices.duals, i), # Δz
                 solution.all, # x
-                data.jacobian_parameters[indices.cone_product, i], # rs
+                view(data.jacobian_parameters, indices.cone_product, i), # rs
                 )
-            # data.solution_sensitivity[indices.slacks, i] .=
-                # -Zi * (data.jacobian_parameters[indices.cone_product, i] + S * data.solution_sensitivity[indices.duals, i]) # -Z⁻¹ (cone_product + S * Δz)
-            # end
         end
-
-        # # slack step
-        # data.solution_sensitivity[indices.slacks, :] .=
-        #     -Zi * (data.jacobian_parameters[indices.cone_product, :] + S * data.solution_sensitivity[indices.duals, :]) # -Z⁻¹ (cone_product + S * Δz)
-        #     # -Zi * (data.residual.cone_product .+ (S * data.solution_sensitivity[indices.duals, :])) # -Z⁻¹ (cone_product + S * Δz)
-        #     # -Zi * (hcat([data.residual.cone_product for i=1:dimensions.parameters]...) + (S * data.solution_sensitivity[indices.duals, :])) # -Z⁻¹ (cone_product + S * Δz)
     else
         jacobian_variables = options.sparse_solver ? data.jacobian_variables_sparse.matrix : data.jacobian_variables_dense
         jacobian_parameters = options.sparse_solver ? data.jacobian_parameters_sparse.matrix : data.jacobian_parameters

@@ -155,7 +155,7 @@ function warm_simulate_block_2d(solver, p2, θ2, v15, ω15, u; timestep=0.01, ma
 
         # warm start
         guess = solver.solution.all
-        initialize!(solver, guess)
+        initialize_variables!(solver, guess)
 
         solver.options.verbose = false
         solve!(solver, initialization=(i==1))
@@ -199,7 +199,7 @@ function sensitivity_simulate_block_2d(solver, p2, θ2, v15, ω15, u; timestep=0
         # @show scn(norm(s0 - s1, Inf))
         # guess = solver.solution.all + correct_sensitivity_step(solver, solver.solution.all, dsolution_raw)
         guess = solver.solution.all + dsolution_raw
-        initialize!(solver, guess)
+        initialize_variables!(solver, guess)
         solver.solution.duals .= max.(solver.solution.duals, solver.options.complementarity_tolerance^2)
         solver.solution.slacks .= max.(solver.solution.slacks, solver.options.complementarity_tolerance^2)
 
@@ -493,7 +493,7 @@ function al_simulate_block_2d(solver, p2, θ2, v15, ω15, u; timestep=0.01, mass
         # warm start
         # dsolution_raw = sensitivity * Δparameters
         # guess = solver.solution.all + dsolution_raw
-        # initialize!(solver, guess)
+        # initialize_variables!(solver, guess)
         # solver.solution.duals .= max.(solver.solution.duals, solver.options.complementarity_tolerance^2)
         # solver.solution.slacks .= max.(solver.solution.slacks, solver.options.complementarity_tolerance^2)
 
