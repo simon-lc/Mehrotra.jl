@@ -12,8 +12,8 @@ struct SolverData{T}
     jacobian_parameters::SparseMatrixCSC{T,Int}
     jacobian_parameters_sparse::BlockSparse{T}
     step::Point{T}
-    # step_correction::Point{T}
-    point_temporary::Point{T}
+    step_correction::Point{T}
+    # point_temporary::Point{T}
     # merit::Vector{T}
     # merit_gradient::Vector{T}
     # constraint_violation::Vector{T}
@@ -59,8 +59,8 @@ function SolverData(dim::Dimensions, idx::Indices, p_data::ProblemData;
     # jacobian_parameters_sparse = spzeros(num_variables, num_parameters)
 
     step = Point(dim, idx)
-    # step_correction = Point(dim, idx)
-    point_temporary = Point(dim, idx)
+    step_correction = Point(dim, idx)
+    # point_temporary = Point(dim, idx)
 
     # merit = zeros(1)
     # merit_gradient = zeros(num_variables)
@@ -83,8 +83,8 @@ function SolverData(dim::Dimensions, idx::Indices, p_data::ProblemData;
         jacobian_parameters,
         jacobian_parameters_sparse,
         step,
-        # step_correction,
-        point_temporary,
+        step_correction,
+        # point_temporary,
         # merit,
         # merit_gradient,
         # constraint_violation,

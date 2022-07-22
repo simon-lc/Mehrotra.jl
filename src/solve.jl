@@ -95,14 +95,14 @@ function Mehrotra.solve!(solver)
 
         ## Predictor step
         # residual
-        residual!(data, problem, indices,# κ.zero_central_path,
+        residual!(data, problem, indices,
             compressed=compressed,
             sparse_solver=sparse_solver)
 
         # add correction to aim at the tolerance central path
-        correction!(data, methods, α.affine_step_size, step, solution, κ.tolerance_central_path;
+        correction!(methods, data, α.affine_step_size, step, data.step_correction, solution, κ.tolerance_central_path;
             compressed=compressed, complementarity_correction=0.0)
-        # search direction
+        # # search direction
         search_direction!(solver)
         # affine line search
         α.affine_step_size .= 1.0
@@ -120,10 +120,10 @@ function Mehrotra.solve!(solver)
 
         ## Corrector step
         # remove correction aiming at the tolerance central path
-        correction!(data, methods, α.affine_step_size, step, solution, -κ.tolerance_central_path;
+        correction!(methods, data, α.affine_step_size, step, data.step_correction, solution, -κ.tolerance_central_path;
             compressed=compressed, complementarity_correction=0.0)
         # add correction aiming at the target central path - second order correction
-        correction!(data, methods, α.affine_step_size, step, solution, κ.target_central_path;
+        correction!(methods, data, α.affine_step_size, step, data.step_correction, solution, κ.target_central_path;
             compressed=compressed, complementarity_correction=complementarity_correction)
         search_direction!(solver)
         # line search

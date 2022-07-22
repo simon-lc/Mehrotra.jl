@@ -63,10 +63,9 @@ function compressed_search_direction!(linear_solver::LinearSolver{T},
         fact=true)
     step.equality .*= -1.0
 
-    # slack step
-    # step.slacks .= -Zi * (data.residual_compressed.cone_product + S * step.duals) # -Z⁻¹ (cone_product + S * Δz)
+    # slack direction
     # we take the cone prduct residual form the non compressed residual
-    methods.slack_direction(step.slacks, step.duals, solution.all, data.residual.cone_product)
+    methods.slack_direction(step.slacks, step.duals, solution.all, data.residual.cone_product) # -Z⁻¹ (cone_product + S * Δz)
     return nothing
 end
 
@@ -82,13 +81,7 @@ function uncompressed_search_direction!(linear_solver::LinearSolver{T},
         # ldiv!(step.all, linear_solver, data.residual.all)
         step.all .= data.jacobian_variables_sparse.matrix \ data.residual.all
     else
-        # @show norm(data.jacobian_variables_dense)
-        # @show norm(data.residual.all)
-        # @show norm(step.all)
         step.all .= data.jacobian_variables_dense \ data.residual.all
-        # @show step.all
-        # @show norm(step.all)
-        # @show data.residual.cone_product
         # linear_solve!(
         #     linear_solver,
         #     step.all,

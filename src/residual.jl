@@ -91,32 +91,62 @@ function residual!(data::SolverData, problem::ProblemData, idx::Indices;
     return
 end
 
-function correction!(data::SolverData, methods::ProblemMethods, affine_step_size,
-        step::Point, solution::Point, central_path;
-        complementarity_correction=0.5,
-        compressed::Bool=false)
+function correction!(methods::ProblemMethods, data::SolverData, affine_step_size::Vector{T},
+        step::Point{T}, step_correction::Point{T}, solution::Point{T}, central_path::Vector{T};
+        complementarity_correction::T=0.5,
+        compressed::Bool=false) where T
 
-    Δz = step.duals .* affine_step_size * complementarity_correction
-    Δs = step.slacks .* affine_step_size * complementarity_correction
-    # not compressed
-    methods.correction(
-        data.residual.all,
-        data.residual.all,
-        Δz,
-        Δs,
-        # solution.all,
-        central_path,
-        )
-    # compressed
-    if compressed
-        methods.correction_compressed(
-            data.residual_compressed.all,
-            data.residual_compressed.all,
-            Δz,
-            Δs,
-            solution.all,
-            central_path,
-            )
+    num_cone = length(central_path)
+    for i = 1:num_cone
+        step_correction.duals[i] = complementarity_correction * affine_step_size[i] .* step.duals[i]
+        step_correction.slacks[i] = complementarity_correction * affine_step_size[i] .* step.slacks[i]
     end
+
+    correction!(methods, data, step_correction.duals, step_correction.slacks, solution, central_path, compressed=compressed)
     return
 end
+
+function correction!(methods::ProblemMethods, data::SolverData, Δz, Δs, solution::Point, κ; compressed::Bool=false)
+    methods.correction(data.residual.all, data.residual.all, Δz, Δs, κ)
+    if compressed
+        methods.correction_compressed(data.residual_compressed.all, data.residual_compressed.all, Δz, Δs, solution.all, κ)
+    end
+    return nothing
+end
+
+
+#
+# function correction22!(residual::Residual, methods::ProblemMethods, affine_step_size,
+#         step::Point, step_correction::Point, solution::Point, central_path;
+#         complementarity_correction=0.5,
+#         compressed::Bool=false)
+#
+#     step_correction.duals .= complementarity_correction .* affine_step_size .* step.duals
+#     step_correction.slacks .= complementarity_correction .* affine_step_size .* step.slacks
+#
+#
+#     if compressed
+#         d
+#     end
+#     # # not compressed
+#     # methods.correction(
+#     #     residual.all,
+#     #     residual.all,
+#     #     step_correction.duals,
+#     #     step_correction.slacks,
+#     #     # solution.all,
+#     #     central_path,
+#     #     )
+#     # compressed
+#     if compressed
+#         methods.correction_compressed(
+#             residual.all,
+#             residual.all,
+#             step_correction.duals,
+#             step_correction.slacks,
+#             solution.all,
+#             central_path,
+#             )
+#     end
+#     return
+# end

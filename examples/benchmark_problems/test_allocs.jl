@@ -31,8 +31,8 @@ solver = Solver(lcp_residual, num_primals, num_cone,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,
     options=Options(
-        compressed_search_direction=false,
-        sparse_solver=true,
+        compressed_search_direction=true,
+        sparse_solver=false,
         differentiate=true,
         verbose=false,
         symmetric=false,
@@ -42,6 +42,61 @@ solver.linear_solver
 # solve
 Mehrotra.solve!(solver)
 
+@benchmark $solve!($solver)
+
+data = solver.data
+problem = solver.problem
+indices = solver.indices
+methods = solver.methods
+affine_step_size = solver.step_sizes.affine_step_size
+step0 = solver.data.step
+solution= solver.solution
+tolerance_central_path = solver.central_paths.tolerance_central_path
+step_correction = solver.data.step_correction
+central_path = solver.central_paths.tolerance_central_path
+
+residual!(data, problem, indices,
+    compressed=true,
+    sparse_solver=false)
+
+Main.@code_warntype correction!(methods, data, affine_step_size, step0, step_correction, solution, tolerance_central_path;
+    compressed=true, complementarity_correction=0.0)
+
+correction!(methods, data, affine_step_size, step0, step_correction, solution, tolerance_central_path;
+    compressed=true, complementarity_correction=0.0)
+
+@benchmark $correction!($methods, $data, $affine_step_size, $step0, $step_correction, $solution, $tolerance_central_path;
+    compressed=true, complementarity_correction=0.0)
+
+@benchmark $(methods.correction_compressed)(
+    $(data.residual_compressed.all),
+    $(data.residual_compressed.all),
+    $(step_correction.duals),
+    $(step_correction.slacks),
+    $(solution.all),
+    $(central_path),
+    )
+
+function corr0(methods::ProblemMethods, data::SolverData, Δz, Δs, solution::Point, κ; compressed::Bool=false)
+    methods.correction(data.residual.all, data.residual.all, Δz, Δs, κ)
+    if compressed
+        methods.correction_compressed(data.residual_compressed.all, data.residual_compressed.all, Δz, Δs, solution.all, κ)
+    end
+    return nothing
+end
+
+
+
+r0 = rand(30)
+Δz0 = solver.data.step_correction.duals
+Δs0 = solver.data.step_correction.slacks
+x0 = rand(30)
+κ0 = rand(10)
+residual0 = solver.data.residual
+solution0 = solver.solution
+data0 = solver.data
+@benchmark $corr0($methods, $data0, $Δz0, $Δs0, $solution0, $κ0)
+# @benchmark $corr0($methods, $r0, $Δz0, $Δs0, $x0, $κ0)
 
 ################################################################################
 # decoupled constraints
