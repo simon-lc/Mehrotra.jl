@@ -43,6 +43,7 @@ Base.@kwdef mutable struct Options{T}
     machine_tolerance::T=1.0e-16
     max_filter::Int=1000
     warm_start::Bool=false ##############################
+    complementarity_correction::T=0.5 ##########################
     complementarity_decoupling::Bool=false ##########################
     sparse_solver::Bool=false ###########################
     compressed_search_direction::Bool=false #########################

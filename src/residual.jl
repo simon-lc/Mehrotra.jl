@@ -91,13 +91,19 @@ function residual!(data::SolverData, problem::ProblemData, idx::Indices;
     return
 end
 
-function correction!(data::SolverData, methods::ProblemMethods, solution::Point, central_path;
+function correction!(data::SolverData, methods::ProblemMethods, affine_step_size,
+        step::Point, solution::Point, central_path;
+        complementarity_correction=0.5,
         compressed::Bool=false)
 
+    Δz = step.duals .* affine_step_size * complementarity_correction
+    Δs = step.slacks .* affine_step_size * complementarity_correction
     # not compressed
     methods.correction(
         data.residual.all,
         data.residual.all,
+        Δz,
+        Δs,
         # solution.all,
         central_path,
         )
@@ -106,12 +112,16 @@ function correction!(data::SolverData, methods::ProblemMethods, solution::Point,
         methods.correction_compressed(
             data.residual_compressed.all,
             data.residual_compressed.all,
+            Δz,
+            Δs,
             solution.all,
             central_path,
             )
     end
     return
 end
+
+
 
 # function residual!(data::SolverData, problem::ProblemData, idx::Indices, central_path;
 #         compressed::Bool=false,

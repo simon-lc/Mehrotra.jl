@@ -86,7 +86,7 @@ function uncompressed_search_direction!(linear_solver::LinearSolver{T},
         # @show norm(data.residual.all)
         # @show norm(step.all)
         step.all .= data.jacobian_variables_dense \ data.residual.all
-        @show step.all
+        # @show step.all
         # @show norm(step.all)
         # @show data.residual.cone_product
         # linear_solve!(

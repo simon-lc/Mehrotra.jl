@@ -71,6 +71,8 @@ function Mehrotra.solve!(solver)
     for i = 1:options.max_iterations
         solver.trace.iterations += 1
         # check for convergence
+        # @show equality_violation
+        # @show cone_product_violation
         if (equality_violation <= options.residual_tolerance &&
             cone_product_violation <= options.residual_tolerance)
 
@@ -100,7 +102,8 @@ function Mehrotra.solve!(solver)
             sparse_solver=sparse_solver)
 
         # search direction
-        @show "predictor search"
+        # @show "predictor search"
+        solver.data.residual.cone_product .-= κ.tolerance_central_path
         search_direction!(solver)
         # affine line search
         α.affine_step_size .= 1.0
@@ -129,11 +132,13 @@ function Mehrotra.solve!(solver)
         residual!(data, problem, indices,# κ.zero_central_path,
             compressed=compressed,
             sparse_solver=sparse_solver)
-        @show solver.data.residual.cone_product
-        @show κ.target_central_path
-        correction!(data, methods, solution, κ.target_central_path; compressed=compressed)
-        @show solver.data.residual.cone_product
-        @show "corrector search"
+        # @show solver.data.residual.cone_product
+        # @show κ.target_central_path
+        # @show minimum(α.affine_step_size)
+        correction!(data, methods, α.affine_step_size, data.step, solution, κ.target_central_path;
+            compressed=compressed, complementarity_correction=options.complementarity_correction)
+        # @show solver.data.residual.cone_product
+        # @show "corrector search"
         search_direction!(solver)
 
         # line search
@@ -177,6 +182,8 @@ function Mehrotra.solve!(solver)
             # Test progress
             if (equality_violation_candidate <= equality_violation ||
                 cone_product_violation_candidate <= cone_product_violation)
+                equality_violation = equality_violation_candidate
+                cone_product_violation = cone_product_violation_candidate
                 break
             end
 

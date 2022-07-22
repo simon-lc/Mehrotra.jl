@@ -14,6 +14,8 @@ function generate_full_gradients(func::Function, dim::Dimensions, ind::Indices;
     r = Symbolics.variables(:r, 1:dim.variables) # residual
     rs = Symbolics.variables(:rs, 1:dim.cone) # cone product residual with corrections
     Δz = Symbolics.variables(:Δz, 1:dim.cone) # dual step
+    Δza = Symbolics.variables(:Δza, 1:dim.cone) # dual affine step
+    Δsa = Symbolics.variables(:Δsa, 1:dim.cone) # slack affine step
     y = x[ind.primals]
     z = x[ind.duals]
     s = x[ind.slacks]
@@ -43,11 +45,11 @@ function generate_full_gradients(func::Function, dim::Dimensions, ind::Indices;
 
     # correction
     c = copy(r)
-    c[ind.cone_product] .-= κ
+    c[ind.cone_product] .-= (κ - cone_product(Δza, Δsa, idx_nn, idx_soc))
 
     # correction compressed
     cc = copy(r)
-    cc[ind.slackness] .+= D * Zi * κ
+    cc[ind.slackness] .+= D * Zi * (κ - cone_product(Δza, Δsa, idx_nn, idx_soc))
     # cc[ind.cone_product] .-= κ
 
     # slack direction
@@ -79,11 +81,11 @@ function generate_full_gradients(func::Function, dim::Dimensions, ind::Indices;
         parallel=parallel_parameters,
         checkbounds=checkbounds,
         expression=Val{false})[2]
-    c_expr = Symbolics.build_function(c, r, κ,
+    c_expr = Symbolics.build_function(c, r, Δza, Δsa, κ,
         parallel=parallel,
         checkbounds=checkbounds,
         expression=Val{false})[2]
-    cc_expr = Symbolics.build_function(cc, r, x, κ,
+    cc_expr = Symbolics.build_function(cc, r, Δza, Δsa, x, κ,
         parallel=parallel,
         checkbounds=checkbounds,
         expression=Val{false})[2]
