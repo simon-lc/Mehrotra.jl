@@ -41,7 +41,7 @@ include("finite_difference_utils.jl")
 
         solver.solution.all .= rand(num_variables)
 
-        evaluate!(solver.problem,
+        Mehrotra.evaluate!(solver.problem,
             solver.methods,
             solver.cone_methods,
             solver.solution,
@@ -80,7 +80,7 @@ include("finite_difference_utils.jl")
 
         solver.solution.all .= rand(num_variables)
 
-        evaluate!(solver.problem,
+        Mehrotra.evaluate!(solver.problem,
             solver.methods,
             solver.cone_methods,
             solver.solution,
