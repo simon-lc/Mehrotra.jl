@@ -33,19 +33,18 @@ using Mehrotra
 ```
 
 ## Remaining tasks
-- [ ] primals regualization for QP polytope collision detection
-- [ ] interface so that we can provide equality residual only and the solver builds methods internally with FiniteDiff, ForwardDiff etc
+- [ ] primals regualization 
+- [ ] interface so that we can provide equality residual only and the solver builds methods internally ForwardDiff etc
 - [ ] exploit sparsity
 - [ ] @turbo loop vectorization
 - [ ] in-place addition to a vector using symbolics
 - [ ] custom pure-julia sparse solver
-- [ ] custom residual methods to do nested optimization
+- [ ] sparse allocation-free linear solve
 - [ ] improve upon compressed step
 - [ ] think about a general framework to handle QP, LP, DynamicsLCP, DynamicsNCP
 - [ ] warm-starting strategy (add user-provided slacks initialization method s = F(z) in general)
 - [ ] consistency logic for efficient dynamics query
 - [ ] exploit structure of the symmetric problems
-- [ ] sparse allocation-free linear solve
 - [x] allocation-free implementation
 - [ ] experiment with different relaxation scheduling strategies
 - [x] interface to provide your own function evaluations and gradients
