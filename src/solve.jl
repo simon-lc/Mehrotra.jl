@@ -53,6 +53,7 @@ function Mehrotra.solve!(solver)
     options = solver.options
     compressed = options.compressed_search_direction
     decoupling = options.complementarity_decoupling
+    complementarity_correction = options.complementarity_correction
     sparse_solver = options.sparse_solver
 
     # info
@@ -102,8 +103,8 @@ function Mehrotra.solve!(solver)
             sparse_solver=sparse_solver)
 
         # search direction
-        # @show "predictor search"
-        solver.data.residual.cone_product .-= κ.tolerance_central_path
+        correction!(data, methods, α.affine_step_size, step, solution, κ.tolerance_central_path;
+            compressed=compressed, complementarity_correction=0.0)
         search_direction!(solver)
         # affine line search
         α.affine_step_size .= 1.0
@@ -129,16 +130,11 @@ function Mehrotra.solve!(solver)
             sparse_solver=sparse_solver,
             compressed=compressed,
         )
-        residual!(data, problem, indices,# κ.zero_central_path,
+        residual!(data, problem, indices,
             compressed=compressed,
             sparse_solver=sparse_solver)
-        # @show solver.data.residual.cone_product
-        # @show κ.target_central_path
-        # @show minimum(α.affine_step_size)
-        correction!(data, methods, α.affine_step_size, data.step, solution, κ.target_central_path;
-            compressed=compressed, complementarity_correction=options.complementarity_correction)
-        # @show solver.data.residual.cone_product
-        # @show "corrector search"
+        correction!(data, methods, α.affine_step_size, step, solution, κ.target_central_path;
+            compressed=compressed, complementarity_correction=complementarity_correction)
         search_direction!(solver)
 
         # line search
