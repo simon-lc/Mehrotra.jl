@@ -67,7 +67,6 @@ end
 
 
 
-
 # dimensions and indices
 num_primals = 3
 num_cone = 6

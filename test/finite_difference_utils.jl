@@ -46,8 +46,9 @@ function test_residual_jacobian(solver, residual; mode::Symbol=:variables)
         cone_jacobian=true,
         cone_jacobian_inverse=true,
         sparse_solver=sparse_solver,
+        compressed=compressed,
     )
-    Mehrotra.residual!(data, problem, idx, κ.tolerance_central_path,
+    Mehrotra.residual!(data, problem, idx,# κ.tolerance_central_path,
         compressed=compressed,
         sparse_solver=sparse_solver,
         )
@@ -73,10 +74,17 @@ function test_residual_jacobian(solver, residual; mode::Symbol=:variables)
             variables -> extended_residual(residual, idx, variables, parameters),
             variables)
         if compressed
-            J1 
+            J1
             D = J1[idx.slackness, idx.slacks]
             Z = J1[idx.cone_product, idx.slacks]
             S = J1[idx.cone_product, idx.duals]
+            @show diag(D)
+            @show diag(Z)
+            @show diag(S)
+            @show variables[idx.duals]
+            @show variables[idx.slacks]
+            @show -D*inv(Z)*S
+            @show -variables[idx.slacks] ./ variables[idx.duals]
             J1[idx.slackness, idx.duals] .+= -D*inv(Z)*S
             (J1 = J1[idx.equality, idx.equality])
         end
