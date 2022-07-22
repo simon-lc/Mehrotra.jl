@@ -38,11 +38,14 @@ solver = Solver(lcp_residual, num_primals, num_cone,
         symmetric=false,
     ));
 
+solver
 solver.linear_solver
 # solve
 Mehrotra.solve!(solver)
 
-# @benchmark $solve!($solver)
+@benchmark $solve!($solver)
+
+
 solver.options.sparse_solver
 solver.options.compressed_search_direction
 
@@ -53,16 +56,47 @@ Main.@code_warntype search_direction!(solver)
 
 
 
+
+linear_solver = solver.linear_solver
 data = solver.data
 problem = solver.problem
 indices = solver.indices
-methods = solver.methods
+methods0 = solver.methods
 affine_step_size = solver.step_sizes.affine_step_size
 step0 = solver.data.step
 solution= solver.solution
 tolerance_central_path = solver.central_paths.tolerance_central_path
 step_correction = solver.data.step_correction
 central_path = solver.central_paths.tolerance_central_path
+
+compressed_search_direction!(
+    linear_solver,
+    data,
+    step0,
+    methods0,
+    solution,
+    sparse_solver=false)
+
+Main.@code_warntype compressed_search_direction!(
+    linear_solver,
+    data,
+    step0,
+    methods0,
+    solution,
+    sparse_solver=false)
+
+@benchmark $compressed_search_direction!(
+    $linear_solver,
+    $data,
+    $step0,
+    $methods0,
+    $solution,
+    sparse_solver=false)
+
+
+
+
+
 
 residual!(data, problem, indices,
     compressed=true,

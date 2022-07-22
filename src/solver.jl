@@ -1,4 +1,4 @@
-struct Solver{T,E,EC,EX,EXC,EP,C,CC,S,B,BX,P,PX,PXI,X}
+struct Solver{T,E,EC,EX,EXC,EP,C,CC,S,B,BX,P,PX,PXI,X,L}
     problem::ProblemData{T,X}
     methods::ProblemMethods{T,E,EC,EX,EXC,EP,C,CC,S}
     cone_methods::ConeMethods{T,B,BX,P,PX,PXI}
@@ -11,7 +11,7 @@ struct Solver{T,E,EC,EX,EXC,EP,C,CC,S,B,BX,P,PX,PXI,X}
     indices::Indices
     dimensions::Dimensions
 
-    linear_solver::LinearSolver{T}
+    linear_solver::L
 
     step_sizes::StepSize{T}
     central_paths::CentralPath{T}
