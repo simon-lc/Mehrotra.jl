@@ -5,10 +5,6 @@ struct SolverData{T}
     jacobian_variables_sparse::BlockSparse{T}
     jacobian_variables_compressed_dense::Matrix{T}
     jacobian_variables_compressed_sparse::SparseMatrixCSC{T,Int}
-    # slackness_jacobian_slacks::Vector{T}
-    # cone_product_jacobian_inverse_slack::Matrix{T}
-    # cone_product_jacobian_duals::Matrix{T}
-    # cone_product_jacobian_ratio::Matrix{T}
     jacobian_parameters::SparseMatrixCSC{T,Int}
     jacobian_parameters_sparse::BlockSparse{T}
     step::Point{T}
@@ -40,16 +36,9 @@ function SolverData(dim::Dimensions, idx::Indices, p_data::ProblemData;
     ranges = [(idx.equality, idx.variables), (idx.cone_product, idx.duals), (idx.cone_product, idx.slacks)]
     names = [:equality_jacobian_variables, :cone_jacobian_duals, :cone_jacobian_slacks]
     jacobian_variables_sparse = BlockSparse(num_variables, num_variables, blocks, ranges, names=names)
-    # jacobian_variables_sparse = spzeros(num_variables, num_variables)
 
     jacobian_variables_compressed_dense = zeros(num_equality, num_equality)
     jacobian_variables_compressed_sparse = spzeros(num_equality, num_equality)
-
-    # slackness_jacobian_slacks = zeros(num_cone)
-
-    # cone_product_jacobian_inverse_slack = zeros(num_cone, num_cone)
-    # cone_product_jacobian_duals = zeros(num_cone, num_cone)
-    # cone_product_jacobian_ratio = zeros(num_cone, num_cone)
 
     blocks = [p_data.equality_jacobian_parameters]
     ranges = [(idx.equality, idx.parameters)]

@@ -96,6 +96,8 @@ function Mehrotra.solve!(solver)
         ## Predictor step
         # residual
         residual!(data, problem, indices,
+            residual=true,
+            jacobian_variables=true,
             compressed=compressed,
             sparse_solver=sparse_solver)
 
@@ -120,10 +122,9 @@ function Mehrotra.solve!(solver)
 
         ## Corrector step
         # remove correction aiming at the tolerance central path
-        correction!(methods, data, α.affine_step_size, step, data.step_correction, solution, -κ.tolerance_central_path;
-            compressed=compressed, complementarity_correction=0.0)
         # add correction aiming at the target central path - second order correction
-        correction!(methods, data, α.affine_step_size, step, data.step_correction, solution, κ.target_central_path;
+        @. κ.correction_central_path .= κ.target_central_path .- κ.tolerance_central_path
+        correction!(methods, data, α.affine_step_size, step, data.step_correction, solution, κ.correction_central_path;
             compressed=compressed, complementarity_correction=complementarity_correction)
         search_direction!(solver)
         # line search

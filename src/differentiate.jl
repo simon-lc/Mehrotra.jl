@@ -32,7 +32,12 @@ function differentiate!(solver)
         compressed=compressed,
     )
 
-    residual!(data, problem, indices, compressed=compressed, sparse_solver=sparse_solver)
+    residual!(data, problem, indices,
+        residual=true,
+        jacobian_variables=true,
+        jacobian_parameters=true,
+        compressed=compressed,
+        sparse_solver=sparse_solver)
     # correction is not needed since it only affect the vector and not the jacobian
 
     # compute solution sensitivities

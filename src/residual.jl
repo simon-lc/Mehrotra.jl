@@ -37,56 +37,65 @@
 
 """
 function residual!(data::SolverData, problem::ProblemData, idx::Indices;
+        residual=false,
+        jacobian_variables=false,
+        jacobian_parameters=false,
         compressed::Bool=false,
         sparse_solver::Bool=false)
 
     # residual
-    if compressed
-        fill!(data.residual_compressed.all, 0.0) # reset
+    if residual
+        if compressed
+            fill!(data.residual_compressed.all, 0.0) # reset
+            # equality
+            data.residual_compressed.equality .= problem.equality_constraint_compressed
+        end
+        # this is always useful for violation evaluation
+        fill!(data.residual.all, 0.0) # reset
         # equality
-        data.residual_compressed.equality .= problem.equality_constraint_compressed
-    end
-    # this is always useful for violation evaluation
-    fill!(data.residual.all, 0.0) # reset
-    # equality
-    data.residual.equality .= problem.equality_constraint
-    # cone: z ∘ s ####- κ e
-    for (i, ii) in enumerate(idx.cone_product)
-        data.residual.all[ii] = problem.cone_product[i]
+        data.residual.equality .= problem.equality_constraint
+        # cone: z ∘ s ####- κ e
+        for (i, ii) in enumerate(idx.cone_product)
+            data.residual.all[ii] = problem.cone_product[i]
+        end
     end
 
 
     # jacobian variables
-    # equality
-    if !compressed && sparse_solver
-        fill!(data.jacobian_variables_sparse, problem.equality_jacobian_variables, :equality_jacobian_variables)
-    elseif !compressed && !sparse_solver
-        data.jacobian_variables_dense[idx.equality, idx.variables] .= problem.equality_jacobian_variables # TODO
-    elseif compressed && sparse_solver
-        data.jacobian_variables_compressed_sparse.nzval .= problem.equality_jacobian_variables_compressed.nzval
-    elseif compressed && !sparse_solver
-        for (i, ii) in enumerate(idx.equality)
-            for (j, jj) in enumerate(idx.equality)
-                data.jacobian_variables_compressed_dense[ii,jj] = problem.equality_jacobian_variables_compressed[ii,jj] # TODO
+    if jacobian_variables
+        # equality
+        if !compressed && sparse_solver
+            fill!(data.jacobian_variables_sparse, problem.equality_jacobian_variables, :equality_jacobian_variables)
+        elseif !compressed && !sparse_solver
+            data.jacobian_variables_dense[idx.equality, idx.variables] .= problem.equality_jacobian_variables # TODO
+        elseif compressed && sparse_solver
+            data.jacobian_variables_compressed_sparse.nzval .= problem.equality_jacobian_variables_compressed.nzval
+        elseif compressed && !sparse_solver
+            for (i, ii) in enumerate(idx.equality)
+                for (j, jj) in enumerate(idx.equality)
+                    data.jacobian_variables_compressed_dense[ii,jj] = problem.equality_jacobian_variables_compressed[ii,jj] # TODO
+                end
             end
+        end
+
+        # cone product
+        if !compressed && sparse_solver
+            fill!(data.jacobian_variables_sparse, problem.cone_product_jacobian_duals, :cone_jacobian_duals)
+            fill!(data.jacobian_variables_sparse, problem.cone_product_jacobian_slacks, :cone_jacobian_slacks)
+        elseif !compressed && !sparse_solver
+            data.jacobian_variables_dense[idx.cone_product, idx.duals] .= problem.cone_product_jacobian_duals # TODO
+            data.jacobian_variables_dense[idx.cone_product, idx.slacks] .= problem.cone_product_jacobian_slacks # TODO
         end
     end
 
-    # cone product
-    if !compressed && sparse_solver
-        fill!(data.jacobian_variables_sparse, problem.cone_product_jacobian_duals, :cone_jacobian_duals)
-        fill!(data.jacobian_variables_sparse, problem.cone_product_jacobian_slacks, :cone_jacobian_slacks)
-    elseif !compressed && !sparse_solver
-        data.jacobian_variables_dense[idx.cone_product, idx.duals] .= problem.cone_product_jacobian_duals # TODO
-        data.jacobian_variables_dense[idx.cone_product, idx.slacks] .= problem.cone_product_jacobian_slacks # TODO
-    end
-
-    # jacobian parameters
-    # equality
-    if sparse_solver
-        fill!(data.jacobian_parameters_sparse, problem.equality_jacobian_parameters, :equality_jacobian_parameters)
-    else
-        data.jacobian_parameters[idx.equality, idx.parameters] .= problem.equality_jacobian_parameters # TODO
+    if jacobian_parameters
+        # jacobian parameters
+        # equality
+        if sparse_solver
+            fill!(data.jacobian_parameters_sparse, problem.equality_jacobian_parameters, :equality_jacobian_parameters)
+        else
+            data.jacobian_parameters[idx.equality, idx.parameters] .= problem.equality_jacobian_parameters # TODO
+        end
     end
     return
 end
@@ -113,40 +122,3 @@ function correction!(methods::ProblemMethods, data::SolverData, Δz, Δs, soluti
     end
     return nothing
 end
-
-
-#
-# function correction22!(residual::Residual, methods::ProblemMethods, affine_step_size,
-#         step::Point, step_correction::Point, solution::Point, central_path;
-#         complementarity_correction=0.5,
-#         compressed::Bool=false)
-#
-#     step_correction.duals .= complementarity_correction .* affine_step_size .* step.duals
-#     step_correction.slacks .= complementarity_correction .* affine_step_size .* step.slacks
-#
-#
-#     if compressed
-#         d
-#     end
-#     # # not compressed
-#     # methods.correction(
-#     #     residual.all,
-#     #     residual.all,
-#     #     step_correction.duals,
-#     #     step_correction.slacks,
-#     #     # solution.all,
-#     #     central_path,
-#     #     )
-#     # compressed
-#     if compressed
-#         methods.correction_compressed(
-#             residual.all,
-#             residual.all,
-#             step_correction.duals,
-#             step_correction.slacks,
-#             solution.all,
-#             central_path,
-#             )
-#     end
-#     return
-# end

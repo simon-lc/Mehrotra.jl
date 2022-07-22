@@ -64,7 +64,6 @@ end
 function linear_solve!(s::LUSolver{T}, x::AbstractMatrix{T}, A::Matrix{T},
     b::AbstractMatrix{T}; reg::T = 0.0, fact::Bool = true) where T
     fill!(x, 0.0)
-    # @show norm(x)
 
     n, m = size(x)
     r_idx = 1:n
@@ -74,7 +73,6 @@ function linear_solve!(s::LUSolver{T}, x::AbstractMatrix{T}, A::Matrix{T},
         xv = @views x[r_idx, j]
         LinearAlgebra.LAPACK.getrs!('N', s.A, s.ipiv, xv)
     end
-    # @show norm(x)
 end
 
 """
@@ -82,14 +80,16 @@ end
 """
 mutable struct SparseLUSolver{T} <: LinearSolver{T}
     x::Vector{T}
+    b::Vector{T}
     factorization::SuiteSparse.UMFPACK.UmfpackLU{T, Int}
 end
 
 function sparse_lu_solver(A)
     m, n = size(A)
     x = zeros(m)
+    b = zeros(n)
     factorization = lu(A)
-    SparseLUSolver(x, factorization)
+    SparseLUSolver(x, b, factorization)
 end
 
 function factorize!(s::SparseLUSolver{T}, A::SparseMatrixCSC{T,Int}) where T
@@ -101,12 +101,9 @@ function linear_solve!(s::SparseLUSolver{T}, x::AbstractVector{T}, A::SparseMatr
         b::AbstractVector{T}; reg::T = 0.0, fact::Bool = true) where T
     # fact && factorize!(s, A)
     # ldiv!(x, s.factorization, b)
-    xc = zeros(size(x)...)
-    bc = zeros(size(b)...)
-    xc .= x
-    bc .= b
-    xc .= A \ bc
-    x .= xc
+    s.b .= b
+    s.x .= A \ bc
+    x .= s.x
     return nothing
 end
 
@@ -114,15 +111,12 @@ function linear_solve!(s::SparseLUSolver{T}, x::AbstractMatrix{T}, A::SparseMatr
     b::AbstractMatrix{T}; reg::T = 0.0, fact::Bool = true) where T
     fact && factorize!(s, A)
     # ldiv!(x, s.factorization, b)
-    xc = zeros(size(x)...)
-    bc = zeros(size(b)...)
-    xc .= x
-    bc .= b
-    xc .= A \ bc
-    # @show "before", norm(xc)
-    # # @show norm(x)
-    x .= xc
-    # @show "after", norm(xc)
+    p = size(b,2)
+    for i = 1:p
+        s.b .= b[:,i]
+        s.x .= A \ bc
+        x[:,i] .= s.x
+    end
 end
 
 
@@ -172,13 +166,13 @@ function ldl_solver(A::SparseMatrixCSC{Tv,Ti}) where {Tv<:AbstractFloat,Ti<:Inte
     indices.nzval .= 1:nnz(A)
     upper_indices = triu(indices).nzval
     return LDLSolver111{Tv,Ti}(
-        F, 
-        copy(triu(A)), 
+        F,
+        copy(triu(A)),
         upper_indices,
     )
 end
 
-function factorize!(s::LDLSolver111{Tv,Ti}, A::SparseMatrixCSC{Tv,Ti}; 
+function factorize!(s::LDLSolver111{Tv,Ti}, A::SparseMatrixCSC{Tv,Ti};
     update=false) where {Tv<:AbstractFloat, Ti<:Integer}
 
     for (i,ii) in enumerate(s.upper_indices)
@@ -188,7 +182,7 @@ function factorize!(s::LDLSolver111{Tv,Ti}, A::SparseMatrixCSC{Tv,Ti};
         triu!(s.Atriu)
         update_values!(s.F, 1:length(s.Atriu.nzval), s.Atriu.nzval)
         refactor!(s.F)
-    else 
+    else
         s.F = qdldl(A)
         s.Atriu = copy(triu(A))
     end
@@ -205,16 +199,16 @@ function linear_solve!(solver::LDLSolver111{Tv,Ti}, x::AbstractVector{Tv}, A::Sp
 end
 
 function linear_solve!(solver::LDLSolver111{T}, x::AbstractMatrix{T}, A::AbstractMatrix{T},
-    b::AbstractMatrix{T}; 
+    b::AbstractMatrix{T};
     fact=true,
     update=true) where T
 
     fill!(x, 0.0)
-    n, m = size(x) 
+    n, m = size(x)
     r_idx = 1:n
     fact && factorize!(solver, A; update=update)
 
-    x .= b 
+    x .= b
     for j = 1:m
         xv = @views x[r_idx, j]
         solve!(solver.F, xv)

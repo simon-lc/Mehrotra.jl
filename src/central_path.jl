@@ -4,6 +4,7 @@ struct CentralPath{T}
     tolerance_central_path::Vector{T}
     zero_central_path::Vector{T}
     neutral_central_path::Vector{T}
+    correction_central_path::Vector{T}
 end
 
 function CentralPath(idx_nn::Vector{Int}, idx_soc::Vector{Vector{Int}}, complementarity_tolerance, T=Float64)
@@ -16,6 +17,7 @@ function CentralPath(idx_nn::Vector{Int}, idx_soc::Vector{Vector{Int}}, compleme
         0.1*neutral,
         complementarity_tolerance .* neutral,
         zeros(T,num_cone),
-        neutral
+        neutral,
+        0.1*neutral,
     )
 end

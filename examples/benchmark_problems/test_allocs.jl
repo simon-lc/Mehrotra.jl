@@ -43,15 +43,13 @@ solver.linear_solver
 # solve
 Mehrotra.solve!(solver)
 
+Main.@profiler [solve!(solver) for i=1:1000]
+
 @benchmark $solve!($solver)
 
 
-solver.options.sparse_solver
-solver.options.compressed_search_direction
 
-search_direction!(solver)
-Main.@code_warntype search_direction!(solver)
-@benchmark $search_direction!($solver)
+
 
 
 
@@ -68,6 +66,15 @@ solution= solver.solution
 tolerance_central_path = solver.central_paths.tolerance_central_path
 step_correction = solver.data.step_correction
 central_path = solver.central_paths.tolerance_central_path
+indices = solver.indices
+options = solver.options
+
+options.compressed_search_direction = true
+centering!(central_path, solution, step0, affine_step_size, indices, options=options)
+Main.@code_warntype centering!(central_path, solution, step0, affine_step_size, indices, options=options)
+@benchmark $centering!($central_path, $solution, $step0, $affine_step_size, $indices, options=$options)
+
+
 
 compressed_search_direction!(
     linear_solver,
