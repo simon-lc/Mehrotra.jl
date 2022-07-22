@@ -38,7 +38,7 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/block_2d_ut
         )
     Mehrotra.solve!(solver)
     equality_violation, cone_product_violation =
-        Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
+        Mehrotra.violation(solver)
     @test equality_violation <= solver.options.residual_tolerance
     @test cone_product_violation <= solver.options.residual_tolerance
 
@@ -54,8 +54,7 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/block_2d_ut
             )
         )
     Mehrotra.solve!(solver)
-    equality_violation, cone_product_violation =
-        Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
+    equality_violation, cone_product_violation = Mehrotra.violation(solver)
     @test equality_violation <= solver.options.residual_tolerance
     @test cone_product_violation <= solver.options.residual_tolerance
 end
@@ -98,8 +97,7 @@ end
             )
         )
     Mehrotra.solve!(solver)
-    equality_violation, cone_product_violation =
-        Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
+    equality_violation, cone_product_violation = Mehrotra.violation(solver)
     @test equality_violation <= solver.options.residual_tolerance
     @test cone_product_violation <= solver.options.residual_tolerance
 end

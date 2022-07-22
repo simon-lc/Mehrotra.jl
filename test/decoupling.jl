@@ -18,8 +18,7 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/lcp_utils.j
 
     Mehrotra.solve!(solver)
     iterations = solver.trace.iterations
-    equality_violation, cone_product_violation =
-        Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
+    equality_violation, cone_product_violation = Mehrotra.violation(solver)
     @test equality_violation <= solver.options.residual_tolerance
     @test cone_product_violation <= solver.options.residual_tolerance
 
@@ -29,8 +28,7 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/lcp_utils.j
     decoupling_iterations = solver.trace.iterations
     Mehrotra.solve!(solver)
 
-    equality_violation, cone_product_violation =
-        Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
+    equality_violation, cone_product_violation = Mehrotra.violation(solver)
     @test equality_violation <= solver.options.residual_tolerance
     @test cone_product_violation <= solver.options.residual_tolerance
     @test decoupling_iterations == iterations

@@ -93,12 +93,11 @@ solveru = Mehrotra.Solver(linear_particle_residual, num_primals, num_cone,
     second_order_indices=idx_soc,
     options=Mehrotra.Options(
         verbose=false,
-        residual_tolerance=1e-6,
+        residual_tolerance=1e-10,
         complementarity_tolerance=1e-6,
         compressed_search_direction=false,
         )
     )
-Mehrotra.solve!(solveru)
 
 solverc = Mehrotra.Solver(linear_particle_residual, num_primals, num_cone,
     parameters=parameters,
@@ -106,23 +105,31 @@ solverc = Mehrotra.Solver(linear_particle_residual, num_primals, num_cone,
     second_order_indices=idx_soc,
     options=Mehrotra.Options(
         verbose=false,
-        residual_tolerance=1e-6,
+        residual_tolerance=1e-10,
         complementarity_tolerance=1e-6,
         compressed_search_direction=true,
         )
     )
+Mehrotra.solve!(solveru)
 Mehrotra.solve!(solverc)
-dimensions = solverc.dimensions
-variables = rand(dimensions.variables)
+@test norm(solveru.solution.all - solverc.solution.all) < 1e-8
+norm(solveru.solution.all - solverc.solution.all)
 
-Mehrotra.initialize!(solverc, variables)
-Mehrotra.initialize!(solveru, variables)
+# dimensions = solverc.dimensions
+# variables = rand(dimensions.variables)
+#
+# Mehrotra.initialize!(solverc, variables)
+# Mehrotra.initialize!(solveru, variables)
 
 Mehrotra.differentiate!(solverc)
 Mehrotra.differentiate!(solveru)
 
 S0 = solverc.data.solution_sensitivity
 S1 = solveru.data.solution_sensitivity
+
+
+plot(Gray.(abs.(S0)))
+plot(Gray.(abs.(S1)))
 @test norm(S0 - S1) < 1e-10
 
 
@@ -131,3 +138,5 @@ Mehrotra.search_direction!(solveru)
 Mehrotra.search_direction!(solverc)
 Δ1 = solverc.data.step.all
 @test norm(Δ0 - Δ1) < 1e-10
+
+plot(Gray.(abs.([Δ1';Δ0'])))

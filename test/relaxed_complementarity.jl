@@ -18,8 +18,7 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/particle_ut
             )
 
         Mehrotra.solve!(solver)
-        equality_violation, cone_product_violation =
-            Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
+        equality_violation, cone_product_violation = Mehrotra.violation(solver)
         @test equality_violation <= solver.options.residual_tolerance
         @test cone_product_violation <= solver.options.residual_tolerance
     end
@@ -41,8 +40,7 @@ end
             )
 
         Mehrotra.solve!(solver)
-        equality_violation, cone_product_violation =
-            Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
+        equality_violation, cone_product_violation = Mehrotra.violation(solver)
         @test equality_violation <= solver.options.residual_tolerance
         @test cone_product_violation <= solver.options.residual_tolerance
     end
@@ -83,10 +81,8 @@ end
     for i = 0:10
         solver.options.complementarity_tolerance = (1/10)^i
         Mehrotra.solve!(solver)
-        equality_violation, cone_product_violation =
-            Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
-        equality_violation, cone_product_violation =
-            Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
+        equality_violation, cone_product_violation = Mehrotra.violation(solver)
+        equality_violation, cone_product_violation = Mehrotra.violation(solver)
         @test equality_violation <= solver.options.residual_tolerance
         @test cone_product_violation <= solver.options.residual_tolerance
     end
@@ -128,74 +124,9 @@ end
     for i = 0:10
         solver.options.complementarity_tolerance = (1/10)^i
         Mehrotra.solve!(solver)
-        equality_violation, cone_product_violation =
-            Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
-        equality_violation, cone_product_violation =
-            Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
+        equality_violation, cone_product_violation = Mehrotra.violation(solver)
+        equality_violation, cone_product_violation = Mehrotra.violation(solver)
         @test equality_violation <= solver.options.residual_tolerance
         @test cone_product_violation <= solver.options.residual_tolerance
     end
 end
-
-
-
-# # dimensions and indices
-# num_primals = 3
-# num_cone = 6
-# num_parameters = 14
-# idx_nn = collect(1:6)
-# idx_soc = [collect(1:0)]
-#
-# # parameters
-# p2 = [1,1,1.0]
-# v15 = [0,-1,1.0]
-# u = [0.4, 0.8, 0.9]
-# timestep = 0.01
-# mass = 1.0
-# gravity = -9.81
-# friction_coefficient = 0.05
-# side = 0.5
-#
-# parameters = [p2; v15; u; timestep; mass; gravity; friction_coefficient; side]
-#
-# # solve
-# solver = Mehrotra.Solver(linear_particle_residual, num_primals, num_cone,
-#     parameters=parameters,
-#     nonnegative_indices=idx_nn,
-#     second_order_indices=idx_soc,
-#     options=Mehrotra.Options(
-#         verbose=true,
-#         residual_tolerance=1e-6,
-#         complementarity_tolerance=1e-6,
-#         compressed_search_direction=false,
-#         )
-#     )
-# # test relaxed complementarity
-# for i = 4:10
-#     @show i
-#     solver.options.complementarity_tolerance = (1/10)^i
-#     Mehrotra.solve!(solver)
-#     equality_violation, cone_product_violation =
-#         Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
-#     equality_violation, cone_product_violation =
-#         Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
-#     equality_violation, cone_product_violation =
-#         Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
-#     @test equality_violation <= solver.options.residual_tolerance
-#     @test cone_product_violation <= solver.options.residual_tolerance
-# end
-#
-#
-# i = 7
-# solver.options.complementarity_tolerance = (1/10)^i
-# Mehrotra.solve!(solver)
-# equality_violation, cone_product_violation =
-#     Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
-# equality_violation, cone_product_violation =
-#     Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
-# equality_violation, cone_product_violation =
-#     Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
-# @test equality_violation <= solver.options.residual_tolerance
-# @test cone_product_violation <= solver.options.residual_tolerance
-#
-# solver.problem.cone_product .- solver.options.complementarity_tolerance

@@ -37,8 +37,7 @@ include("../examples/benchmark_problems/lcp_utils.jl")
 
     Mehrotra.solve!(solver)
     finite_difference_iterations = solver.trace.iterations
-    equality_violation, cone_product_violation =
-        Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
+    equality_violation, cone_product_violation = Mehrotra.violation(solver)
     @test equality_violation <= solver.options.residual_tolerance
     @test cone_product_violation <= solver.options.residual_tolerance
 
@@ -58,8 +57,7 @@ include("../examples/benchmark_problems/lcp_utils.jl")
 
     Mehrotra.solve!(solver)
     symbolics_iterations = solver.trace.iterations
-    equality_violation, cone_product_violation =
-        Mehrotra.violation(solver.problem, solver.central_paths.tolerance_central_path)
+    equality_violation, cone_product_violation = Mehrotra.violation(solver)
     @test equality_violation <= solver.options.residual_tolerance
     @test cone_product_violation <= solver.options.residual_tolerance
 
