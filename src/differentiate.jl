@@ -17,7 +17,6 @@ function differentiate!(solver)
     # equality_jacobian_parameters
     # cone_jacobian_variables
     # evaluate derivatives wrt to parameters
-    # # TODO: check if we can use current residual Jacobian w/o recomputing
     Mehrotra.evaluate!(problem,
         methods,
         cone_methods,
@@ -29,11 +28,12 @@ function differentiate!(solver)
         cone_constraint=true,
         cone_jacobian=true,
         cone_jacobian_inverse=true,
+        sparse_solver=sparse_solver,
+        compressed=compressed,
     )
 
     residual!(data, problem, indices, compressed=compressed, sparse_solver=sparse_solver)
     # correction is not needed since it only affect the vector and not the jacobian
-    # correction!(data, methods, solution, κ.target_central_path; compressed=compressed)
 
     # compute solution sensitivities
     fill!(solver.data.solution_sensitivity, 0.0)

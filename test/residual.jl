@@ -52,7 +52,7 @@ include("finite_difference_utils.jl")
             cone_constraint=true,
             cone_jacobian=false,
             cone_jacobian_inverse=false,
-            sparse_solver=false,
+            sparse_solver=sparse_solver,
             compressed=false,
             )
 
@@ -91,7 +91,7 @@ include("finite_difference_utils.jl")
             cone_constraint=true,
             cone_jacobian=false,
             cone_jacobian_inverse=false,
-            sparse_solver=false,
+            sparse_solver=sparse_solver,
             compressed=true,
             )
 

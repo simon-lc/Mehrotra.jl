@@ -72,8 +72,6 @@ function Mehrotra.solve!(solver)
     for i = 1:options.max_iterations
         solver.trace.iterations += 1
         # check for convergence
-        # @show equality_violation
-        # @show cone_product_violation
         if (equality_violation <= options.residual_tolerance &&
             cone_product_violation <= options.residual_tolerance)
 
