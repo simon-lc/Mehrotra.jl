@@ -84,8 +84,7 @@ function Mehrotra.solve!(solver)
             return true
         end
 
-        # evaluate equality constraint & gradient
-        # evaluate cone product constraint
+        # evaluate everything
         evaluate!(problem, methods, cone_methods, solution, parameters,
             equality_constraint=true,
             equality_jacobian_variables=true,
@@ -102,9 +101,10 @@ function Mehrotra.solve!(solver)
             compressed=compressed,
             sparse_solver=sparse_solver)
 
-        # search direction
+        # add correction to aim at the tolerance central path
         correction!(data, methods, α.affine_step_size, step, solution, κ.tolerance_central_path;
             compressed=compressed, complementarity_correction=0.0)
+        # search direction
         search_direction!(solver)
         # affine line search
         α.affine_step_size .= 1.0
@@ -121,22 +121,13 @@ function Mehrotra.solve!(solver)
         centering!(κ.target_central_path, solution, step, α.affine_step_size, indices, options=options)
 
         ## Corrector step
-        evaluate!(problem, methods, cone_methods, solution, parameters,
-            equality_constraint=true,
-            equality_jacobian_variables=true,
-            cone_constraint=true,
-            cone_jacobian=true,
-            cone_jacobian_inverse=true,
-            sparse_solver=sparse_solver,
-            compressed=compressed,
-        )
-        residual!(data, problem, indices,
-            compressed=compressed,
-            sparse_solver=sparse_solver)
+        # remove correction aiming at the tolerance central path
+        correction!(data, methods, α.affine_step_size, step, solution, -κ.tolerance_central_path;
+            compressed=compressed, complementarity_correction=0.0)
+        # add correction aiming at the target central path - second order correction
         correction!(data, methods, α.affine_step_size, step, solution, κ.target_central_path;
             compressed=compressed, complementarity_correction=complementarity_correction)
         search_direction!(solver)
-
         # line search
         α.step_size .= 1.0
         # cone search duals
@@ -163,8 +154,7 @@ function Mehrotra.solve!(solver)
                 ŝ[i] = s[i] + α.step_size[i] * Δs[i]
             end
 
-            # evaluate candidate equality constraint
-            # evaluate candidate cone product constraint
+            # evaluate residual
             evaluate!(problem, methods, cone_methods, candidate, parameters,
                 equality_constraint=true,
                 cone_constraint=true,
