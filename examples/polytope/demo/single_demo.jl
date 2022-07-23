@@ -20,6 +20,7 @@ include("../src/simulate.jl")
 include("../src/visuals.jl")
 
 include("../environment/convex_bundle.jl")
+include("../environment/convex_drop.jl")
 
 
 ################################################################################
@@ -37,13 +38,16 @@ mech = get_convex_bundle(;
     mass=1.0,
     inertia=0.2 * ones(1,1),
     friction_coefficient=0.1,
+    # method_type=:symbolic,
+    method_type=:finite_difference,
     options=Options(
-        # verbose=false,
+        verbose=true,
         complementarity_tolerance=1e-4,
         compressed_search_direction=false,
         max_iterations=30,
         sparse_solver=false,
-        # warm_start=true,
+        differentiate=false,
+        warm_start=true,
         )
     );
 
@@ -58,7 +62,16 @@ z0 = [xp2; vp15; xc2; vc15]
 
 u0 = zeros(6)
 H0 = 150
-storage = simulate!(mech, z0, H0);
+mech.solver.methods
+mech.solver.dimensions
+# solve!(mech.solver)
+
+@elapsed storage = simulate!(mech, z0, H0)
+Main.@profiler [solve!(mech.solver) for i=1:300]
+@benchmark $solve!($(mech.solver))
+
+7.5/0.148
+14.8 / 0.148
 
 
 ################################################################################
@@ -67,7 +80,7 @@ storage = simulate!(mech, z0, H0);
 set_floor!(vis)
 set_light!(vis)
 set_background!(vis)
-visualize!(vis, mech, storage)
+visualize!(vis, mech, storage, build=false)
 
 
 

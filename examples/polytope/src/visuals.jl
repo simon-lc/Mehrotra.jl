@@ -53,7 +53,7 @@ end
 # body
 ######################################################################
 function build_body!(vis::Visualizer, body::Body182;
-        name::Symbol=body.name, 
+        name::Symbol=body.name,
         collider_color=RGBA(0.2, 0.2, 0.2, 0.8),
         center_of_mass_color=RGBA(1, 1, 1, 1.0),
         center_of_mass_radius=0.025,
@@ -66,7 +66,7 @@ function build_body!(vis::Visualizer, body::Body182;
         b = body.b_colliders[i]
         build_2d_polytope!(vis[:bodies][name], A, b, name=Symbol(i), color=collider_color)
     end
-    
+
     # center of mass
     setobject!(vis[:bodies][name][:com],
         HyperSphere(GeometryBasics.Point(0,0,0.), center_of_mass_radius),
@@ -90,7 +90,7 @@ end
 # 2D frame
 ######################################################################
 function build_2d_frame!(vis::Visualizer;
-    name::Symbol=:contact, 
+    name::Symbol=:contact,
     origin_color=RGBA(0.2, 0.2, 0.2, 0.8),
     normal_axis_color=RGBA(0, 1, 0, 0.8),
     tangent_axis_color=RGBA(1, 0, 0, 0.8),
@@ -98,18 +98,18 @@ function build_2d_frame!(vis::Visualizer;
     ) where T
 
     # axes
-    build_rope(vis[:contacts][name]; 
-        N=1, 
+    build_rope(vis[:contacts][name];
+        N=1,
         color=tangent_axis_color,
-        rope_type=:cylinder, 
-        rope_radius=origin_radius/2, 
+        rope_type=:cylinder,
+        rope_radius=origin_radius/2,
         name=:tangent)
 
-    build_rope(vis[:contacts][name]; 
-        N=1, 
+    build_rope(vis[:contacts][name];
+        N=1,
         color=normal_axis_color,
-        rope_type=:cylinder, 
-        rope_radius=origin_radius/2, 
+        rope_type=:cylinder,
+        rope_radius=origin_radius/2,
         name=:normal)
 
     # origin
@@ -120,7 +120,7 @@ function build_2d_frame!(vis::Visualizer;
 end
 
 function set_2d_frame!(vis::Visualizer, contact, origin, normal, tangent; name=contact.name)
-    settransform!(vis[:contacts][name][:origin], 
+    settransform!(vis[:contacts][name][:origin],
         MeshCat.Translation(SVector{3}(0, origin...)))
     set_straight_rope(vis[:contacts][name], [0; origin], [0; origin+normal]; N=1, name=:normal)
     set_straight_rope(vis[:contacts][name], [0; origin], [0; origin+tangent]; N=1, name=:tangent)
@@ -133,7 +133,7 @@ end
 function build_mechanism!(vis::Visualizer, mechanism::Mechanism182)
     for body in mechanism.bodies
         build_body!(vis, body)
-    end    
+    end
     for contact in mechanism.contacts
         build_2d_frame!(vis, name=contact.name)
     end
@@ -153,10 +153,11 @@ function set_mechanism!(vis::Visualizer, mechanism::Mechanism182, storage::Stora
     return nothing
 end
 
-function visualize!(vis::Visualizer, mechanism::Mechanism182, storage::Storage116{T,H}; 
+function visualize!(vis::Visualizer, mechanism::Mechanism182, storage::Storage116{T,H};
+        build::Bool=true,
         animation=MeshCat.Animation(Int(floor(1/mechanism.bodies[1].timestep[1])))) where {T,H}
 
-    build_mechanism!(vis, mechanism)
+    build && build_mechanism!(vis, mechanism)
     for i = 1:H
         atframe(animation, i) do
             set_mechanism!(vis, mechanism, storage, i)
@@ -165,4 +166,3 @@ function visualize!(vis::Visualizer, mechanism::Mechanism182, storage::Storage11
     MeshCat.setanimation!(vis, animation)
     return vis, animation
 end
-
