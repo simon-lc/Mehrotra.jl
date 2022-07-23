@@ -31,16 +31,16 @@ mass = 1.0;
 inertia = 0.2 * ones(1);
 
 
-mech = get_convex_bundle(; 
-    timestep=0.05, 
-    gravity=-9.81, 
-    mass=1.0, 
+mech = get_convex_bundle(;
+    timestep=0.05,
+    gravity=-9.81,
+    mass=1.0,
     inertia=0.2 * ones(1,1),
     friction_coefficient=0.1,
     options=Options(
-        # verbose=false, 
+        # verbose=false,
         complementarity_tolerance=1e-4,
-        compressed_search_direction=false, 
+        compressed_search_direction=false,
         max_iterations=30,
         sparse_solver=false,
         # warm_start=true,
@@ -76,31 +76,31 @@ scatter(storage.iterations)
 plot!(hcat(storage.variables...)')
 
 scatter(storage.iterations)
-plot!(hcat([abs.(v)[bodies[1].index.variables] for v in storage.variables]...)', 
+plot!(hcat([abs.(v)[bodies[1].index.variables] for v in storage.variables]...)',
     linewidth=3, color=:red, legend=false)
 
 scatter(storage.iterations)
-plot!(hcat([abs.(v)[bodies[2].index.variables] for v in storage.variables]...)', 
+plot!(hcat([abs.(v)[bodies[2].index.variables] for v in storage.variables]...)',
     linewidth=3, color=:black, legend=false)
 
 scatter(storage.iterations)
-plot!(hcat([abs.(v)[contacts[1].index.variables] for v in storage.variables]...)', 
+plot!(hcat([abs.(v)[contacts[1].index.variables] for v in storage.variables]...)',
     linewidth=3, color=:green, legend=false)
-    
+
 scatter(storage.iterations)
-plot!(hcat([abs.(v)[contacts[2].index.variables] for v in storage.variables]...)', 
+plot!(hcat([abs.(v)[contacts[2].index.variables] for v in storage.variables]...)',
     linewidth=3, color=:green, legend=false)
-    
+
 scatter(storage.iterations)
-plot!(hcat([abs.(v)[contacts[3].index.variables] for v in storage.variables]...)', 
+plot!(hcat([abs.(v)[contacts[3].index.variables] for v in storage.variables]...)',
     linewidth=3, color=:green, legend=false)
-    
+
 scatter(storage.iterations)
-plot!(hcat([abs.(v)[contacts[4].index.variables] for v in storage.variables]...)', 
+plot!(hcat([abs.(v)[contacts[4].index.variables] for v in storage.variables]...)',
     linewidth=3, color=:green, legend=false)
-    
+
 scatter(storage.iterations)
-plot!(hcat([abs.(v)[contacts[5].index.variables] for v in storage.variables]...)', 
+plot!(hcat([abs.(v)[contacts[5].index.variables] for v in storage.variables]...)',
     linewidth=3, color=:green, legend=false)
 
 

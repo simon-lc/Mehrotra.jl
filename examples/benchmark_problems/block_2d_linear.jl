@@ -42,7 +42,7 @@ solver = Solver(linear_block_2d_residual, num_primals, num_cone,
         max_iterations=30,
         verbose=false,
         compressed_search_direction=true,
-        sparse_solver=true,
+        sparse_solver=false,
         )
     )
 solve!(solver)

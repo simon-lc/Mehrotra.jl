@@ -126,7 +126,7 @@ function Mehrotra.solve!(solver)
         @. κ.correction_central_path .= κ.target_central_path .- κ.tolerance_central_path
         correction!(methods, data, α.affine_step_size, step, data.step_correction, solution, κ.correction_central_path;
             compressed=compressed, complementarity_correction=complementarity_correction)
-        search_direction!(solver)#, factorize=false)
+        search_direction!(solver, factorize=false)
         # line search
         α.step_size .= 1.0
         # cone search duals
