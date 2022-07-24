@@ -32,6 +32,7 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     parameters=zeros(0),
     nonnegative_indices=collect(1:num_cone),
     second_order_indices=[collect(1:0)],
+    parameter_keywords=Dict{Symbol,Vector{Int}}(:all => 1:length(parameters)),
     custom=nothing,
     methods=nothing,
     method_type::Symbol=:symbolic, #:finite_difference
@@ -53,9 +54,9 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     # codegen methods
     if methods == nothing
         if method_type == :symbolic
-            methods = symbolics_methods(equality, dim, idx)
+            methods = symbolics_methods(equality, dim, idx, parameter_keywords=parameter_keywords)
         elseif method_type == :finite_difference
-            methods = finite_difference_methods(equality, dim, idx)
+            methods = finite_difference_methods(equality, dim, idx, parameter_keywords=parameter_keywords)
         else
             error("unknown method_type")
         end
