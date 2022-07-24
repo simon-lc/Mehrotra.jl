@@ -43,7 +43,7 @@ using Mehrotra
 - [ ] improve upon compressed step
 - [ ] think about a general framework to handle QP, LP, DynamicsLCP, DynamicsNCP
 - [ ] warm-starting strategy (add user-provided slacks initialization method s = F(z) in general)
-- [ ] consistency logic for efficient dynamics query
+- [x] consistency logic for efficient dynamics query
 - [ ] exploit structure of the symmetric problems
 - [x] allocation-free implementation
 - [ ] experiment with different relaxation scheduling strategies
