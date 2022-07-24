@@ -181,12 +181,6 @@ function allocate_sparse_matrices!(problem::ProblemData, methods::ProblemMethods
     for idx in cone_methods.product_jacobian_slacks_sparsity
         problem.cone_product_jacobian_slacks[idx...] = 1.0
     end
-    for idx in cone_methods.product_jacobian_inverse_duals_sparsity
-        problem.cone_product_jacobian_inverse_duals[idx...] = 1.0
-    end
-    for idx in cone_methods.product_jacobian_inverse_slacks_sparsity
-        problem.cone_product_jacobian_inverse_slacks[idx...] = 1.0
-    end
     # problem.cone_product_jacobian_duals .*= 0.0
     # problem.cone_product_jacobian_slacks .*= 0.0
     return nothing

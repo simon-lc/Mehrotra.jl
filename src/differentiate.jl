@@ -74,6 +74,7 @@ function differentiate!(solver; keyword::Symbol=:all)
     solver.consistency.differentiated[keyword] = true
     return
 end
+
 function differentiate!(solver; keyword::Symbol=:all)
     data = solver.data
     problem = solver.problem

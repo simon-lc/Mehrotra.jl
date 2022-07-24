@@ -9,8 +9,6 @@ struct ProblemData{T,X}
     cone_product::Vector{T} #s∘Z
     cone_product_jacobian_duals::SparseMatrixCSC{T,Int} #S
     cone_product_jacobian_slacks::SparseMatrixCSC{T,Int} #Z
-    cone_product_jacobian_inverse_duals::SparseMatrixCSC{T,Int} #Si
-    cone_product_jacobian_inverse_slacks::SparseMatrixCSC{T,Int} #Zi
     custom::X
 end
 
@@ -26,8 +24,6 @@ function ProblemData(num_variables, num_parameters, num_equality, num_cone;
     cone_product = zeros(num_cone)
     cone_product_jacobian_duals = spzeros(num_cone, num_cone)
     cone_product_jacobian_slacks = spzeros(num_cone, num_cone)
-    cone_product_jacobian_inverse_duals = spzeros(num_cone, num_cone)
-    cone_product_jacobian_inverse_slacks = spzeros(num_cone, num_cone)
 
     ProblemData(
         equality_constraint,
@@ -38,8 +34,6 @@ function ProblemData(num_variables, num_parameters, num_equality, num_cone;
         cone_product,
         cone_product_jacobian_duals,
         cone_product_jacobian_slacks,
-        cone_product_jacobian_inverse_duals,
-        cone_product_jacobian_inverse_slacks,
         custom,
     )
 end

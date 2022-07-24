@@ -11,8 +11,8 @@ function generate_cones(num_cone, idx_nn, idx_soc;
     p = cone_product(a, b, idx_nn, idx_soc)
     pa = cone_product_jacobian(a, b, idx_nn, idx_soc)
     pa_sparse = sparse(pa)
-    pai = cone_product_jacobian_inverse(a, b, idx_nn, idx_soc)
-    pai_sparse = sparse(pai)
+    # pai = cone_product_jacobian_inverse(a, b, idx_nn, idx_soc)
+    # pai_sparse = sparse(pai)
 
     Φ_func = Symbolics.build_function([Φ], a,
         checkbounds=checkbounds,
@@ -31,12 +31,12 @@ function generate_cones(num_cone, idx_nn, idx_soc;
         checkbounds=checkbounds,
         parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
         expression=Val{false})[2]
-    pai_func = Symbolics.build_function(pai_sparse.nzval, a, b,
-        checkbounds=checkbounds,
-        parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
-        expression=Val{false})[2]
+    # pai_func = Symbolics.build_function(pai_sparse.nzval, a, b,
+    #     checkbounds=checkbounds,
+    #     parallel=(threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()),
+    #     expression=Val{false})[2]
 
     pa_sparsity = collect(zip([findnz(pa_sparse)[1:2]...]...))
-    pai_sparsity = collect(zip([findnz(pai_sparse)[1:2]...]...))
-    return Φ_func, Φa_func, p_func, pa_func, pai_func, pa_sparsity, pai_sparsity
+    # pai_sparsity = collect(zip([findnz(pai_sparse)[1:2]...]...))
+    return Φ_func, Φa_func, p_func, pa_func, pa_sparsity
 end
