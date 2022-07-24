@@ -29,7 +29,7 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/lcp_utils.j
     Mehrotra.initialize_primals!(solver)
     @test solver.consistency.solved[1] == false
     @test solver.consistency.differentiated[:all] == true
-    solve!(solver)
+    Mehrotra.solve!(solver)
     @test solver.consistency.solved[1] == true
     @test solver.consistency.differentiated[:all] == true
 
