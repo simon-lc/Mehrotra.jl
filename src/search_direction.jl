@@ -17,11 +17,11 @@
 
     we solve
         |A B 0| |Δy|   |-optimality    |
-        |C 0 I|×|Δz| = |-slack_equality|
+        |C 0 D|×|Δz| = |-slack_equality|
         |0 S Z| |Δs|   |-cone_product  |
     we get the compressed form
-        |A B     | |Δy|   |-optimality                       |
-        |C -Z⁻¹S |×|Δz| = |-slack_equality + Z⁻¹ cone_product|
+        |A B      | |Δy|   |-optimality                        |
+        |C -DZ⁻¹S |×|Δz| = |-slack_equality + DZ⁻¹ cone_product|
         Δs = -Z⁻¹ (cone_product + S * Δz)
 
     solver: Solver
