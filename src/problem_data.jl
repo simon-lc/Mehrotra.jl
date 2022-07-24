@@ -6,7 +6,7 @@ struct ProblemData{T,X}
     equality_jacobian_variables_compressed::SparseMatrixCSC{T,Int} #exc
     equality_jacobian_parameters::SparseMatrixCSC{T,Int} #eθ
 
-    cone_product::Vector{T} #s∘Z
+    cone_product::Vector{T} #s∘z
     cone_product_jacobian_duals::SparseMatrixCSC{T,Int} #S
     cone_product_jacobian_slacks::SparseMatrixCSC{T,Int} #Z
     custom::X

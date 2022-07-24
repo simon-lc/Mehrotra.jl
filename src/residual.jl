@@ -36,12 +36,12 @@
     compressed: Bool
 
 """
-function residual!(data::SolverData, problem::ProblemData, idx::Indices;
+function residual!(data::SolverData{T}, problem::ProblemData{T}, idx::Indices;
         residual=false,
         jacobian_variables=false,
         jacobian_parameters=false,
         compressed::Bool=false,
-        sparse_solver::Bool=false)
+        sparse_solver::Bool=false) where {T}
 
     # residual
     if residual
@@ -88,15 +88,10 @@ function residual!(data::SolverData, problem::ProblemData, idx::Indices;
         end
     end
 
+    # # jacobian parameters
     if jacobian_parameters
-        # jacobian parameters
         # equality
-        if sparse_solver
-            fill!(data.jacobian_parameters_sparse, problem.equality_jacobian_parameters, :equality_jacobian_parameters)
-        else
-            data.jacobian_parameters[idx.equality, idx.parameters] .= problem.equality_jacobian_parameters # TODO
-            # data.jacobian_parameters.nzval .= problem.equality_jacobian_parameters.nzval
-        end
+        data.jacobian_parameters.nzval .= problem.equality_jacobian_parameters.nzval
     end
     return
 end

@@ -1,7 +1,7 @@
-struct Solver{T,E,EC,EX,EXC,EP,C,CC,S,B,BX,P,PX,PXI,X,L}
+struct Solver{T,E,EC,EX,EXC,EP,EK,C,CC,S,B,BX,P,PX,X,L}
     problem::ProblemData{T,X}
-    methods::ProblemMethods{T,E,EC,EX,EXC,EP,C,CC,S}
-    cone_methods::ConeMethods{T,B,BX,P,PX,PXI}
+    methods::ProblemMethods{T,E,EC,EX,EXC,EP,EK,C,CC,S}
+    cone_methods::ConeMethods{T,B,BX,P,PX}
     data::SolverData{T}
 
     solution::Point{T}
@@ -171,18 +171,14 @@ function allocate_sparse_matrices!(problem::ProblemData, methods::ProblemMethods
     for idx in methods.equality_jacobian_parameters_sparsity
         problem.equality_jacobian_parameters[idx...] = 1.0
     end
-    # problem.equality_jacobian_variables .*= 0.0
-    # problem.equality_jacobian_parameters .*= 0.0
 
 
-    for idx in cone_methods.product_jacobian_duals_sparsity
+    for idx in cone_methods.product_jacobian_sparsity
         problem.cone_product_jacobian_duals[idx...] = 1.0
     end
-    for idx in cone_methods.product_jacobian_slacks_sparsity
+    for idx in cone_methods.product_jacobian_sparsity
         problem.cone_product_jacobian_slacks[idx...] = 1.0
     end
-    # problem.cone_product_jacobian_duals .*= 0.0
-    # problem.cone_product_jacobian_slacks .*= 0.0
     return nothing
 end
 
@@ -192,13 +188,11 @@ function allocate_sparse_matrices!(data::SolverData, methods::ProblemMethods)
     for idx in methods.equality_jacobian_variables_sparsity
         data.jacobian_variables_sparse.matrix[idx...] = 1.0
     end
-
     for idx in methods.equality_jacobian_variables_compressed_sparsity
         data.jacobian_variables_compressed_sparse[idx...] = 1.0
     end
-
     for idx in methods.equality_jacobian_parameters_sparsity
-        data.jacobian_parameters_sparse.matrix[idx...] = 1.0
+        data.jacobian_parameters[idx...] = 1.0
     end
     return nothing
 end

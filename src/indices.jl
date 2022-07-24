@@ -10,12 +10,15 @@ struct Indices
     parameters::Vector{Int}
     cone_nonnegative::Vector{Int}
     cone_second_order::Vector{Vector{Int}}
+    parameter_keywords::Dict{Symbol,Vector{Int}}
 end
 
 
 function Indices(num_primals, num_cone, num_parameters;
-    nonnegative=collect(1:num_cone),
-    second_order=[collect(1:0)])
+        nonnegative=collect(1:num_cone),
+        second_order=[collect(1:0)],
+        parameter_keywords=Dict{Symbol,Vector{Int}}(:all => 1:num_parameters),
+        )
 
     num_variables = num_primals + 2 * num_cone
     variables = collect(1:num_variables)
@@ -42,5 +45,6 @@ function Indices(num_primals, num_cone, num_parameters;
         parameters,
         nonnegative,
         second_order,
+        parameter_keywords,
     )
 end

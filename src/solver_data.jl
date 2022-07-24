@@ -6,10 +6,8 @@ struct SolverData{T}
     jacobian_variables_compressed_dense::Matrix{T}
     jacobian_variables_compressed_sparse::SparseMatrixCSC{T,Int}
     jacobian_parameters::SparseMatrixCSC{T,Int}
-    jacobian_parameters_sparse::BlockSparse{T}
     step::Point{T}
     step_correction::Point{T}
-    # point_temporary::Point{T}
     # merit::Vector{T}
     # merit_gradient::Vector{T}
     # constraint_violation::Vector{T}
@@ -40,16 +38,14 @@ function SolverData(dim::Dimensions, idx::Indices, p_data::ProblemData;
     jacobian_variables_compressed_dense = zeros(num_equality, num_equality)
     jacobian_variables_compressed_sparse = spzeros(num_equality, num_equality)
 
-    blocks = [p_data.equality_jacobian_parameters]
-    ranges = [(idx.equality, idx.parameters)]
-    names = [:equality_jacobian_parameters]
-    jacobian_parameters = spzeros(num_variables, num_parameters)
-    jacobian_parameters_sparse = BlockSparse(num_variables, num_parameters, blocks, ranges, names=names)
-    # jacobian_parameters_sparse = spzeros(num_variables, num_parameters)
+    # blocks = [p_data.equality_jacobian_parameters]
+    # ranges = [(idx.equality, idx.parameters)]
+    # names = [:equality_jacobian_parameters]
+    # jacobian_parameters = BlockSparse(num_variables, num_parameters, blocks, ranges, names=names)
+    jacobian_parameters =spzeros(num_variables, num_parameters)
 
     step = Point(dim, idx)
     step_correction = Point(dim, idx)
-    # point_temporary = Point(dim, idx)
 
     # merit = zeros(1)
     # merit_gradient = zeros(num_variables)
@@ -70,10 +66,8 @@ function SolverData(dim::Dimensions, idx::Indices, p_data::ProblemData;
         # cone_product_jacobian_duals,
         # cone_product_jacobian_ratio,
         jacobian_parameters,
-        jacobian_parameters_sparse,
         step,
         step_correction,
-        # point_temporary,
         # merit,
         # merit_gradient,
         # constraint_violation,

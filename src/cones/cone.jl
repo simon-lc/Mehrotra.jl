@@ -75,7 +75,6 @@ function cone!(problem::ProblemData{T}, methods::ConeMethods, solution::Point{T}
     barrier_gradient=false,
     cone_constraint=false,
     cone_jacobian=false,
-    cone_jacobian_inverse=false,
     cone_target=false,
     sparse_solver=false,
     ) where T

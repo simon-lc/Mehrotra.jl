@@ -1,5 +1,5 @@
 struct BlockSparse{T,N,M}
-    matrix::SparseMatrixCSC{T, Int}
+    matrix::SparseMatrixCSC{T,Int}
     indices::Vector{Vector{Int}}
     name_dict::Dict{Symbol,Int}
     ranges::Vector{Tuple{Vector{Int}, Vector{Int}}}
@@ -38,7 +38,7 @@ function BlockSparse(n::Int, m::Int, blocks, ranges;
 end
 
 import Base.fill!
-function fill!(block_matrix::BlockSparse, block, name)
+function fill!(block_matrix::BlockSparse{T,N,M}, block, name) where {T,N,M}
     matrix = block_matrix.matrix
     indices = block_matrix.indices
     i = block_matrix.name_dict[name]

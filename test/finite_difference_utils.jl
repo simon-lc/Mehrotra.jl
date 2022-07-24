@@ -44,7 +44,6 @@ function test_residual_jacobian(solver, residual; mode::Symbol=:variables)
         equality_jacobian_parameters=true,
         cone_constraint=true,
         cone_jacobian=true,
-        cone_jacobian_inverse=true,
         sparse_solver=sparse_solver,
         compressed=compressed,
     )
@@ -65,7 +64,7 @@ function test_residual_jacobian(solver, residual; mode::Symbol=:variables)
             J0 = data.jacobian_variables_dense
         end
     elseif mode == :parameters
-        J0 = sparse_solver ? data.jacobian_parameters_sparse.matrix : data.jacobian_parameters
+        J0 = data.jacobian_parameters.matrix
     end
 
     # finitediff

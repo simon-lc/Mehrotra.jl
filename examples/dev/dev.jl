@@ -7,8 +7,8 @@ include("../benchmark_problems/lcp_utils.jl")
 # coupled constraints
 ################################################################################
 # dimensions
-num_primals = 10
-num_cone = 10
+num_primals = 1
+num_cone = 1
 num_parameters = num_primals^2 + num_primals + num_cone^2 + num_cone
 
 # cone type
@@ -38,9 +38,47 @@ solver = Solver(lcp_residual, num_primals, num_cone,
         symmetric=false,
     ));
 
-solver.linear_solver
+# J0 = solver.data.jacobian_parameters
+# v0 = similar(J0, Int)
+# fill!(J0, v0, :equality_jacobian_parameters)
+# @benchmark $fill!($J0, $v0, :equality_jacobian_parameters)
+
 # solve
 Mehrotra.solve!(solver)
-@benchmark $(Mehrotra.solve!)($solver)
+# @benchmark $(Mehrotra.solve!)($solver)
 
 solver.methods.equality_jacobian_keywords
+
+@benchmark $differentiate!($solver; keywords=$([:all]))
+
+solver.data
+
+solver.methods
+
+data = solver.data
+problem = solver.problem
+indices = solver.indices
+
+Main.@code_warntype residual!(data, problem, indices;
+        residual=false,
+        jacobian_variables=false,
+        jacobian_parameters=true,
+        compressed=false,
+        sparse_solver=false)
+
+residual!(solver.data, solver.problem, solver.indices;
+        residual=false,
+        jacobian_variables=false,
+        jacobian_parameters=false,
+        compressed=false,
+        sparse_solver=false)
+
+@benchmark $residual!(
+        $(data),
+        $(problem),
+        $(indices);
+        residual=false,
+        jacobian_variables=false,
+        jacobian_parameters=true,
+        compressed=false,
+        sparse_solver=false)

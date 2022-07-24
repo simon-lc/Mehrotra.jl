@@ -78,7 +78,7 @@ function Mehrotra.solve!(solver)
             solver.consistency.solved .= true
 
             # differentiate
-            options.differentiate && differentiate!(solver, keyword=:all)
+            options.differentiate && differentiate!(solver, keywords=[:all])
 
             options.verbose && solver_status(solver, true)
             return true
@@ -90,7 +90,6 @@ function Mehrotra.solve!(solver)
             equality_jacobian_variables=true,
             cone_constraint=true,
             cone_jacobian=true,
-            cone_jacobian_inverse=true,
             sparse_solver=sparse_solver,
             compressed=compressed,
         )

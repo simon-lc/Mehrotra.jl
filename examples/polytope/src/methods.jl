@@ -247,7 +247,7 @@ end
 function evaluate!(
         problem::ProblemData{T},
         methods::DynamicsMethods182{T},
-        cone_methods::ConeMethods{T,B,BX,P,PX,PXI},
+        cone_methods::ConeMethods{T,B,BX,P,PX},
         solution::Point{T},
         parameters::Vector{T};
         equality_constraint=false,
@@ -255,8 +255,7 @@ function evaluate!(
         equality_jacobian_parameters=false,
         cone_constraint=false,
         cone_jacobian=false,
-        cone_jacobian_inverse=false,
-        ) where {T,B,BX,P,PX,PXI}
+        ) where {T,B,BX,P,PX}
 
     # TODO this method allocates memory, need fix
 
@@ -277,7 +276,6 @@ function evaluate!(
     cone!(problem, cone_methods, solution,
         cone_constraint=cone_constraint,
         cone_jacobian=cone_jacobian,
-        cone_jacobian_inverse=cone_jacobian_inverse,
     )
 
     return nothing

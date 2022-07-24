@@ -1,6 +1,6 @@
 function evaluate!(problem::ProblemData{T},
-        methods::AbstractProblemMethods{T,E,EC,EX,EXC,EP,C,CC,S},
-        cone_methods::ConeMethods{T,B,BX,P,PX,PXI},
+        methods::AbstractProblemMethods{T,E,EC,EX,EXC,EP,EK,C,CC,S},
+        cone_methods::ConeMethods{T,B,BX,P,PX},
         solution::Point{T},
         parameters::Vector{T};
         equality_constraint=false,
@@ -9,10 +9,9 @@ function evaluate!(problem::ProblemData{T},
         equality_jacobian_keywords=nothing,
         cone_constraint=false,
         cone_jacobian=false,
-        cone_jacobian_inverse=false,
         sparse_solver::Bool=false,
         compressed::Bool=false,
-        ) where {T,E,EC,EX,EXC,EP,C,CC,S,B,BX,P,PX,PXI}
+        ) where {T,E,EC,EX,EXC,EP,EK,C,CC,S,B,BX,P,PX}
 
     x = solution.all
     θ = parameters
@@ -48,6 +47,18 @@ function evaluate!(problem::ProblemData{T},
     end
 
     if (equality_jacobian_parameters && ne > 0 && nθ > 0)
+        # for each keyword
+        if equality_jacobian_keywords != nothing
+            for (i,k) in enumerate(equality_jacobian_keywords)
+                func = methods.equality_jacobian_keywords[i]
+                indices = methods.equality_jacobian_keywords_indices[i]
+                cache = methods.equality_jacobian_parameters_cache[indices]
+                func(cache, x, θ)
+                problem.equality_jacobian_parameters.nzval[indices] .=
+                    methods.equality_jacobian_parameters_cache[indices]
+            end
+        end
+
         methods.equality_jacobian_parameters(
             methods.equality_jacobian_parameters_cache, x, θ)
         problem.equality_jacobian_parameters.nzval .=
@@ -58,7 +69,6 @@ function evaluate!(problem::ProblemData{T},
     cone!(problem, cone_methods, solution,
         cone_constraint=cone_constraint,
         cone_jacobian=cone_jacobian,
-        cone_jacobian_inverse=cone_jacobian_inverse,
         sparse_solver=sparse_solver,
     )
     return
