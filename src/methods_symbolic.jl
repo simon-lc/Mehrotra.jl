@@ -20,9 +20,8 @@ struct ProblemMethods{T,E,EC,EX,EXC,EP,EK,C,CC,S} <: AbstractProblemMethods{T,E,
     equality_jacobian_keywords_indices::Vector{Vector{Int}}
 end
 
-function symbolics_methods(equality::Function, dim::Dimensions, idx::Indices;
-    parameter_keywords=Dict{Symbol,Vector{Int}}(:all => idx.parameters),
-    )
+function symbolics_methods(equality::Function, dim::Dimensions, idx::Indices)
+    parameter_keywords = idx.parameter_keywords
 
     e, ec, ex, exc, eθ, ek, c, cc, s, ex_sparsity, exc_sparsity, eθ_sparsity, ek_indices = generate_symbolic_gradients(equality, dim, idx)
 

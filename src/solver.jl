@@ -54,9 +54,9 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     # codegen methods
     if methods == nothing
         if method_type == :symbolic
-            methods = symbolics_methods(equality, dim, idx, parameter_keywords=parameter_keywords)
+            methods = symbolics_methods(equality, dim, idx)
         elseif method_type == :finite_difference
-            methods = finite_difference_methods(equality, dim, idx, parameter_keywords=parameter_keywords)
+            methods = finite_difference_methods(equality, dim, idx)
         else
             error("unknown method_type")
         end

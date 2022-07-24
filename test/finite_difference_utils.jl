@@ -64,7 +64,7 @@ function test_residual_jacobian(solver, residual; mode::Symbol=:variables)
             J0 = data.jacobian_variables_dense
         end
     elseif mode == :parameters
-        J0 = data.jacobian_parameters.matrix
+        J0 = data.jacobian_parameters
     end
 
     # finitediff

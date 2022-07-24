@@ -1,4 +1,6 @@
 function finite_difference_methods(equality::Function, dim::Dimensions, idx::Indices)
+    parameter_keywords = idx.parameter_keywords
+
     # in-place evaluation
     function equality_constraint(out, x, θ)
         primals = x[idx.primals]
@@ -8,17 +10,6 @@ function finite_difference_methods(equality::Function, dim::Dimensions, idx::Ind
         out .= equality(primals, duals, slacks, parameters)
     end
 
-    # function equality_constraint_compressed(out, x, θ)
-    #     primals = x[idx.primals]
-    #     duals = x[idx.duals]
-    #     slacks = x[idx.slacks]
-    #     parameters = θ
-    #     out .= equality(primals, duals, slacks, parameters)
-    #     D = FiniteDiff.finite_difference_jacobian(
-    #         slacks -> equality(primals, duals, slacks, parameters)[idx.slackness], slacks)
-    #     Zi = cone_product_jacobian_inverse(slacks, duals, idx_nn, idx_soc)
-    #     out[idx.slackness] .-= D * Zi * rs
-    # end
     warning = "compressed search direction is not implemented with finite difference methods."
     function equality_constraint_compressed(out, x, θ)
         @warn warning
@@ -36,18 +27,6 @@ function finite_difference_methods(equality::Function, dim::Dimensions, idx::Ind
     function equality_jacobian_variables_compressed(vector_cache, x, θ)
         error(warning)
     end
-    # # jacobian variables compressed
-    # function equality_jacobian_variables_compressed(vector_cache, x, θ)
-    #     f(out, x) = equality_constraint(out, x, θ)
-    #     matrix_cache = reshape(vector_cache, (dim.equality, dim.variables))
-    #     FiniteDiff.finite_difference_jacobian!(matrix_cache, f, x)
-    #     D = FiniteDiff.finite_difference_jacobian(
-    #         slacks -> equality(primals, duals, slacks, parameters)[idx.slackness], slacks)
-    #     S = cone_product_jacobian(duals, slacks, idx_nn, idx_soc)
-    #     Zi = cone_product_jacobian_inverse(slacks, duals, idx_nn, idx_soc)
-    #     matrix[idx.slackness, idx.duals] .-= D * Zi * S
-    #     return nothing
-    # end
 
     # correction
     function correction(c, r, Δza, Δsa, κ)
@@ -74,9 +53,31 @@ function finite_difference_methods(equality::Function, dim::Dimensions, idx::Ind
         return nothing
     end
 
+    equality_jacobian_keywords = Vector{Function}()
+    for k in parameter_keywords
+        function func(vector_cache, x, θ)
+            function f(out, θi)
+                θc = copy(θ)
+                θc[parameter_keywords[k]] .= θi
+                equality_constraint(out, x, θc)
+            end
+            matrix_cache = reshape(vector_cache, (dim.equality, parameter_keywords[k]))
+            FiniteDiff.finite_difference_jacobian!(matrix_cache, f, θ[parameter_keywords[k]])
+            return nothing
+        end
+        push!(equality_jacobian_keywords, func)
+    end
+
     ex_sparsity = collect(zip([findnz(sparse(ones(dim.equality, dim.variables)))[1:2]...]...))
     exc_sparsity = collect(zip([findnz(sparse(ones(dim.equality, dim.equality)))[1:2]...]...))
     eθ_sparsity = collect(zip([findnz(sparse(ones(dim.equality, dim.parameters)))[1:2]...]...))
+    eθ_indices = zeros(Int, dim.equality, dim.parameters)
+    vec(eθ_indices) .= 1:length(eθ_indices)
+    ek_indices = Vector{Vector{Int}}()
+    for (key, val) in parameter_keywords
+        indices = vec(eθ_indices[:,val])
+        push!(ek_indices, indices)
+    end
 
     methods = ProblemMethods(
         equality_constraint,
@@ -84,6 +85,7 @@ function finite_difference_methods(equality::Function, dim::Dimensions, idx::Ind
         equality_jacobian_variables,
         equality_jacobian_variables_compressed,
         equality_jacobian_parameters,
+        equality_jacobian_keywords,
         correction,
         correction_compressed,
         slack_direction,
@@ -93,6 +95,7 @@ function finite_difference_methods(equality::Function, dim::Dimensions, idx::Ind
         ex_sparsity,
         exc_sparsity,
         eθ_sparsity,
+        ek_indices,
     )
 
     return methods
