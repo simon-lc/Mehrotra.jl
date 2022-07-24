@@ -95,6 +95,7 @@ function residual!(data::SolverData, problem::ProblemData, idx::Indices;
             fill!(data.jacobian_parameters_sparse, problem.equality_jacobian_parameters, :equality_jacobian_parameters)
         else
             data.jacobian_parameters[idx.equality, idx.parameters] .= problem.equality_jacobian_parameters # TODO
+            # data.jacobian_parameters.nzval .= problem.equality_jacobian_parameters.nzval
         end
     end
     return

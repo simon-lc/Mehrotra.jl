@@ -45,14 +45,17 @@ num_primals = 0
 num_cone = 4
 solver = Solver(residual, num_primals, num_cone,
     options=Options(
-        verbose=true,
+        verbose=false,
         sparse_solver=false,
+        # differentiate=true,
         compressed_search_direction=true,
         residual_tolerance=1e-10,
         complementarity_tolerance=1e-10,
     ))
 
 solve!(solver)
+Main.@code_warntype solve!(solver)
+Main.@profiler [solve!(solver) for i=1:100000]
 @benchmark $solve!($solver)
 
 
