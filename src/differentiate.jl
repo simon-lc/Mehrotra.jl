@@ -1,4 +1,4 @@
-function differentiate!(solver)
+function differentiate!(solver; keyword::Symbol=:all)
     data = solver.data
     problem = solver.problem
     methods = solver.methods
@@ -75,5 +75,8 @@ function differentiate!(solver)
         data.solution_sensitivity .*= -1.0
     end
     # #TODO parallelize, make more efficient
+
+    # set the state of the solver to differentiated = true
+    solver.consistency.differentiated[keyword] = true
     return
 end

@@ -50,8 +50,8 @@
     dimensions = solverc.dimensions
     variables = rand(dimensions.variables)
 
-    Mehrotra.initialize_variables!(solverc, variables)
-    Mehrotra.initialize_variables!(solveru, variables)
+    Mehrotra.set_variables!(solverc, variables)
+    Mehrotra.set_variables!(solveru, variables)
 
     Mehrotra.differentiate!(solverc)
     Mehrotra.differentiate!(solveru)

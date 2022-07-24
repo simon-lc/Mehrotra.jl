@@ -47,7 +47,7 @@ function warm_simulate_particle(solver, p2, v15, u; timestep=0.01, mass=1.0,
 
         # warm start
         guess = solver.solution.all
-        initialize_variables!(solver, guess)
+        set_variables!(solver, guess)
 
         solver.options.verbose = false
         solve!(solver, initialization=(i==1))
@@ -85,7 +85,7 @@ function sensitivity_simulate_particle(solver, p2, v15, u; timestep=0.01, mass=1
         # @show scn(norm(s0 - s1, Inf))
         # guess = solver.solution.all + correct_sensitivity_step(solver, solver.solution.all, dsolution_raw)
         guess = solver.solution.all + dsolution_raw
-        initialize_variables!(solver, guess)
+        set_variables!(solver, guess)
         solver.solution.duals .= max.(solver.solution.duals, solver.options.complementarity_tolerance^2)
         solver.solution.slacks .= max.(solver.solution.slacks, solver.options.complementarity_tolerance^2)
 

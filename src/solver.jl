@@ -23,6 +23,7 @@ struct Solver{T,E,EC,EX,EXC,EP,C,CC,S,B,BX,P,PX,PXI,X,L}
     primal_regularization_last::Vector{T}
     dual_regularization::Vector{T}
 
+    consistency::Consistency
     options::Options{T}
     trace::Trace{T}
 end
@@ -128,6 +129,7 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     primal_regularization_last = [0.0]
     dual_regularization = [0.0]
 
+    consistency = Consistency()
     trace = Trace()
 
     Solver(
@@ -149,6 +151,7 @@ function Solver(equality, num_primals::Int, num_cone::Int;
         primal_regularization,
         primal_regularization_last,
         dual_regularization,
+        consistency,
         options,
         trace,
     )

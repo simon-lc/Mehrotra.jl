@@ -154,7 +154,7 @@ solver = Solver(equality, num_primals, num_cone,
     ))
 
 solve!(solver)
-# initialize_variables!(solver, [y0; z0; s0])
+# set_variables!(solver, [y0; z0; s0])
 # solver.options.warm_start = false
 solve!(solver)
 @benchmark $solve!($solver)

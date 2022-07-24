@@ -18,3 +18,4 @@ using Mehrotra
 @testset "decoupling"               verbose=true begin include("decoupling.jl") end
 @testset "finite difference"        verbose=true begin include("finite_difference.jl") end
 @testset "residual"                 verbose=true begin include("residual.jl") end
+@testset "consistency"              verbose=true begin include("consistency.jl") end

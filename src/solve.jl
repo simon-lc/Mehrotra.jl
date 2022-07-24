@@ -74,9 +74,11 @@ function Mehrotra.solve!(solver)
         # check for convergence
         if (equality_violation <= options.residual_tolerance &&
             cone_product_violation <= options.residual_tolerance)
+            # set the state of the solver to :solved
+            solver.consistency.solved .= true
 
             # differentiate
-            options.differentiate && differentiate!(solver)
+            options.differentiate && differentiate!(solver, keyword=:all)
 
             options.verbose && solver_status(solver, true)
             return true
