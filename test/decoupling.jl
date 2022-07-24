@@ -17,8 +17,7 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/lcp_utils.j
         )
 
     Mehrotra.solve!(solver)
-    iterations = solver.
-    race.iterations
+    iterations = solver.trace.iterations
     equality_violation, cone_product_violation = Mehrotra.violation(solver)
     @test equality_violation <= solver.options.residual_tolerance
     @test cone_product_violation <= solver.options.residual_tolerance
