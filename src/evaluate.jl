@@ -48,8 +48,10 @@ function evaluate!(problem::ProblemData{T},
 
     if (equality_jacobian_parameters && ne > 0 && nθ > 0)
         # for each keyword
+        @show equality_jacobian_keywords
         if equality_jacobian_keywords != nothing
             for (i,k) in enumerate(equality_jacobian_keywords)
+                @show k
                 func = methods.equality_jacobian_keywords[i]
                 indices = methods.equality_jacobian_keywords_indices[i]
                 cache = methods.equality_jacobian_parameters_cache[indices]
@@ -58,11 +60,10 @@ function evaluate!(problem::ProblemData{T},
                     methods.equality_jacobian_parameters_cache[indices]
             end
         end
-
-        methods.equality_jacobian_parameters(
-            methods.equality_jacobian_parameters_cache, x, θ)
-        problem.equality_jacobian_parameters.nzval .=
-            methods.equality_jacobian_parameters_cache
+        # methods.equality_jacobian_parameters(
+        #     methods.equality_jacobian_parameters_cache, x, θ)
+        # problem.equality_jacobian_parameters.nzval .=
+        #     methods.equality_jacobian_parameters_cache
     end
 
     # evaluate candidate cone product constraint, cone target and jacobian
