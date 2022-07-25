@@ -98,18 +98,14 @@ function build_2d_frame!(vis::Visualizer;
     ) where T
 
     # axes
-    build_rope(vis[:contacts][name];
-        N=1,
+    build_segment!(vis[:contacts][name];
         color=tangent_axis_color,
-        rope_type=:cylinder,
-        rope_radius=origin_radius/2,
+        segment_radius=origin_radius/2,
         name=:tangent)
 
-    build_rope(vis[:contacts][name];
-        N=1,
+    build_segment!(vis[:contacts][name];
         color=normal_axis_color,
-        rope_type=:cylinder,
-        rope_radius=origin_radius/2,
+        segment_radius=origin_radius/2,
         name=:normal)
 
     # origin
@@ -122,8 +118,24 @@ end
 function set_2d_frame!(vis::Visualizer, contact, origin, normal, tangent; name=contact.name)
     settransform!(vis[:contacts][name][:origin],
         MeshCat.Translation(SVector{3}(0, origin...)))
-    set_straight_rope(vis[:contacts][name], [0; origin], [0; origin+normal]; N=1, name=:normal)
-    set_straight_rope(vis[:contacts][name], [0; origin], [0; origin+tangent]; N=1, name=:tangent)
+    set_segment!(vis[:contacts][name], [0; origin], [0; origin+normal]; name=:normal)
+    set_segment!(vis[:contacts][name], [0; origin], [0; origin+tangent]; name=:tangent)
+    return nothing
+end
+
+function build_segment!(vis::Visualizer; color=Colors.RGBA(0,0,0,1),
+        segment_radius=0.02, name=:segment)
+
+    segment = MeshCat.Cylinder(MeshCat.Point(0,0,0.0), MeshCat.Point(0,0,1.0), segment_radius)
+    material = MeshPhongMaterial(color=color)
+    setobject!(vis[name][:scaled], segment, material)
+    return vis
+end
+
+function set_segment!(vis::Visualizer, x_start, x_goal; name::Symbol=:segment)
+    transform, scaling = RobotVisualizer.link_transform(x_start, x_goal)
+    settransform!(vis[name][:scaled], scaling)
+    settransform!(vis[name], transform)
     return nothing
 end
 
