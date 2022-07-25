@@ -8,16 +8,7 @@ using Plots
 vis = Visualizer()
 open(vis)
 
-include("../src/polytope.jl")
-include("../src/rotate.jl")
-include("../src/quaternion.jl")
-include("../src/node.jl")
-include("../src/body.jl")
-include("../src/poly_poly.jl")
-include("../src/poly_halfspace.jl")
-include("../src/mechanism.jl")
-include("../src/simulate.jl")
-include("../src/visuals.jl")
+include("../src/DojoLight.jl")
 
 include("../environment/convex_bundle.jl")
 include("../environment/convex_drop.jl")

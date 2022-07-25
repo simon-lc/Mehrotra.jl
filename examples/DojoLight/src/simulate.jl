@@ -10,7 +10,7 @@ function update_parameters!(mechanism::Mechanism183)
         solver.parameters[off .+ (1:nθ)] .= θ; off += nθ
     end
     # update the consistency logic
-    solver.consistency.solved = false
+    solver.consistency.solved .= false
     set_bool!(solver.consistency.differentiated, false)
     return nothing
 end

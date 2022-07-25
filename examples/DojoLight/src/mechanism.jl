@@ -111,6 +111,7 @@ function Mechanism183(residual, bodies::Vector, contacts::Vector;
     # # Dimensions
     nodes = [bodies; contacts]
     dim = MechanismDimensions183(bodies, contacts)
+    idx = MechanismIndices183(bodies, contacts)
     num_primals = sum(primal_dimension.(nodes))
     num_cone = sum(cone_dimension.(nodes))
 
@@ -145,6 +146,7 @@ function Mechanism183(residual, bodies::Vector, contacts::Vector;
         bodies,
         contacts,
         dim,
+        idx,
         )
     return mechanism
 end

@@ -41,7 +41,8 @@ end
 gravity = -9.81
 timestep = 0.02
 friction_coefficient = 0.8
-mech = get_convex_drop(;
+# mech = get_convex_drop(;
+mech = get_convex_bundle(;
     timestep=0.05,
     gravity=-9.81,
     mass=1.0,
@@ -61,6 +62,38 @@ mech = get_convex_drop(;
         )
     );
 
+
+# xp2 = [+0.0,1.5,-0.25]
+# vp15 = [-0,0,-0.0]
+# z0 = [xp2; vp15]
+# u0 = zeros(3)
+# w0 = zeros(0)
+#
+# z1 = zeros(6)
+# dz0 = zeros(6,6)
+# du0 = zeros(6,3)
+
+xp2 = [+0.0,1.5,-0.25]
+xc2 = [-0.0,0.5,-2.25]
+vp15 = [-0,0,-0.0]
+vc15 = [+0,0,+0.0]
+z0 = [xp2; vp15; xc2; vc15]
+u0 = zeros(12)
+w0 = zeros(0)
+
+z1 = zeros(12)
+dz0 = zeros(12,12)
+du0 = zeros(12,6)
+
+dynamics(z1, mech, z0, u0, w0)
+dynamics_jacobian_state(dz0, mech, z0, u0, w0)
+dynamics_jacobian_input(du0, mech, z0, u0, w0)
+# @benchmark $dynamics($z1, $mech, $z0, $u0, $w0)
+# @benchmark $dynamics_jacobian_state($dz0, $mech, $z0, $u0, $w0)
+# @benchmark $dynamics_jacobian_input($du0, $mech, $z0, $u0, $w0)
+
+
+
 # ## dimensions
 n = mech.dimensions.state
 m = mech.dimensions.input
@@ -70,20 +103,18 @@ nu_infeasible = 0
 # ## simulation test
 ################################################################################
 
-u_hover = [0; 0.5; 0]
+# u_hover = [0; 0.5; 0]
+u_hover = [0; 9.7; 0; 0; 0; 0]
 function ctrl!(m, i; u=u_hover)
     set_input!(m, u)
 end
 
-xp2 = [+0.0,1.5,-0.25]
-vp15 = [-0,0,-0.0]
-z0 = [xp2; vp15]
 H0 = 150
 storage = simulate!(mech, z0, H0, controller=ctrl!)
 # visualize!(vis, mech, storage, build=true)
 visualize!(vis, mech, storage, build=false)
 
-
+# open(vis)
 
 ################################################################################
 # ## reference trajectory
