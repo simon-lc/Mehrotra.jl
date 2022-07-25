@@ -54,14 +54,14 @@ function finite_difference_methods(equality::Function, dim::Dimensions, idx::Ind
     end
 
     equality_jacobian_keywords = Vector{Function}()
-    for k in parameter_keywords
+    for k in eachindex(parameter_keywords)
         function func(vector_cache, x, θ)
             function f(out, θi)
                 θc = copy(θ)
                 θc[parameter_keywords[k]] .= θi
                 equality_constraint(out, x, θc)
             end
-            matrix_cache = reshape(vector_cache, (dim.equality, parameter_keywords[k]))
+            matrix_cache = reshape(vector_cache, (dim.equality, length(parameter_keywords[k])))
             FiniteDiff.finite_difference_jacobian!(matrix_cache, f, θ[parameter_keywords[k]])
             return nothing
         end
