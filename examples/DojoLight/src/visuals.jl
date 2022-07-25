@@ -52,7 +52,7 @@ end
 ######################################################################
 # body
 ######################################################################
-function build_body!(vis::Visualizer, body::Body182;
+function build_body!(vis::Visualizer, body::Body183;
         name::Symbol=body.name,
         collider_color=RGBA(0.2, 0.2, 0.2, 0.8),
         center_of_mass_color=RGBA(1, 1, 1, 1.0),
@@ -74,7 +74,7 @@ function build_body!(vis::Visualizer, body::Body182;
     return nothing
 end
 
-function set_body!(vis::Visualizer, body::Body182, pose; name=body.name)
+function set_body!(vis::Visualizer, body::Body183, pose; name=body.name)
     p = pose[1:2]
     q = pose[3:3]
     pe = [0; p]
@@ -130,7 +130,7 @@ end
 ######################################################################
 # mechanism
 ######################################################################
-function build_mechanism!(vis::Visualizer, mechanism::Mechanism182)
+function build_mechanism!(vis::Visualizer, mechanism::Mechanism183)
     for body in mechanism.bodies
         build_body!(vis, body)
     end
@@ -140,7 +140,7 @@ function build_mechanism!(vis::Visualizer, mechanism::Mechanism182)
     return nothing
 end
 
-function set_mechanism!(vis::Visualizer, mechanism::Mechanism182, storage::Storage116, i::Int)
+function set_mechanism!(vis::Visualizer, mechanism::Mechanism183, storage::Storage116, i::Int)
     for (j,body) in enumerate(mechanism.bodies)
         set_body!(vis, body, storage.x[i][j])
     end
@@ -153,7 +153,7 @@ function set_mechanism!(vis::Visualizer, mechanism::Mechanism182, storage::Stora
     return nothing
 end
 
-function visualize!(vis::Visualizer, mechanism::Mechanism182, storage::Storage116{T,H};
+function visualize!(vis::Visualizer, mechanism::Mechanism183, storage::Storage116{T,H};
         build::Bool=true,
         animation=MeshCat.Animation(Int(floor(1/mechanism.bodies[1].timestep[1])))) where {T,H}
 

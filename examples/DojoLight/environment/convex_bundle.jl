@@ -78,25 +78,25 @@ function get_convex_bundle(;
 
     # nodes
     bodies = [
-        Body182(timestep, mass, inertia, [Ap1, Ap2], [bp1, bp2], gravity=+gravity, name=:pbody),
-        Body182(timestep, mass, inertia, [Ac], [bc], gravity=+gravity, name=:cbody),
+        Body183(timestep, mass, inertia, [Ap1, Ap2], [bp1, bp2], gravity=+gravity, name=:pbody),
+        Body183(timestep, mass, inertia, [Ac], [bc], gravity=+gravity, name=:cbody),
         ]
     contacts = [
-        PolyPoly182(bodies[1], bodies[2], 
+        PolyPoly183(bodies[1], bodies[2], 
             friction_coefficient=friction_coefficient, 
             name=:contact_1),
-        PolyPoly182(bodies[1], bodies[2], 
+        PolyPoly183(bodies[1], bodies[2], 
             parent_collider_id=2, 
             friction_coefficient=friction_coefficient, 
             name=:contact_2),
-        PolyHalfSpace182(bodies[1], Af, bf, 
+        PolyHalfSpace183(bodies[1], Af, bf, 
             friction_coefficient=friction_coefficient, 
             name=:halfspace_p1),
-        PolyHalfSpace182(bodies[1], Af, bf, 
+        PolyHalfSpace183(bodies[1], Af, bf, 
             parent_collider_id=2, 
             friction_coefficient=friction_coefficient, 
             name=:halfspace_p2),
-        PolyHalfSpace182(bodies[2], Af, bf, 
+        PolyHalfSpace183(bodies[2], Af, bf, 
             friction_coefficient=friction_coefficient, 
             name=:halfspace_c),
         ]
@@ -105,7 +105,7 @@ function get_convex_bundle(;
     local_mechanism_residual(primals, duals, slacks, parameters) = 
         mechanism_residual(primals, duals, slacks, parameters, bodies, contacts)
 
-    mechanism = Mechanism182(
+    mechanism = Mechanism183(
         local_mechanism_residual, 
         bodies, 
         contacts, 
