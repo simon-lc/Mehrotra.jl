@@ -49,7 +49,8 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     # indices
     idx = Indices(num_primals, num_cone, num_parameters;
         nonnegative=nonnegative_indices,
-        second_order=second_order_indices)
+        second_order=second_order_indices,
+        parameter_keywords=parameter_keywords)
 
     # codegen methods
     if methods == nothing

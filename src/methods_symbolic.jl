@@ -23,7 +23,8 @@ end
 function symbolics_methods(equality::Function, dim::Dimensions, idx::Indices)
     parameter_keywords = idx.parameter_keywords
 
-    e, ec, ex, exc, eθ, ek, c, cc, s, ex_sparsity, exc_sparsity, eθ_sparsity, ek_indices = generate_symbolic_gradients(equality, dim, idx)
+    e, ec, ex, exc, eθ, ek, c, cc, s, ex_sparsity, exc_sparsity, eθ_sparsity, ek_indices =
+        generate_symbolic_gradients(equality, dim, idx, parameter_keywords=parameter_keywords)
 
     methods = ProblemMethods(
         e,

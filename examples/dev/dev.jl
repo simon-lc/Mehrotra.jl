@@ -39,16 +39,25 @@ solver = Solver(lcp_residual, num_primals, num_cone,
         symmetric=false,
     ));
 
-# J0 = solver.data.jacobian_parameters
-# v0 = similar(J0, Int)
-# fill!(J0, v0, :equality_jacobian_parameters)
-# @benchmark $fill!($J0, $v0, :equality_jacobian_parameters)
+solver.data.jacobian_parameters
+solver.problem.equality_jacobian_parameters
+solver.indices.parameter_keywords
 
 
 # solve
+solver.indices.parameter_keywords
 Mehrotra.solve!(solver)
-@benchmark $(Mehrotra.solve!)($solver)
+
+
+solver.data.jacobian_parameters
+solver.problem.equality_jacobian_parameters
+solver.methods.equality_jacobian_keywords_indices
+
+
+
+# @benchmark $(Mehrotra.solve!)($solver)
 solver.data.solution_sensitivity
+solver.data.jacobian_parameters
 
 solver.methods.equality_jacobian_keywords
 
