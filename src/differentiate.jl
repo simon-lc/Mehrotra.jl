@@ -1,5 +1,4 @@
-# function differentiate!(solver; keywords::Vector{Symbol}=[:all])
-function differentiate!(solver; keywords::Vector{Symbol}=Vector{Symbol}())
+function differentiate!(solver; keywords=keys(solver.indices.parameter_keywords))
     data = solver.data
     problem = solver.problem
     methods = solver.methods

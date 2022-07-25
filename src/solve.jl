@@ -78,7 +78,7 @@ function Mehrotra.solve!(solver)
             solver.consistency.solved .= true
 
             # differentiate
-            options.differentiate && differentiate!(solver, keywords=[:all])
+            options.differentiate && differentiate!(solver)
 
             options.verbose && solver_status(solver, true)
             return true

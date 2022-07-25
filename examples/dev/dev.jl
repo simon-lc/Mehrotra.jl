@@ -30,6 +30,7 @@ solver = Solver(lcp_residual, num_primals, num_cone,
     parameters=parameters,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,
+    parameter_keywords=Dict(:x => 1:2),
     options=Options(
         compressed_search_direction=false,
         sparse_solver=false,
@@ -43,9 +44,11 @@ solver = Solver(lcp_residual, num_primals, num_cone,
 # fill!(J0, v0, :equality_jacobian_parameters)
 # @benchmark $fill!($J0, $v0, :equality_jacobian_parameters)
 
+
 # solve
 Mehrotra.solve!(solver)
-# @benchmark $(Mehrotra.solve!)($solver)
+@benchmark $(Mehrotra.solve!)($solver)
+solver.data.solution_sensitivity
 
 solver.methods.equality_jacobian_keywords
 
