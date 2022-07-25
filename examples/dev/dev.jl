@@ -52,7 +52,7 @@ Mehrotra.solve!(solver)
 solver.data.jacobian_parameters
 solver.problem.equality_jacobian_parameters
 solver.methods.equality_jacobian_keywords_indices
-
+solver.data.solution_sensitivity
 
 
 # @benchmark $(Mehrotra.solve!)($solver)

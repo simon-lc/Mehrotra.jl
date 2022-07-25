@@ -10,6 +10,7 @@ function differentiate!(solver; keywords=keys(solver.indices.parameter_keywords)
     options = solver.options
     compressed = options.compressed_search_direction
     sparse_solver = options.sparse_solver
+    parameter_keywords = indices.parameter_keywords
 
     Mehrotra.evaluate!(problem,
         methods,
@@ -38,34 +39,48 @@ function differentiate!(solver; keywords=keys(solver.indices.parameter_keywords)
     fill!(solver.data.solution_sensitivity, 0.0)
     # data.solution_sensitivity .= - data.jacobian_variables \ data.jacobian_parameters #TODO
 
+    factorize = true
     if compressed
         jacobian_variables_compressed = options.sparse_solver ?
             data.jacobian_variables_compressed_sparse : data.jacobian_variables_compressed_dense
-        # primal dual step
-        linear_solve!(solver.linear_solver,
-            view(data.solution_sensitivity, 1:dimensions.equality, :),
-            jacobian_variables_compressed,
-            view(data.jacobian_parameters, 1:dimensions.equality, :),
-            fact=true)
-        data.solution_sensitivity .*= -1.0
+        for k in keywords
+            keyword_indices = parameter_keywords[k]
+            # primal dual step
+            linear_solve!(solver.linear_solver,
+                view(data.solution_sensitivity, 1:dimensions.equality, keyword_indices),
+                jacobian_variables_compressed,
+                view(data.jacobian_parameters, 1:dimensions.equality, keyword_indices),
+                fact=factorize)
+            factorize = false
+            data.solution_sensitivity[:, keyword_indices] .*= -1.0
 
-        # slack step
-        for i = 1:dimensions.parameters
-            methods.slack_direction(
-                view(data.solution_sensitivity, indices.slacks, i), # Δs
-                view(data.solution_sensitivity, indices.duals, i), # Δz
-                solution.all, # x
-                view(data.jacobian_parameters, indices.cone_product, i), # rs
-                )
+            # slack step
+            for i in keyword_indices
+                methods.slack_direction(
+                    view(data.solution_sensitivity, indices.slacks, i), # Δs
+                    view(data.solution_sensitivity, indices.duals, i), # Δz
+                    solution.all, # x
+                    view(data.jacobian_parameters, indices.cone_product, i), # rs
+                    )
+            end
         end
+
     else
-        jacobian_variables = options.sparse_solver ? data.jacobian_variables_sparse.matrix :
-            data.jacobian_variables_dense
-        linear_solve!(solver.linear_solver, data.solution_sensitivity,
-            jacobian_variables, data.jacobian_parameters, fact=true)
-        data.solution_sensitivity .*= -1.0
+        for k in keywords
+            keyword_indices = parameter_keywords[k]
+            jacobian_variables = options.sparse_solver ? data.jacobian_variables_sparse.matrix :
+                data.jacobian_variables_dense
+            linear_solve!(solver.linear_solver,
+                view(data.solution_sensitivity, :, keyword_indices),
+                jacobian_variables,
+                view(data.jacobian_parameters, :, keyword_indices),
+                fact=factorize)
+            factorize = false
+            data.solution_sensitivity[:,keyword_indices] .*= -1.0
+        end
     end
     #TODO parallelize, make more efficient
+
 
     # set the state of the solver to differentiated = true
     for k in keywords
