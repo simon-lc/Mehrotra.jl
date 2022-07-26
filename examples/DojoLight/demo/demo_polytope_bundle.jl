@@ -23,7 +23,7 @@ mass = 1.0;
 inertia = 0.2 * ones(1);
 
 
-mech = get_polytope_bundle(;
+Main.@profiler mech = get_polytope_bundle(;
 # mech = get_polytope_drop(;
     timestep=0.05,
     gravity=-9.81,
@@ -44,7 +44,7 @@ mech = get_polytope_bundle(;
         )
     );
 
-# solve!(mech.solver)
+Main.@profiler solve!(mech.solver)
 ################################################################################
 # test simulation
 ################################################################################
