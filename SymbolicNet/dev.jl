@@ -12,61 +12,38 @@ function f1234(x0::Vector)
 end
 
 macro layer11(var)
-    # expr1 = esc(
-    #     quote
-    #         if token < select_layer
-    #             @show token
-    #             @show select_layer
-    #             @show "before"
-    #         end
-    #         if token == select_layer
-    #             @show token
-    #             @show select_layer
-    #             @show "on layer"
-    #             # eval(:(return $vars))
-    #             # :($vars[1] = 1.0)
-    #         end
-    #         token += 1
-    #     end
-    # )
-    # expr2 = :(println($vars[1]))
-    # return expr2
-    # :($expr1; $expr2)
-    # return :( println("Hello, ", eval($vars)))
-    @show typeof(var)
-    # return esc(:($var * $var))
     return esc(
         quote
-            $var .= 0.0
-            n = length($var)
-            svar = Symbolics.variables(Symbol(:x,token), 1:n)
-            # return svar
-            $var = svar
+            if token < select_layer
+                $var .= 0.0
+                n = length($var)
+                svar = Symbolics.variables(Symbol(:x,token), 1:n)
+                $var = svar
+            end
+
+            if token == select_layer
+                return $var
+            end
+            token += 1
         end
     )
 end
 
 function f1234(x0::Vector; select_layer::Int=-1, token::Int=0)
     @layer11 x0
-    return x0
-    # a = "fff"
-    # return @layer11 a
-    # x1 = x0 .+ 1
-    # x11 = x0 .+ 3
-    # # @layer11 x1 x11
-    # x2 = [x1; sum(x1); sum(exp.(x11))]
-    # x22 = [sum(x11)]
-    # # @layer11 x2 x22
-    # x3 = x2.^2 * x22[end] * x2[end-1]
-    # # @layer11 x3
-    # # @show "x3 after layer" x3
-    # x4 = [sum(x3); sin.(x3 * x3[end])]
-    # # @layer11 x4
-    return token
+    x1 = x0 .+ 1
+    @layer11 x1
+    x2 = [x1; sum(x1); sum(exp.(x1))]
+    @layer11 x2
+    x3 = x2.^2 * x2[end] * x2[end-1]
+    @layer11 x3
+    x4 = [sum(x3); sin.(x3 * x3[end])]
+    @layer11 x4
+    return x4
 end
 
 x0 = ones(2)
-f1234(x0, select_layer=3)
+f1234(x0, select_layer=)
 
 
 macro assert2(ex, msgs...)
