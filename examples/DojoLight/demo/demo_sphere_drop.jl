@@ -10,8 +10,9 @@ open(vis)
 
 include("../src/DojoLight.jl")
 
-include("../environment/convex_bundle.jl")
-include("../environment/convex_drop.jl")
+include("../environment/polytope_bundle.jl")
+include("../environment/polytope_drop.jl")
+include("../environment/sphere_drop.jl")
 
 
 ################################################################################
@@ -23,7 +24,7 @@ mass = 1.0;
 inertia = 0.2 * ones(1);
 
 
-mech = get_convex_drop(;
+mech = get_sphere_drop(;
     timestep=0.05,
     gravity=-9.81,
     mass=1.0,

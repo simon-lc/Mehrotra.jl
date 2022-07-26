@@ -22,12 +22,13 @@ function dynamics_jacobian_state(dz, mechanism::Mechanism183{T,D,NB}, z, u, w) w
     solve!(solver)
 
     # idx_parameters = solver.indices.parameter_keywords[:state]
-    idx_parameters = mechanism.indices.parameter_state
-    idx_solution = mechanism.indices.solution_state
+    idx_parameters_state = mechanism.indices.parameter_state
+    idx_solution_state = mechanism.indices.solution_state
     idx_velocity = vcat([6(i-1) .+ (4:6) for i=1:NB]...)
     idx_pose = vcat([6(i-1) .+ (1:3) for i=1:NB]...)
-    dz[idx_velocity,:] .= solver.data.solution_sensitivity[idx_solution, idx_parameters]
-    dz[idx_pose,:] .= timestep * solver.data.solution_sensitivity[idx_solution, idx_parameters]
+    dz[idx_pose,:] .= timestep * solver.data.solution_sensitivity[idx_solution_state, idx_parameters_state]
+    dz[idx_pose,idx_pose] .+= I(length(idx_pose))
+    dz[idx_velocity,:] .= solver.data.solution_sensitivity[idx_solution_state, idx_parameters_state]
     return nothing
 end
 
@@ -46,7 +47,7 @@ function dynamics_jacobian_input(du, mechanism::Mechanism183{T,D,NB}, z, u, w) w
     idx_solution = mechanism.indices.solution_state
     idx_velocity = vcat([6(i-1) .+ (4:6) for i=1:NB]...)
     idx_pose = vcat([6(i-1) .+ (1:3) for i=1:NB]...)
-    du[idx_velocity,:] .= solver.data.solution_sensitivity[idx_solution, idx_parameters]
     du[idx_pose,:] .= timestep * solver.data.solution_sensitivity[idx_solution, idx_parameters]
+    du[idx_velocity,:] .= solver.data.solution_sensitivity[idx_solution, idx_parameters]
     return nothing
 end

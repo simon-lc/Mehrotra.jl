@@ -19,7 +19,7 @@ include("../src/mechanism.jl")
 include("../src/simulate.jl")
 include("../src/visuals.jl")
 
-include("../environment/convex_bundle.jl")
+include("../environment/polytope_bundle.jl")
 
 
 ################################################################################
@@ -31,7 +31,7 @@ mass = 1.0;
 inertia = 0.2 * ones(1);
 
 
-mech = get_convex_bundle(; 
+mech = get_polytope_bundle(; 
     timestep=0.05, 
     gravity=-9.81, 
     mass=1.0, 
@@ -128,4 +128,4 @@ plot(hcat([abs.(s[solver.indices.duals])[22:30] for s in solutions]...)', legend
 plot(hcat([abs.(s[solver.indices.duals])[22:30][3:3] for s in solutions]...)', legend=false)
 
 # open(vis)
-# RobotVisualizer.convert_frames_to_video_and_gif("non_convex_bundle_slow_low_friction")
+# RobotVisualizer.convert_frames_to_video_and_gif("non_polytope_bundle_slow_low_friction")

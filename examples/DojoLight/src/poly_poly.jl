@@ -198,32 +198,6 @@ function residual!(e, x, θ, contact::PolyPoly183{T,D,NP,NC},
     return nothing
 end
 
-function contact_frame(contact::PolyPoly183, mechanism::Mechanism183)
-    pbody = find_body(mechanism.bodies, contact.parent_name)
-    cbody = find_body(mechanism.bodies, contact.child_name)
-
-    variables = mechanism.solver.solution.all
-    parameters = mechanism.solver.parameters
-
-    c, ϕ, γ, ψ, β, λp, λc, sγ, sψ, sβ, sp, sc =
-        unpack_variables(variables[contact.index.variables], contact)
-    friction_coefficient, Ap, bp, Ac, bc =
-        unpack_parameters(parameters[contact.index.parameters], contact)
-    vp25 = unpack_variables(variables[pbody.index.variables], pbody)
-    vc25 = unpack_variables(variables[cbody.index.variables], cbody)
-    pp2, vp15, up2, timestep_p, gravity_p, mass_p, inertia_p = unpack_parameters(parameters[pbody.index.parameters], pbody)
-    pc2, vc15, uc2, timestep_c, gravity_c, mass_c, inertia_c = unpack_parameters(parameters[cbody.index.parameters], cbody)
-    pp3 = pp2 + timestep_p[1] * vp25
-    pc3 = pc2 + timestep_c[1] * vc25
-    contact_point = c + (pp3 + pc3)[1:2] ./ 2
-    normal = -x_2d_rotation(pp3[3:3]) * Ap' * λp
-    R = [0 1; -1 0]
-    tangent = R * normal
-
-    return contact_point, normal, tangent
-end
-
-
 
 #
 #
@@ -236,7 +210,7 @@ end
 #         warm_start=true,
 #         )
 #
-# bodies, contacts = get_convex_drop(;
+# bodies, contacts = get_polytope_drop(;
 #     timestep=0.05,
 #     gravity=-9.81,
 #     mass=1.0,

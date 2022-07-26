@@ -1,26 +1,4 @@
-# using Polyhedra
-# using MeshCat
-# using RobotVisualizer
-# using StaticArrays
-# using Quaternions
-
-# include("../src/polytope.jl")
-# include("../src/rotate.jl")
-# include("../src/quaternion.jl")
-# include("../src/node.jl")
-# include("../src/body.jl")
-# include("../src/poly_poly.jl")
-# include("../src/poly_halfspace.jl")
-# include("../src/mechanism.jl")
-# include("../src/simulate.jl")
-# include("../src/visuals.jl")
-
-################################################################################
-# demo
-################################################################################
-# parameters
-
-function get_convex_drop(;
+function get_polytope_drop(;
     timestep=0.05,
     gravity=-9.81,
     mass=1.0,
@@ -77,7 +55,7 @@ function get_convex_drop(;
     return mechanism
 end
 
-# function get_convex_drop(;
+# function get_polytope_drop(;
 #     timestep=0.05,
 #     gravity=-9.81,
 #     mass=1.0,
@@ -172,7 +150,7 @@ end
 #         warm_start=true,
 #         )
 
-# bodies, contacts = get_convex_drop(;
+# bodies, contacts = get_polytope_drop(;
 #     timestep=0.05,
 #     gravity=-9.81,
 #     mass=1.0,

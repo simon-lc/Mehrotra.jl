@@ -123,6 +123,9 @@ function set_2d_frame!(vis::Visualizer, contact, origin, normal, tangent; name=c
     return nothing
 end
 
+######################################################################
+# segment
+######################################################################
 function build_segment!(vis::Visualizer; color=Colors.RGBA(0,0,0,1),
         segment_radius=0.02, name=:segment)
 
@@ -142,37 +145,69 @@ end
 ######################################################################
 # mechanism
 ######################################################################
-function build_mechanism!(vis::Visualizer, mechanism::Mechanism183)
+function build_mechanism!(vis::Visualizer, mechanism::Mechanism183;
+        show_contact::Bool=true)
+
     for body in mechanism.bodies
         build_body!(vis, body)
     end
-    for contact in mechanism.contacts
-        build_2d_frame!(vis, name=contact.name)
+    if show_contact
+        for contact in mechanism.contacts
+            build_2d_frame!(vis, name=contact.name)
+        end
     end
     return nothing
 end
 
-function set_mechanism!(vis::Visualizer, mechanism::Mechanism183, storage::Storage116, i::Int)
+function set_mechanism!(vis::Visualizer, mechanism::Mechanism183, storage::Storage116,
+        i::Int; show_contact::Bool=true)
+
     for (j,body) in enumerate(mechanism.bodies)
         set_body!(vis, body, storage.x[i][j])
     end
-    for (j, contact) in enumerate(mechanism.contacts)
-        origin = storage.contact_point[i][j]
-        normal = storage.normal[i][j]
-        tangent = storage.tangent[i][j]
-        set_2d_frame!(vis, contact, origin, normal, tangent)
+    if show_contact
+        for (j, contact) in enumerate(mechanism.contacts)
+            origin = storage.contact_point[i][j]
+            normal = storage.normal[i][j]
+            tangent = storage.tangent[i][j]
+            set_2d_frame!(vis, contact, origin, normal, tangent)
+        end
+    end
+    return nothing
+end
+
+function set_mechanism!(vis::Visualizer, mechanism::Mechanism183, z)
+    for (j,body) in enumerate(mechanism.bodies)
+        set_body!(vis, body, z[6*(j-1) .+ (1:3)])
     end
     return nothing
 end
 
 function visualize!(vis::Visualizer, mechanism::Mechanism183, storage::Storage116{T,H};
         build::Bool=true,
+        show_contact::Bool=true,
         animation=MeshCat.Animation(Int(floor(1/mechanism.bodies[1].timestep[1])))) where {T,H}
 
-    build && build_mechanism!(vis, mechanism)
+    build && build_mechanism!(vis, mechanism, show_contact=show_contact)
     for i = 1:H
         atframe(animation, i) do
-            set_mechanism!(vis, mechanism, storage, i)
+            set_mechanism!(vis, mechanism, storage, i, show_contact=show_contact)
+        end
+    end
+    MeshCat.setanimation!(vis, animation)
+    return vis, animation
+end
+
+
+function visualize!(vis::Visualizer, mechanism::Mechanism183, z;
+        build::Bool=true,
+        animation=MeshCat.Animation(Int(floor(1/mechanism.bodies[1].timestep[1])))) where {T}
+
+    H = length(z)
+    build && build_mechanism!(vis, mechanism, show_contact=false)
+    for i = 1:H
+        atframe(animation, i) do
+            set_mechanism!(vis, mechanism, z[i])
         end
     end
     MeshCat.setanimation!(vis, animation)

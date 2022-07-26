@@ -187,3 +187,9 @@ function residual!(e, x, θ, contact::PolyHalfSpace183, bodies::Vector)
     residual!(e, x, θ, contact, pbody)
     return nothing
 end
+
+function residual!(e, x, θ, contact::SphereHalfSpace1831, bodies::Vector)
+    pbody = find_body(bodies, contact.parent_name)
+    residual!(e, x, θ, contact, pbody)
+    return nothing
+end
