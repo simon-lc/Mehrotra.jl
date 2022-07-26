@@ -53,14 +53,9 @@ xc2 = [-0.0,0.5,-2.25]
 vp15 = [-0,0,-0.0]
 vc15 = [+0,0,+0.0]
 z0 = [xp2; vp15; xc2; vc15]
-# z0 = [xp2; vp15]
 
 u0 = zeros(6)
-# u0 = zeros(3)
 H0 = 150
-mech.solver.methods
-mech.solver.dimensions
-# solve!(mech.solver)
 
 @elapsed storage = simulate!(mech, z0, H0)
 # Main.@profiler [solve!(mech.solver) for i=1:300]
@@ -76,16 +71,8 @@ mech.solver.dimensions
 set_floor!(vis)
 set_light!(vis)
 set_background!(vis)
-# visualize!(vis, mech, storage, build=false)
+visualize!(vis, mech, storage, build=true)
 
 
 scatter(storage.iterations)
 plot!(hcat(storage.variables...)')
-
-solver = mech.solver
-indices = solver.indices
-z = solver.solution.duals
-s = solver.solution.slacks
-idx_nn = indices.cone_nonnegative
-idx_soc = indices.cone_second_order
-cone_product_jacobian_inverse(s, z, idx_nn, idx_soc)

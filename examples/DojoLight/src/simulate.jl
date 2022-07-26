@@ -1,4 +1,4 @@
-function update_parameters!(mechanism::Mechanism183)
+function update_parameters!(mechanism::Mechanism1140)
     bodies = mechanism.bodies
     contacts = mechanism.contacts
     solver = mechanism.solver
@@ -15,7 +15,7 @@ function update_parameters!(mechanism::Mechanism183)
     return nothing
 end
 
-function update_nodes!(mechanism::Mechanism183)
+function update_nodes!(mechanism::Mechanism1140)
     bodies = mechanism.bodies
     contacts = mechanism.contacts
     solver = mechanism.solver
@@ -29,7 +29,7 @@ function update_nodes!(mechanism::Mechanism183)
     return nothing
 end
 
-function set_input!(mechanism::Mechanism183, u)
+function set_input!(mechanism::Mechanism1140, u)
     off = 0
     nu = length(mechanism.bodies[1].input)
     for body in mechanism.bodies
@@ -38,7 +38,7 @@ function set_input!(mechanism::Mechanism183, u)
     return nothing
 end
 
-function get_input(mechanism::Mechanism183{T,D,NB}) where {T,D,NB}
+function get_input(mechanism::Mechanism1140{T,D,NB}) where {T,D,NB}
     nu = length(mechanism.bodies[1].input)
 
     off = 0
@@ -49,7 +49,7 @@ function get_input(mechanism::Mechanism183{T,D,NB}) where {T,D,NB}
     return u
 end
 
-function set_current_state!(mechanism::Mechanism183, z)
+function set_current_state!(mechanism::Mechanism1140, z)
     off = 0
     nx = length(mechanism.bodies[1].pose)
     nv = length(mechanism.bodies[1].velocity)
@@ -60,7 +60,7 @@ function set_current_state!(mechanism::Mechanism183, z)
     return nothing
 end
 
-function get_current_state(mechanism::Mechanism183{T,D,NB}) where {T,D,NB}
+function get_current_state(mechanism::Mechanism1140{T,D,NB}) where {T,D,NB}
     nx = length(mechanism.bodies[1].pose)
     nv = length(mechanism.bodies[1].velocity)
 
@@ -73,7 +73,7 @@ function get_current_state(mechanism::Mechanism183{T,D,NB}) where {T,D,NB}
     return z
 end
 
-function get_next_state(mechanism::Mechanism183{T,D,NB}) where {T,D,NB}
+function get_next_state(mechanism::Mechanism1140{T,D,NB}) where {T,D,NB}
     nx = length(mechanism.bodies[1].pose)
     nv = length(mechanism.bodies[1].velocity)
     z = zeros((nx+nv) * NB)
@@ -81,7 +81,7 @@ function get_next_state(mechanism::Mechanism183{T,D,NB}) where {T,D,NB}
     return z
 end
 
-function get_next_state!(z, mechanism::Mechanism183{T,D,NB}) where {T,D,NB}
+function get_next_state!(z, mechanism::Mechanism1140{T,D,NB}) where {T,D,NB}
     nx = length(mechanism.bodies[1].pose)
     nv = length(mechanism.bodies[1].velocity)
     variables = mechanism.solver.solution.all
@@ -97,7 +97,7 @@ function get_next_state!(z, mechanism::Mechanism183{T,D,NB}) where {T,D,NB}
     return nothing
 end
 
-function step!(mechanism::Mechanism183, z0, u)
+function step!(mechanism::Mechanism1140, z0, u)
     set_current_state!(mechanism, z0)
     set_input!(mechanism, u)
     update_parameters!(mechanism)
@@ -106,7 +106,7 @@ function step!(mechanism::Mechanism183, z0, u)
     return z1
 end
 
-function step!(mechanism::Mechanism183, z0; controller::Function=m->nothing)
+function step!(mechanism::Mechanism1140, z0; controller::Function=m->nothing)
     set_current_state!(mechanism, z0)
     controller(mechanism) # sets the control inputs u
     update_parameters!(mechanism)
@@ -115,7 +115,7 @@ function step!(mechanism::Mechanism183, z0; controller::Function=m->nothing)
     return z1
 end
 
-function simulate!(mechanism::Mechanism183{T}, z0, H::Int;
+function simulate!(mechanism::Mechanism1140{T}, z0, H::Int;
         controller::Function=(m,i)->nothing) where T
 
     storage = Storage(mechanism.dimensions, H, T)
@@ -142,7 +142,7 @@ end
 
 
 
-# function get_next_state!(mechanism::Mechanism183{T}) where T
+# function get_next_state!(mechanism::Mechanism1140{T}) where T
 #     bodies = mechanism.bodies
 #     num_bodies = length(bodies)
 #     nx = 6
@@ -153,7 +153,7 @@ end
 #     return x
 # end
 
-# function get_next_velocity!(mechanism::Mechanism183{T}) where T
+# function get_next_velocity!(mechanism::Mechanism1140{T}) where T
 #     bodies = mechanism.bodies
 #     num_bodies = length(bodies)
 #     nv = 3
@@ -164,7 +164,7 @@ end
 #     return v
 # end
 
-# function get_next_configuration!(mechanism::Mechanism183{T}) where T
+# function get_next_configuration!(mechanism::Mechanism1140{T}) where T
 #     bodies = mechanism.bodies
 #     num_bodies = length(bodies)
 #     nq = 3
@@ -175,23 +175,23 @@ end
 #     return q
 # end
 
-# function step!(mechanism::Mechanism183{T}, x::Vector{T}, u::Vector{T}) where T
+# function step!(mechanism::Mechanism1140{T}, x::Vector{T}, u::Vector{T}) where T
 # end
 #
-# function input_gradient(du, x, u, mechanism::Mechanism183{T})
+# function input_gradient(du, x, u, mechanism::Mechanism1140{T})
 # end
 #
-# function state_gradient(dx, x, u, mechanism::Mechanism183{T})
+# function state_gradient(dx, x, u, mechanism::Mechanism1140{T})
 # end
 #
-# function set_input!(mechanism::Mechanism183{T})
+# function set_input!(mechanism::Mechanism1140{T})
 # end
 #
-# function set_current_state!(mechanism::Mechanism183{T})
+# function set_current_state!(mechanism::Mechanism1140{T})
 # end
 #
-# function set_next_state!(mechanism::Mechanism183{T})
+# function set_next_state!(mechanism::Mechanism1140{T})
 # end
 #
-# function get_current_state!(mechanism::Mechanism183{T})
+# function get_current_state!(mechanism::Mechanism1140{T})
 # end

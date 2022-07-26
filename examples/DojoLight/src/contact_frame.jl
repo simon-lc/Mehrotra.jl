@@ -1,5 +1,5 @@
 # for visualization
-function contact_frame(contact::PolyPoly183, mechanism::Mechanism183)
+function contact_frame(contact::PolyPoly1140, mechanism::Mechanism1140)
     pbody = find_body(mechanism.bodies, contact.parent_name)
     cbody = find_body(mechanism.bodies, contact.child_name)
 
@@ -25,7 +25,7 @@ function contact_frame(contact::PolyPoly183, mechanism::Mechanism183)
 end
 
 # for visualization
-function contact_frame(contact::PolyHalfSpace183, mechanism::Mechanism183)
+function contact_frame(contact::PolyHalfSpace1140, mechanism::Mechanism1140)
     pbody = find_body(mechanism.bodies, contact.parent_name)
 
     variables = mechanism.solver.solution.all
@@ -49,7 +49,7 @@ function contact_frame(contact::PolyHalfSpace183, mechanism::Mechanism183)
 end
 
 # for visualization
-function contact_frame(contact::SphereHalfSpace1831, mechanism::Mechanism183)
+function contact_frame(contact::SphereHalfSpace1140, mechanism::Mechanism1140)
     pbody = find_body(mechanism.bodies, contact.parent_name)
 
     variables = mechanism.solver.solution.all
@@ -66,11 +66,10 @@ function contact_frame(contact::SphereHalfSpace1831, mechanism::Mechanism183)
     pp3 = pp2 + timestep_p[1] * vp25
 
     # analytical contact position in the world frame
-    contact_w = pp3[1:2] - parent_radius[1] * Ac[1,:] # assumes the child is fized, other need a rotation here
+    contact_point = pp3[1:2] - parent_radius[1] * Ac[1,:] # assumes the child is fized, other need a rotation here
     # analytical signed distance function
-    ϕ = [contact_w' * Ac[1,:]] - bc
+    ϕ = [contact_point' * Ac[1,:]] - bc
     # contact_p is expressed in pbody's frame
-    contact_point = x_2d_rotation(pp3[3:3])' * (contact_w - pp3[1:2])
 
     # contact normal and tangent in the world frame
     normal = Ac[1,:]

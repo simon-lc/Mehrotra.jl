@@ -36,14 +36,14 @@ function generate_gradients(func::Function, num_equality::Int, num_variables::In
     return f_expr, fx_expr, fθ_expr, fx_sparsity, fθ_sparsity
 end
 
-abstract type NodeMethods183{T,E,EX,Eθ} end
+abstract type NodeMethods1140{T,E,EX,Eθ} end
 
-struct DynamicsMethods183{T} <: AbstractProblemMethods{T,E,EX,EP}
-    methods::Vector{NodeMethods183}
+struct DynamicsMethods1140{T} <: AbstractProblemMethods{T,E,EX,EP}
+    methods::Vector{NodeMethods1140}
     α::T
 end
 
-struct BodyMethods183{T,E,EX,Eθ} <: NodeMethods183{T,E,EX,Eθ}
+struct BodyMethods1140{T,E,EX,Eθ} <: NodeMethods1140{T,E,EX,Eθ}
     equality_constraint::E
     equality_jacobian_variables::EX
     equality_jacobian_parameters::Eθ
@@ -53,11 +53,11 @@ struct BodyMethods183{T,E,EX,Eθ} <: NodeMethods183{T,E,EX,Eθ}
     equality_jacobian_parameters_sparsity::Vector{Tuple{Int,Int}}
 end
 
-function BodyMethods183(body::Body183, dimensions::MechanismDimensions183)
+function BodyMethods1140(body::Body1140, dimensions::MechanismDimensions1140)
     r!(e, x, θ) = body_residual!(e, x, θ, body)
     f, fx, fθ, fx_sparsity, fθ_sparsity = generate_gradients(r!, dimensions.equality,
         dimensions.variables, dimensions.parameters)
-    return BodyMethods183(
+    return BodyMethods1140(
         f,
         fx,
         fθ,
@@ -68,7 +68,7 @@ function BodyMethods183(body::Body183, dimensions::MechanismDimensions183)
         )
 end
 
-struct ContactMethods183{T,E,EX,Eθ,C,S} <: NodeMethods183{T,E,EX,Eθ}
+struct ContactMethods1140{T,E,EX,Eθ,C,S} <: NodeMethods1140{T,E,EX,Eθ}
     contact_solver::C
     subvariables::Vector{T}
     subparameters::Vector{T}
@@ -83,8 +83,8 @@ struct ContactMethods183{T,E,EX,Eθ,C,S} <: NodeMethods183{T,E,EX,Eθ}
     equality_jacobian_parameters_sparsity::Vector{Tuple{Int,Int}}
 end
 
-function ContactMethods183(contact::PolyPoly183, pbody::Body183, cbody::Body183,
-        dimensions::MechanismDimensions183;
+function ContactMethods1140(contact::PolyPoly1140, pbody::Body1140, cbody::Body1140,
+        dimensions::MechanismDimensions1140;
         checkbounds=true,
         threads=false)
 
@@ -159,7 +159,7 @@ function ContactMethods183(contact::PolyPoly183, pbody::Body183, cbody::Body183,
         checkbounds=checkbounds,
         expression=Val{false})[2]
 
-    return ContactMethods183(
+    return ContactMethods1140(
         contact_solver,
         subvariables,
         subparameters,
@@ -174,21 +174,21 @@ function ContactMethods183(contact::PolyPoly183, pbody::Body183, cbody::Body183,
     )
 end
 
-function mechanism_methods(bodies::Vector, contacts::Vector, dimensions::MechanismDimensions183)
-    methods = Vector{NodeMethods183}()
+function mechanism_methods(bodies::Vector, contacts::Vector, dimensions::MechanismDimensions1140)
+    methods = Vector{NodeMethods1140}()
 
     # body
     for body in bodies
-        push!(methods, BodyMethods183(body, dimensions))
+        push!(methods, BodyMethods1140(body, dimensions))
     end
 
     # contact
     for contact in contacts
         # TODO here we need to avoid hardcoding body1 and body2 as paretn and child
-        push!(methods, ContactMethods183(contact, bodies[1], bodies[2], dimensions))
+        push!(methods, ContactMethods1140(contact, bodies[1], bodies[2], dimensions))
     end
 
-    return DynamicsMethods183(methods, 1.0)
+    return DynamicsMethods1140(methods, 1.0)
 end
 
 ################################################################################
@@ -196,7 +196,7 @@ end
 ################################################################################
 
 # function evaluate!(e::Vector{T}, ex::Matrix{T}, eθ::Matrix{T},
-#         x::Vector{T}, θ::Vector{T}, methods::Vector{NodeMethods183}) where T
+#         x::Vector{T}, θ::Vector{T}, methods::Vector{NodeMethods1140}) where T
 #     e .= 0.0
 #     ex .= 0.0
 #     eθ .= 0.0
@@ -206,7 +206,7 @@ end
 # end
 #
 # function evaluate!(e::Vector{T}, ex::Matrix{T}, eθ::Matrix{T},
-#         x::Vector{T}, θ::Vector{T}, methods::BodyMethods183{T,E,EX,Eθ}) where {T,E,EX,Eθ}
+#         x::Vector{T}, θ::Vector{T}, methods::BodyMethods1140{T,E,EX,Eθ}) where {T,E,EX,Eθ}
 #
 #     methods.equality_constraint(e, e, x, θ)
 #     methods.equality_jacobian_variables(methods.equality_jacobian_variables_cache, x, θ)
@@ -221,7 +221,7 @@ end
 # end
 #
 # function evaluate!(e::Vector{T}, ex::Matrix{T}, eθ::Matrix{T},
-#         x::Vector{T}, θ::Vector{T}, methods::ContactMethods183{T,S}) where {T,S}
+#         x::Vector{T}, θ::Vector{T}, methods::ContactMethods1140{T,S}) where {T,S}
 #
 #     contact_solver = methods.contact_solver
 #     xl = methods.subvariables
@@ -246,7 +246,7 @@ end
 
 function evaluate!(
         problem::ProblemData{T},
-        methods::DynamicsMethods183{T},
+        methods::DynamicsMethods1140{T},
         cone_methods::ConeMethods{T,B,BX,P,PX},
         solution::Point{T},
         parameters::Vector{T};
@@ -282,7 +282,7 @@ function evaluate!(
 end
 
 function evaluate!(problem::ProblemData{T},
-        methods::BodyMethods183{T,E,EX,Eθ},
+        methods::BodyMethods1140{T,E,EX,Eθ},
         solution::Point{T},
         parameters::Vector{T};
         equality_constraint=false,
@@ -319,8 +319,8 @@ function evaluate!(problem::ProblemData{T},
 end
 
 function evaluate!(problem::ProblemData{T},
-        # methods::ContactMethods183{T,E,EX,Eθ},
-        methods::ContactMethods183{T,S},
+        # methods::ContactMethods1140{T,E,EX,Eθ},
+        methods::ContactMethods1140{T,S},
         solution::Point{T},
         parameters::Vector{T};
         equality_constraint=false,

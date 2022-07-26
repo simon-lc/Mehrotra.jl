@@ -1,17 +1,17 @@
 ################################################################################
 # contact
 ################################################################################
-struct SphereHalfSpace1831{T,D} <: Node{T}
+struct SphereHalfSpace1140{T,D} <: Node{T}
     name::Symbol
     parent_name::Symbol
-    index::NodeIndices183
+    index::NodeIndices1140
     friction_coefficient::Vector{T}
     parent_radius::Vector{T} #sphere
     A_child_collider::Matrix{T} #polytope
     b_child_collider::Vector{T} #polytope
 end
 
-function SphereHalfSpace1831(parent_body::Body183{T}, parent_radius, Ac::AbstractMatrix, bc::AbstractVector;
+function SphereHalfSpace1140(parent_body::Body1140{T}, parent_radius, Ac::AbstractMatrix, bc::AbstractVector;
         name::Symbol=:halfspace,
         friction_coefficient=0.2) where {T}
 
@@ -19,11 +19,11 @@ function SphereHalfSpace1831(parent_body::Body183{T}, parent_radius, Ac::Abstrac
     # Ap = parent_body.A_colliders[parent_collider_id]
     # bp = parent_body.b_colliders[parent_collider_id]
 
-    return SphereHalfSpace1831(parent_name, friction_coefficient, parent_radius, Ac, bc;
+    return SphereHalfSpace1140(parent_name, friction_coefficient, parent_radius, Ac, bc;
         name=name)
 end
 
-function SphereHalfSpace1831(
+function SphereHalfSpace1140(
         parent_name::Symbol,
         friction_coefficient,
         parent_radius,
@@ -32,8 +32,8 @@ function SphereHalfSpace1831(
         name::Symbol=:halfspace) where {T}
 
     d = size(Ac, 2)
-    index = NodeIndices183()
-    return SphereHalfSpace1831{T,d}(
+    index = NodeIndices1140()
+    return SphereHalfSpace1140{T,d}(
         name,
         parent_name,
         index,
@@ -44,23 +44,23 @@ function SphereHalfSpace1831(
     )
 end
 
-primal_dimension(contact::SphereHalfSpace1831{T,D}) where {T,D} = 0#D + 1 # x, ϕ
-cone_dimension(contact::SphereHalfSpace1831{T,D}) where {T,D} = 1 + 1 + 2# + 1 + 1 # γ ψ β λp, λc
-variable_dimension(contact::SphereHalfSpace1831{T,D}) where {T,D} = primal_dimension(contact) + 2 * cone_dimension(contact)
-equality_dimension(contact::SphereHalfSpace1831{T,D}) where {T,D} = primal_dimension(contact) + cone_dimension(contact)
-optimality_dimension(contact::SphereHalfSpace1831{T,D}) where {T,D} = primal_dimension(contact)
-slackness_dimension(contact::SphereHalfSpace1831{T,D}) where {T,D} = cone_dimension(contact)
-equality_dimension(contact::SphereHalfSpace1831{T,D}) where {T,D} = optimality_dimension(contact) + slackness_dimension(contact)
+primal_dimension(contact::SphereHalfSpace1140{T,D}) where {T,D} = 0#D + 1 # x, ϕ
+cone_dimension(contact::SphereHalfSpace1140{T,D}) where {T,D} = 1 + 1 + 2# + 1 + 1 # γ ψ β λp, λc
+variable_dimension(contact::SphereHalfSpace1140{T,D}) where {T,D} = primal_dimension(contact) + 2 * cone_dimension(contact)
+equality_dimension(contact::SphereHalfSpace1140{T,D}) where {T,D} = primal_dimension(contact) + cone_dimension(contact)
+optimality_dimension(contact::SphereHalfSpace1140{T,D}) where {T,D} = primal_dimension(contact)
+slackness_dimension(contact::SphereHalfSpace1140{T,D}) where {T,D} = cone_dimension(contact)
+equality_dimension(contact::SphereHalfSpace1140{T,D}) where {T,D} = optimality_dimension(contact) + slackness_dimension(contact)
 
 
-function parameter_dimension(contact::SphereHalfSpace1831{T,D}) where {T,D}
+function parameter_dimension(contact::SphereHalfSpace1140{T,D}) where {T,D}
     nAc = length(contact.A_child_collider)
     nbc = length(contact.b_child_collider)
     nθ = 1 + 1 + nAc + nbc
     return nθ
 end
 
-function unpack_variables(x::Vector, contact::SphereHalfSpace1831{T,D}) where {T,D}
+function unpack_variables(x::Vector, contact::SphereHalfSpace1140{T,D}) where {T,D}
     num_cone = cone_dimension(contact)
     NC = 1
     off = 0
@@ -82,7 +82,7 @@ function unpack_variables(x::Vector, contact::SphereHalfSpace1831{T,D}) where {T
     return γ, ψ, β, sγ, sψ, sβ
 end
 
-function get_parameters(contact::SphereHalfSpace1831{T,D}) where {T,D}
+function get_parameters(contact::SphereHalfSpace1140{T,D}) where {T,D}
     θ = [
         contact.friction_coefficient;
         contact.parent_radius;
@@ -91,7 +91,7 @@ function get_parameters(contact::SphereHalfSpace1831{T,D}) where {T,D}
     return θ
 end
 
-function set_parameters!(contact::SphereHalfSpace1831{T,D}, θ) where {T,D}
+function set_parameters!(contact::SphereHalfSpace1140{T,D}, θ) where {T,D}
     friction_coefficient, parent_radius, A_child_collider, b_child_collider =
         unpack_parameters(θ, contact)
     contact.friction_coefficient .= friction_coefficient
@@ -101,7 +101,7 @@ function set_parameters!(contact::SphereHalfSpace1831{T,D}, θ) where {T,D}
     return nothing
 end
 
-function unpack_parameters(θ::Vector, contact::SphereHalfSpace1831{T,D}) where {T,D}
+function unpack_parameters(θ::Vector, contact::SphereHalfSpace1140{T,D}) where {T,D}
     @assert D == 2
     NC = 1
     off = 0
@@ -112,8 +112,8 @@ function unpack_parameters(θ::Vector, contact::SphereHalfSpace1831{T,D}) where 
     return friction_coefficient, parent_radius, A_child_collider, b_child_collider
 end
 
-function residual!(e, x, θ, contact::SphereHalfSpace1831{T,D},
-        pbody::Body183) where {T,D}
+function residual!(e, x, θ, contact::SphereHalfSpace1140{T,D},
+        pbody::Body1140) where {T,D}
     NC = 1
     # unpack parameters
     # friction_coefficient, Ap, bp, Ac, bc = unpack_parameters(θ[contact.index.parameters], contact)

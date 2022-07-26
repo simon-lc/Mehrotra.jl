@@ -37,7 +37,7 @@ mech = get_sphere_drop(;
         complementarity_tolerance=1e-3,
         compressed_search_direction=true,
         max_iterations=30,
-        sparse_solver=true,
+        sparse_solver=false,
         differentiate=false,
         warm_start=false,
         complementarity_correction=0.5,
@@ -49,7 +49,7 @@ mech = get_sphere_drop(;
 # test simulation
 ################################################################################
 xp2 = [+0.0,1.5,-0.25]
-vp15 = [-0,0,-0.0]
+vp15 = [-0,0,5.0]
 z0 = [xp2; vp15]
 
 u0 = zeros(3)
@@ -59,7 +59,7 @@ H0 = 150
 @elapsed storage = simulate!(mech, z0, H0)
 # Main.@profiler [solve!(mech.solver) for i=1:300]
 # @benchmark $solve!($(mech.solver))
-
+scatter(storage.iterations)
 
 ################################################################################
 # visualization

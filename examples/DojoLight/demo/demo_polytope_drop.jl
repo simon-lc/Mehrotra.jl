@@ -77,11 +77,3 @@ visualize!(vis, mech, storage, build=false)
 
 scatter(storage.iterations)
 plot!(hcat(storage.variables...)')
-
-solver = mech.solver
-indices = solver.indices
-z = solver.solution.duals
-s = solver.solution.slacks
-idx_nn = indices.cone_nonnegative
-idx_soc = indices.cone_second_order
-cone_product_jacobian_inverse(s, z, idx_nn, idx_soc)
