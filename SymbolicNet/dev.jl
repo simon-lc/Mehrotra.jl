@@ -11,6 +11,148 @@ function f1234(x0::Vector)
     x4 = [sum(x3); sin.(x3 * x3[end])]
 end
 
+macro layer11(var)
+    # expr1 = esc(
+    #     quote
+    #         if token < select_layer
+    #             @show token
+    #             @show select_layer
+    #             @show "before"
+    #         end
+    #         if token == select_layer
+    #             @show token
+    #             @show select_layer
+    #             @show "on layer"
+    #             # eval(:(return $vars))
+    #             # :($vars[1] = 1.0)
+    #         end
+    #         token += 1
+    #     end
+    # )
+    # expr2 = :(println($vars[1]))
+    # return expr2
+    # :($expr1; $expr2)
+    # return :( println("Hello, ", eval($vars)))
+    @show typeof(var)
+    # return esc(:($var * $var))
+    return esc(
+        quote
+            $var .= 0.0
+            n = length($var)
+            svar = Symbolics.variables(Symbol(:x,token), 1:n)
+            # return svar
+            $var = svar
+        end
+    )
+end
+
+function f1234(x0::Vector; select_layer::Int=-1, token::Int=0)
+    @layer11 x0
+    return x0
+    # a = "fff"
+    # return @layer11 a
+    # x1 = x0 .+ 1
+    # x11 = x0 .+ 3
+    # # @layer11 x1 x11
+    # x2 = [x1; sum(x1); sum(exp.(x11))]
+    # x22 = [sum(x11)]
+    # # @layer11 x2 x22
+    # x3 = x2.^2 * x22[end] * x2[end-1]
+    # # @layer11 x3
+    # # @show "x3 after layer" x3
+    # x4 = [sum(x3); sin.(x3 * x3[end])]
+    # # @layer11 x4
+    return token
+end
+
+x0 = ones(2)
+f1234(x0, select_layer=3)
+
+
+macro assert2(ex, msgs...)
+    msg_body = isempty(msgs) ? ex : msgs[1]
+    msg = string(msg_body)
+    return :($ex ? nothing : throw(AssertionError($msg)))
+end
+
+
+
+typeof(@macroexpand @layer11)
+@macroexpand @layer11
+
+
+function f12345(x0::Vector; i=4)
+    token = 0
+    # @out i==1 x1 = x0 .+ 1
+    # @out i==2 x2 = [x1; sum(x0); sum(exp.(x0))]
+    # @out i==3 x3 = x2.^2 * x2[end] * x2[end-1]
+    # @out i==4 x4 = [sum(x3); sin.(x3 * x3[end])]
+    x1 = x0 .+ 1
+    x2 = [x1; sum(x0); sum(exp.(x0))]
+    x3 = x2.^2 * x2[end] * x2[end-1]
+    x4 = [sum(x3); sin.(x3 * x3[end])]
+    @show_value x4
+    @show token
+end
+
+macro out(exit_condition, ex)
+    :(println($ex))
+    # return :($ex)
+end
+
+macro output()
+    local_token = esc(:(token))
+    local_term = esc(:(term))
+    ex = :($local_token == $local_term)
+    eval(ex)
+    # @show typeof(esc(:(token == $variables)))
+    # @show typeof(variable)
+    # if esc(:(token)) == variable
+    #     println(1)
+    # end
+    # return quote
+    #     esc(:(token += 1))
+    # end
+    # eval(ex)
+    # return :($ex)
+    # return esc(:(token += 1))
+end
+
+function foo(term)
+    token = 0
+    @output
+    @output
+    @output
+    @output
+    @output
+    @output
+    return token # is zero
+end
+
+foo(0)
+
+
+
+
+
+@macroexpand @output 2
+
+
+
+macro show_value(variable)
+    quote
+        esc(:(token = 1))
+        println("The ", $(string(variable)), " you passed is ", $(esc(variable)))
+    end
+end
+
+f1234(x0)
+f12345(x0)
+
+
+ex = @macroexpand @out true x3 = x2
+@show ex
+
 function f1(x0::Vector)
     x1 = x0 .+ 1
 end
@@ -84,7 +226,7 @@ end
 ################################################################################
 # example
 ################################################################################
-n = 20
+n = 2
 x0 = rand(n)
 norm(f1234(x0) - f4(f3(f2(f1(x0))))) < 1e-10
 
