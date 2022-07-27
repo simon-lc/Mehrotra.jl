@@ -12,8 +12,9 @@ function contact_frame(contact::PolyPoly1160, mechanism::Mechanism1160)
         unpack_parameters(parameters[contact.index.parameters], contact)
     vp25 = unpack_variables(variables[pbody.index.variables], pbody)
     vc25 = unpack_variables(variables[cbody.index.variables], cbody)
-    pp2, vp15, up2, timestep_p, gravity_p, mass_p, inertia_p = unpack_parameters(parameters[pbody.index.parameters], pbody)
-    pc2, vc15, uc2, timestep_c, gravity_c, mass_c, inertia_c = unpack_parameters(parameters[cbody.index.parameters], cbody)
+    pp2, timestep_p = unpack_pose_timestep(parameters[pbody.index.parameters], pbody)
+    pc2, timestep_c = unpack_pose_timestep(parameters[cbody.index.parameters], cbody)
+
     pp3 = pp2 + timestep_p[1] * vp25
     pc3 = pc2 + timestep_c[1] * vc25
     contact_point = c + (pp3 + pc3)[1:2] ./ 2
@@ -36,10 +37,9 @@ function contact_frame(contact::PolyHalfSpace1160, mechanism::Mechanism1160)
     friction_coefficient, Ap, bp, Ac, bc =
         unpack_parameters(parameters[contact.index.parameters], contact)
     vp25 = unpack_variables(variables[pbody.index.variables], pbody)
-    pp2, vp15, up2, timestep_p, gravity_p, mass_p, inertia_p = unpack_parameters(parameters[pbody.index.parameters], pbody)
+    pp2, timestep_p = unpack_pose_timestep(parameters[pbody.index.parameters], pbody)
+
     pp3 = pp2 + timestep_p[1] * vp25
-    # pc3 = zeros(3)
-    # contact_point = c + (pp3 + pc3)[1:2] ./ 2
     contact_point = c + pp3[1:2]
     normal = -x_2d_rotation(pp3[3:3]) * Ap' * λp
     R = [0 1; -1 0]
@@ -58,8 +58,7 @@ function contact_frame(contact::SphereHalfSpace1160, mechanism::Mechanism1160)
     # unpack parameters
     friction_coefficient, parent_radius, Ac, bc =
         unpack_parameters(parameters[contact.index.parameters], contact)
-    pp2, vp15, up2, timestep_p, gravity_p, mass_p, inertia_p =
-        unpack_parameters(parameters[pbody.index.parameters], pbody)
+    pp2, timestep_p = unpack_pose_timestep(parameters[pbody.index.parameters], pbody)
 
     # unpack variables
     vp25 = unpack_variables(variables[pbody.index.variables], pbody)
@@ -91,17 +90,16 @@ function contact_frame(contact::SphereSphere1160, mechanism::Mechanism1160)
         unpack_parameters(parameters[contact.index.parameters], contact)
     vp25 = unpack_variables(variables[pbody.index.variables], pbody)
     vc25 = unpack_variables(variables[cbody.index.variables], cbody)
-    pp2, vp15, up2, timestep_p, gravity_p, mass_p, inertia_p = unpack_parameters(parameters[pbody.index.parameters], pbody)
-    pc2, vc15, uc2, timestep_c, gravity_c, mass_c, inertia_c = unpack_parameters(parameters[cbody.index.parameters], cbody)
+    pp2, timestep_p = unpack_pose_timestep(parameters[pbody.index.parameters], pbody)
+    pc2, timestep_c = unpack_pose_timestep(parameters[cbody.index.parameters], cbody)
+
     pp3 = pp2 + timestep_p[1] * vp25
     pc3 = pc2 + timestep_c[1] * vc25
-
     # contact normal and tangent in the world frame
     normal = (pp3 - pc3)[1:2]
     R = [0 1; -1 0]
     tangent = R * normal
     n = normal / (1e-6 + norm(normal))
-
     # contact position in the world frame
     contact_point = 0.5 * (pp3[1:2] + radp[1] * n + pc3[1:2] - radc[1] * n)
 
@@ -122,8 +120,9 @@ function contact_frame(contact::PolySphere1160, mechanism::Mechanism1160)
         unpack_parameters(parameters[contact.index.parameters], contact)
     vp25 = unpack_variables(variables[pbody.index.variables], pbody)
     vc25 = unpack_variables(variables[cbody.index.variables], cbody)
-    pp2, vp15, up2, timestep_p, gravity_p, mass_p, inertia_p = unpack_parameters(parameters[pbody.index.parameters], pbody)
-    pc2, vc15, uc2, timestep_c, gravity_c, mass_c, inertia_c = unpack_parameters(parameters[cbody.index.parameters], cbody)
+    pp2, timestep_p = unpack_pose_timestep(parameters[pbody.index.parameters], pbody)
+    pc2, timestep_c = unpack_pose_timestep(parameters[cbody.index.parameters], cbody)
+
     pp3 = pp2 + timestep_p[1] * vp25
     pc3 = pc2 + timestep_c[1] * vc25
     contact_point = c + pp3[1:2]

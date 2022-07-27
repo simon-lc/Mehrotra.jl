@@ -11,7 +11,7 @@ struct SphereHalfSpace1160{T,D} <: Node{T}
     b_child_collider::Vector{T} #polytope
 end
 
-function SphereHalfSpace1160(parent_body::Body1160{T}, Ac::AbstractMatrix, bc::AbstractVector;
+function SphereHalfSpace1160(parent_body::Body{T}, Ac::AbstractMatrix, bc::AbstractVector;
         parent_collider_id::Int=1,
         name::Symbol=:halfspace,
         friction_coefficient=0.2) where {T}
@@ -101,11 +101,12 @@ function unpack_parameters(θ::Vector, contact::SphereHalfSpace1160{T,D}) where 
 end
 
 function residual!(e, x, θ, contact::SphereHalfSpace1160{T,D},
-        pbody::Body1160) where {T,D}
+        pbody::Body) where {T,D}
     NC = 1
     # unpack parameters
     friction_coefficient, parent_radius, Ac, bc = unpack_parameters(θ[contact.index.parameters], contact)
-    pp2, vp15, up2, timestep_p, gravity_p, mass_p, inertia_p = unpack_parameters(θ[pbody.index.parameters], pbody)
+    # pp2, vp15, up2, timestep_p, gravity_p, mass_p, inertia_p = unpack_parameters(θ[pbody.index.parameters], pbody)
+    pp2, timestep_p = unpack_pose_timestep(θ[pbody.index.parameters], pbody)
 
     # unpack variables
     γ, ψ, β, sγ, sψ, sβ = unpack_variables(x[contact.index.variables], contact)

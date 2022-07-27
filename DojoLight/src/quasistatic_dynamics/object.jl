@@ -1,7 +1,7 @@
 ################################################################################
 # body
 ################################################################################
-struct QuasistaticObject1160{T,D} <: Node{T}
+struct QuasistaticObject1160{T,D} <: Body{T}
     name::Symbol
     index::NodeIndices1160
     pose::Vector{T}
@@ -99,6 +99,11 @@ function unpack_parameters(θ::Vector, body::QuasistaticObject1160{T,D}) where {
     inertia = θ[off .+ 1] * ones(1,1); off += 1
     # return pose, velocity, input, timestep, gravity, mass, inertia
     return pose, input, timestep, gravity, mass, inertia
+end
+
+function unpack_pose_timestep(θ::Vector, body::QuasistaticObject1160{T,D}) where {T,D}
+    pose, input, timestep, gravity, mass, inertia = unpack_parameters(θ, body)
+    return pose, timestep
 end
 
 function find_body(bodies::AbstractVector{<:QuasistaticObject1160}, name::Symbol)
