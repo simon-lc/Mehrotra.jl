@@ -106,6 +106,8 @@ function unpack_parameters(θ::Vector, body::QuasistaticRobot1170{T,D}) where {T
     # return pose, velocity, input, timestep, gravity, mass, inertia
     return pose, input, timestep, gravity, mass, inertia, stiffness
 end
+parameter_state_indices(body::QuasistaticRobot1170) = Vector(1:3)
+parameter_input_indices(body::QuasistaticRobot1170) = Vector(4:6)
 
 function unpack_pose_timestep(θ::Vector, body::QuasistaticRobot1170{T,D}) where {T,D}
     pose, input, timestep, gravity, mass, inertia, stiffness = unpack_parameters(θ, body)

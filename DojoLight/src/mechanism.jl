@@ -14,8 +14,8 @@ function MechanismIndices1170(bodies::Vector, contacts::Vector)
 
     for body in bodies
         solution_state = vcat(solution_state, body.index.primals) # next state
-        parameter_state = vcat(parameter_state, body.index.parameters[1:6]) # current state
-        input = vcat(input, body.index.parameters[7:9]) # input
+        parameter_state = vcat(parameter_state, body.index.parameters[parameter_state_indices(body)]) # current state
+        input = vcat(input, body.index.parameters[parameter_input_indices(body)]) # input
     end
 
     return MechanismIndices1170(

@@ -48,7 +48,8 @@ function get_quasistatic_sphere_bundle(;
     child_shapes = [SphereShape1170(child_radius)]
     bodies = [
         QuasistaticObject1170(timestep, mass, inertia, parent_shapes, gravity=+gravity, name=:pbody),
-        QuasistaticObject1170(timestep, mass, inertia, child_shapes, gravity=+gravity, name=:cbody),
+        # QuasistaticObject1170(timestep, mass, inertia, child_shapes, gravity=+gravity, name=:cbody),
+        QuasistaticRobot1170(timestep, mass, inertia, child_shapes, gravity=+gravity, name=:cbody),
         ]
     contacts = [
         PolySphere1170(bodies[1], bodies[2],

@@ -201,8 +201,10 @@ function set_mechanism!(vis::Visualizer, mechanism::Mechanism1170, storage::Stor
 end
 
 function set_mechanism!(vis::Visualizer, mechanism::Mechanism1170, z)
+    off = 0
     for (j,body) in enumerate(mechanism.bodies)
-        set_body!(vis, body, z[6*(j-1) .+ (1:3)])
+        nz = state_dimension(body)
+        set_body!(vis, body, z[off .+ (1:nz)]); off += nz
     end
     return nothing
 end

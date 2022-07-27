@@ -51,3 +51,38 @@ function dynamics_jacobian_input(du, mechanism::Mechanism1170{T,D,NB}, z, u, w) 
     du[idx_velocity,:] .= solver.data.solution_sensitivity[idx_solution, idx_parameters]
     return nothing
 end
+
+function quasistatic_dynamics_jacobian_state(dz, mechanism::Mechanism1170{T,D,NB}, z, u, w) where {T,D,NB}
+    solver = mechanism.solver
+    solver.options.differentiate = true
+    timestep = mechanism.bodies[1].timestep[1]
+
+    set_current_state!(mechanism, z)
+    set_input!(mechanism, u)
+    update_parameters!(mechanism)
+    solve!(solver)
+
+    # idx_parameters = solver.indices.parameter_keywords[:state]
+    idx_parameters_state = mechanism.indices.parameter_state
+    idx_solution_state = mechanism.indices.solution_state
+    dz .= timestep * solver.data.solution_sensitivity[idx_solution_state, idx_parameters_state]
+    dz .+= Diagonal(ones(size(dz,1)))
+    return nothing
+end
+
+function quasistatic_dynamics_jacobian_input(du, mechanism::Mechanism1170{T,D,NB}, z, u, w) where {T,D,NB}
+    solver = mechanism.solver
+    solver.options.differentiate = true
+    timestep = mechanism.bodies[1].timestep[1]
+
+    set_current_state!(mechanism, z)
+    set_input!(mechanism, u)
+    update_parameters!(mechanism)
+    solve!(solver)
+
+    # idx_parameters = solver.indices.parameter_keywords[:input]
+    idx_parameters = mechanism.indices.input
+    idx_solution = mechanism.indices.solution_state
+    du .= timestep * solver.data.solution_sensitivity[idx_solution, idx_parameters]
+    return nothing
+end

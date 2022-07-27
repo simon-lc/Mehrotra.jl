@@ -95,6 +95,8 @@ function unpack_parameters(θ::Vector, body::Body1170{T,D}) where {T,D}
     inertia = θ[off .+ 1] * ones(1,1); off += 1
     return pose, velocity, input, timestep, gravity, mass, inertia
 end
+parameter_state_indices(body::Body1170) = Vector(1:6)
+parameter_input_indices(body::Body1170) = Vector(7:9)
 
 function unpack_pose_timestep(θ::Vector, body::Body1170{T,D}) where {T,D}
     pose, velocity, input, timestep, gravity, mass, inertia = unpack_parameters(θ, body)
