@@ -1,13 +1,13 @@
 ################################################################################
 # Indices
 ################################################################################
-struct MechanismIndices1160
+struct MechanismIndices1170
     solution_state::Vector{Int}
     parameter_state::Vector{Int}
     input::Vector{Int}
 end
 
-function MechanismIndices1160(bodies::Vector, contacts::Vector)
+function MechanismIndices1170(bodies::Vector, contacts::Vector)
     solution_state = zeros(Int,0)
     parameter_state = zeros(Int,0)
     input = zeros(Int,0)
@@ -18,7 +18,7 @@ function MechanismIndices1160(bodies::Vector, contacts::Vector)
         input = vcat(input, body.index.parameters[7:9]) # input
     end
 
-    return MechanismIndices1160(
+    return MechanismIndices1170(
         solution_state,
         parameter_state,
         input,
@@ -28,7 +28,7 @@ end
 ################################################################################
 # dimensions
 ################################################################################
-struct MechanismDimensions1160
+struct MechanismDimensions1170
     body_configuration::Int
     body_velocity::Int
     body_state::Int
@@ -46,7 +46,7 @@ struct MechanismDimensions1160
     # equality::Int
 end
 
-function MechanismDimensions1160(bodies::Vector, contacts::Vector)
+function MechanismDimensions1170(bodies::Vector, contacts::Vector)
     # dimensions
     body_configuration = 3 # in 2D
     body_velocity = 3 # in 2D
@@ -57,7 +57,7 @@ function MechanismDimensions1160(bodies::Vector, contacts::Vector)
     num_contacts = length(contacts)
 
 
-    state = num_bodies * body_state
+    state = sum(state_dimension.(bodies))
     input = num_bodies * body_input
 
     nodes = [bodies; contacts]
@@ -69,7 +69,7 @@ function MechanismDimensions1160(bodies::Vector, contacts::Vector)
     # num_slacks = num_cone
     # num_equality = sum(equality_dimension.(nodes))
 
-    return MechanismDimensions1160(
+    return MechanismDimensions1170(
         body_configuration,
         body_velocity,
         body_state,
@@ -91,27 +91,27 @@ end
 ################################################################################
 # mechanism
 ################################################################################
-struct Mechanism1160{T,D,NB,NC,C}
+struct Mechanism1170{T,D,NB,NC,B,C}
     variables::Vector{T}
     parameters::Vector{T}
     solver::Solver{T}
-    bodies::Vector{Body1160{T}}
+    bodies::Vector{B}
     contacts::Vector{C}
-    dimensions::MechanismDimensions1160
-    indices::MechanismIndices1160
+    dimensions::MechanismDimensions1170
+    indices::MechanismIndices1170
     # equalities::Vector{Equality{T}}
     # inequalities::Vector{Inequality{T}}
 end
 
-function Mechanism1160(residual, bodies::Vector, contacts::Vector;
+function Mechanism1170(residual, bodies::Vector, contacts::Vector;
         options::Options{T}=Options(),
         D::Int=2,
         method_type::Symbol=:finite_difference) where {T}
 
     # # Dimensions
     nodes = [bodies; contacts]
-    dim = MechanismDimensions1160(bodies, contacts)
-    idx = MechanismIndices1160(bodies, contacts)
+    dim = MechanismDimensions1170(bodies, contacts)
+    idx = MechanismIndices1170(bodies, contacts)
     num_primals = sum(primal_dimension.(nodes))
     num_cone = sum(cone_dimension.(nodes))
 
@@ -139,7 +139,7 @@ function Mechanism1160(residual, bodies::Vector, contacts::Vector;
 
     nb = length(bodies)
     nc = length(contacts)
-    mechanism = Mechanism1160{T,D,nb,nc,eltype(contacts)}(
+    mechanism = Mechanism1170{T,D,nb,nc,eltype(bodies),eltype(contacts)}(
         variables,
         parameters,
         solver,

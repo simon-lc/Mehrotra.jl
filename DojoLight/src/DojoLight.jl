@@ -34,3 +34,7 @@ include("continuation.jl")
 
 include("../environment/polytope_bundle.jl")
 include("../environment/polytope_drop.jl")
+include("../environment/quasistatic_sphere_drop.jl")
+include("../environment/sphere_bundle.jl")
+include("../environment/sphere_collision.jl")
+include("../environment/sphere_drop.jl")

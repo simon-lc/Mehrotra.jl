@@ -20,12 +20,12 @@ function get_quasistatic_sphere_drop(;
     bf = [0.0]
 
     # nodes
-    shapes = [SphereShape1160(sphere_radius)]
+    shapes = [SphereShape1170(sphere_radius)]
     bodies = [
-        QuasistaticObject1160(timestep, mass, inertia, shapes, gravity=+gravity, name=:pbody),
+        QuasistaticObject1170(timestep, mass, inertia, shapes, gravity=+gravity, name=:pbody),
         ]
     contacts = [
-        SphereHalfSpace1160(bodies[1], Af, bf,
+        SphereHalfSpace1170(bodies[1], Af, bf,
             friction_coefficient=friction_coefficient,
             name=:halfspace_p1),
         ]
@@ -34,7 +34,7 @@ function get_quasistatic_sphere_drop(;
     local_mechanism_residual(primals, duals, slacks, parameters) =
         mechanism_residual(primals, duals, slacks, parameters, bodies, contacts)
 
-    mechanism = Mechanism1160(
+    mechanism = Mechanism1170(
         local_mechanism_residual,
         bodies,
         contacts,

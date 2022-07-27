@@ -44,28 +44,28 @@ function get_sphere_bundle(;
     child_radius = 0.2
 
     # nodes
-    parent_shapes = [PolytopeShape1160(Ap1, bp1), PolytopeShape1160(Ap2, bp2)]
-    child_shapes = [SphereShape1160(child_radius)]
+    parent_shapes = [PolytopeShape1170(Ap1, bp1), PolytopeShape1170(Ap2, bp2)]
+    child_shapes = [SphereShape1170(child_radius)]
     bodies = [
-        Body1160(timestep, mass, inertia, parent_shapes, gravity=+gravity, name=:pbody),
-        Body1160(timestep, mass, inertia, child_shapes, gravity=+gravity, name=:cbody),
+        Body1170(timestep, mass, inertia, parent_shapes, gravity=+gravity, name=:pbody),
+        Body1170(timestep, mass, inertia, child_shapes, gravity=+gravity, name=:cbody),
         ]
     contacts = [
-        PolySphere1160(bodies[1], bodies[2],
+        PolySphere1170(bodies[1], bodies[2],
             friction_coefficient=friction_coefficient,
             name=:contact_1),
-        PolySphere1160(bodies[1], bodies[2],
+        PolySphere1170(bodies[1], bodies[2],
             parent_collider_id=2,
             friction_coefficient=friction_coefficient,
             name=:contact_2),
-        PolyHalfSpace1160(bodies[1], Af, bf,
+        PolyHalfSpace1170(bodies[1], Af, bf,
             friction_coefficient=friction_coefficient,
             name=:halfspace_p1),
-        PolyHalfSpace1160(bodies[1], Af, bf,
+        PolyHalfSpace1170(bodies[1], Af, bf,
             parent_collider_id=2,
             friction_coefficient=friction_coefficient,
             name=:halfspace_p2),
-        SphereHalfSpace1160(bodies[2], Af, bf,
+        SphereHalfSpace1170(bodies[2], Af, bf,
             friction_coefficient=friction_coefficient,
             name=:halfspace_c),
         ]
@@ -74,7 +74,7 @@ function get_sphere_bundle(;
     local_mechanism_residual(primals, duals, slacks, parameters) =
         mechanism_residual(primals, duals, slacks, parameters, bodies, contacts)
 
-    mechanism = Mechanism1160(
+    mechanism = Mechanism1170(
         local_mechanism_residual,
         bodies,
         contacts,

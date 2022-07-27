@@ -21,14 +21,14 @@ include("../environment/sphere_drop.jl")
 timestep = 0.05;
 gravity = -9.81;
 mass = 1.0;
-inertia = 0.2 * ones(1);
+inertia = 0.2 * ones(1,1);
 
 
 mech = get_quasistatic_sphere_drop(;
-    timestep=0.05,
-    gravity=-9.81,
-    mass=1.0,
-    inertia=0.2 * ones(1,1),
+    timestep=timestep,
+    gravity=gravity,
+    mass=mass,
+    inertia=inertia,
     friction_coefficient=0.1,
     method_type=:symbolic,
     # method_type=:finite_difference,
@@ -43,23 +43,23 @@ mech = get_quasistatic_sphere_drop(;
         complementarity_correction=0.5,
         )
     );
-
-# solve!(mech.solver)
+solve!(mech.solver)
 ################################################################################
 # test simulation
 ################################################################################
 xp2 = [+0.0,1.5,-0.25]
-vp15 = [-0,0,5.0]
-z0 = [xp2; vp15]
+# vp15 = [-0,0,5.0]
+# z0 = [xp2; vp15]
+z0 = [xp2;]
 
 u0 = zeros(3)
-H0 = 150
+H0 = 65
 # solve!(mech.solver)
 
 @elapsed storage = simulate!(mech, z0, H0)
 # Main.@profiler [solve!(mech.solver) for i=1:300]
 # @benchmark $solve!($(mech.solver))
-scatter(storage.iterations)
+# scatter(storage.iterations)
 
 ################################################################################
 # visualization
@@ -76,13 +76,6 @@ set_mechanism!(vis, mech, storage, 10)
 visualize!(vis, mech, storage, build=false)
 
 
-scatter(storage.iterations)
-plot!(hcat(storage.variables...)')
-
-solver = mech.solver
-indices = solver.indices
-z = solver.solution.duals
-s = solver.solution.slacks
-idx_nn = indices.cone_nonnegative
-idx_soc = indices.cone_second_order
-cone_product_jacobian_inverse(s, z, idx_nn, idx_soc)
+# scatter(storage.iterations)
+# plot!(hcat(storage.variables...)')
+# RobotVisualizer.convert_frames_to_video_and_gif("quasistatic_sphere_drop")

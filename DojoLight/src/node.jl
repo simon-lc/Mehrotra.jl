@@ -6,7 +6,7 @@ optimality_dimension(body::Node) = primal_dimension(body)
 slackness_dimension(body::Node) = cone_dimension(body)
 equality_dimension(body::Node) = optimality_dimension(body) + slackness_dimension(body)
 
-mutable struct NodeIndices1160
+mutable struct NodeIndices1170
     optimality::Vector{Int}
     slackness::Vector{Int}
     equality::Vector{Int}
@@ -17,8 +17,8 @@ mutable struct NodeIndices1160
     parameters::Vector{Int}
 end
 
-function NodeIndices1160()
-    return NodeIndices1160(
+function NodeIndices1170()
+    return NodeIndices1170(
         collect(1:0),
         collect(1:0),
         collect(1:0),

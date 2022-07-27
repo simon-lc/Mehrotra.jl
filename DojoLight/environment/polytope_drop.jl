@@ -31,12 +31,12 @@ function get_polytope_drop(;
         ];
 
     # nodes
-    shapes = [PolytopeShape1160(Ap1, bp1)]
+    shapes = [PolytopeShape1170(Ap1, bp1)]
     bodies = [
-        Body1160(timestep, mass, inertia, shapes, gravity=+gravity, name=:pbody),
+        Body1170(timestep, mass, inertia, shapes, gravity=+gravity, name=:pbody),
         ]
     contacts = [
-        PolyHalfSpace1160(bodies[1], Af, bf,
+        PolyHalfSpace1170(bodies[1], Af, bf,
             friction_coefficient=friction_coefficient,
             name=:halfspace_p1),
         ]
@@ -45,7 +45,7 @@ function get_polytope_drop(;
     local_mechanism_residual(primals, duals, slacks, parameters) =
         mechanism_residual(primals, duals, slacks, parameters, bodies, contacts)
 
-    mechanism = Mechanism1160(
+    mechanism = Mechanism1170(
         local_mechanism_residual,
         bodies,
         contacts,
@@ -113,25 +113,25 @@ end
 #
 #     # nodes
 #     bodies = [
-#         Body1160(timestep, mass, inertia, [Ap1, Ap2], [bp1, bp2], gravity=+gravity, name=:pbody),
-#         Body1160(timestep, mass, inertia, [Ac], [bc], gravity=+gravity, name=:cbody),
+#         Body1170(timestep, mass, inertia, [Ap1, Ap2], [bp1, bp2], gravity=+gravity, name=:pbody),
+#         Body1170(timestep, mass, inertia, [Ac], [bc], gravity=+gravity, name=:cbody),
 #         ]
 #     contacts = [
-#         PolyPoly1160(bodies[1], bodies[2],
+#         PolyPoly1170(bodies[1], bodies[2],
 #             friction_coefficient=friction_coefficient,
 #             name=:contact_1),
-#         # PolyPoly1160(bodies[1], bodies[2],
+#         # PolyPoly1170(bodies[1], bodies[2],
 #         #     parent_collider_id=2,
 #         #     friction_coefficient=friction_coefficient,
 #         #     name=:contact_2),
-#         PolyHalfSpace1160(bodies[1], Af, bf,
+#         PolyHalfSpace1170(bodies[1], Af, bf,
 #             friction_coefficient=friction_coefficient,
 #             name=:halfspace_p1),
-#         # PolyHalfSpace1160(bodies[1], Af, bf,
+#         # PolyHalfSpace1170(bodies[1], Af, bf,
 #         #     parent_collider_id=2,
 #         #     friction_coefficient=friction_coefficient,
 #         #     name=:halfspace_p2),
-#         # PolyHalfSpace1160(bodies[2], Af, bf,
+#         # PolyHalfSpace1170(bodies[2], Af, bf,
 #         #     friction_coefficient=friction_coefficient,
 #         #     name=:halfspace_c),
 #         ]
@@ -163,11 +163,11 @@ end
 # local_mechanism_residual(primals, duals, slacks, parameters) =
 #     mechanism_residual(primals, duals, slacks, parameters, bodies, contacts)
 
-# # mechanism = Mechanism1160(local_mechanism_residual, bodies, contacts, options=options)
+# # mechanism = Mechanism1170(local_mechanism_residual, bodies, contacts, options=options)
 
 # # # Dimensions
 # nodes = [bodies; contacts]
-# dim = MechanismDimensions1160(bodies, contacts)
+# dim = MechanismDimensions1170(bodies, contacts)
 # num_primals = sum(primal_dimension.(nodes))
 # num_cone = sum(cone_dimension.(nodes))
 

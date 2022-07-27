@@ -20,19 +20,19 @@ function get_sphere_collision(;
     bf = [0.0]
 
     # nodes
-    shapes = [SphereShape1160(sphere_radius)]
+    shapes = [SphereShape1170(sphere_radius)]
     bodies = [
-        Body1160(timestep, mass, inertia, shapes, gravity=+gravity, name=:pbody1),
-        Body1160(timestep, mass, inertia, shapes, gravity=+gravity, name=:pbody2),
+        Body1170(timestep, mass, inertia, shapes, gravity=+gravity, name=:pbody1),
+        Body1170(timestep, mass, inertia, shapes, gravity=+gravity, name=:pbody2),
         ]
     contacts = [
-        SphereHalfSpace1160(bodies[1], Af, bf,
+        SphereHalfSpace1170(bodies[1], Af, bf,
             friction_coefficient=friction_coefficient,
             name=:halfspace_p1),
-        SphereHalfSpace1160(bodies[2], Af, bf,
+        SphereHalfSpace1170(bodies[2], Af, bf,
             friction_coefficient=friction_coefficient,
             name=:halfspace_p2),
-        SphereSphere1160(bodies[1], bodies[2],
+        SphereSphere1170(bodies[1], bodies[2],
             friction_coefficient=friction_coefficient,
             name=:sphere_sphere),
         ]
@@ -41,7 +41,7 @@ function get_sphere_collision(;
     local_mechanism_residual(primals, duals, slacks, parameters) =
         mechanism_residual(primals, duals, slacks, parameters, bodies, contacts)
 
-    mechanism = Mechanism1160(
+    mechanism = Mechanism1170(
         local_mechanism_residual,
         bodies,
         contacts,

@@ -1,4 +1,4 @@
-function get_polytope_bundle(;
+function get_quasistatic_sphere_bundle(;
     timestep=0.05,
     gravity=-9.81,
     mass=1.0,
@@ -41,31 +41,20 @@ function get_polytope_bundle(;
         +1.5,
         1,
         ];
-    Ac = [
-         1.0  0.0;
-         0.0  1.0;
-        -1.0  0.0;
-         0.0 -1.0;
-        ] .+ 0.20ones(4,2);
-    bc = 0.2*[
-        1,
-        1,
-        1,
-        1,
-        ];
+    child_radius = 0.2
 
     # nodes
     parent_shapes = [PolytopeShape1170(Ap1, bp1), PolytopeShape1170(Ap2, bp2)]
-    child_shapes = [PolytopeShape1170(Ac, bc)]
+    child_shapes = [SphereShape1170(child_radius)]
     bodies = [
-        Body1170(timestep, mass, inertia, parent_shapes, gravity=+gravity, name=:pbody),
-        Body1170(timestep, mass, inertia, child_shapes, gravity=+gravity, name=:cbody),
+        QuasistaticObject1170(timestep, mass, inertia, parent_shapes, gravity=+gravity, name=:pbody),
+        QuasistaticObject1170(timestep, mass, inertia, child_shapes, gravity=+gravity, name=:cbody),
         ]
     contacts = [
-        PolyPoly1170(bodies[1], bodies[2],
+        PolySphere1170(bodies[1], bodies[2],
             friction_coefficient=friction_coefficient,
             name=:contact_1),
-        PolyPoly1170(bodies[1], bodies[2],
+        PolySphere1170(bodies[1], bodies[2],
             parent_collider_id=2,
             friction_coefficient=friction_coefficient,
             name=:contact_2),
@@ -76,7 +65,7 @@ function get_polytope_bundle(;
             parent_collider_id=2,
             friction_coefficient=friction_coefficient,
             name=:halfspace_p2),
-        PolyHalfSpace1170(bodies[2], Af, bf,
+        SphereHalfSpace1170(bodies[2], Af, bf,
             friction_coefficient=friction_coefficient,
             name=:halfspace_c),
         ]
