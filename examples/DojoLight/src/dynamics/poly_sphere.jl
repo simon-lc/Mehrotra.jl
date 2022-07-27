@@ -58,10 +58,6 @@ end
 
 primal_dimension(contact::PolySphere1160{T,D}) where {T,D} = D # c
 cone_dimension(contact::PolySphere1160{T,D,NP}) where {T,D,NP} = 1 + 1 + 2 + NP # γ ψ β λp
-variable_dimension(contact::PolySphere1160{T,D}) where {T,D} = primal_dimension(contact) + 2 * cone_dimension(contact)
-optimality_dimension(contact::PolySphere1160{T,D}) where {T,D} = primal_dimension(contact)
-slackness_dimension(contact::PolySphere1160{T,D}) where {T,D} = cone_dimension(contact)
-equality_dimension(contact::PolySphere1160{T,D}) where {T,D} = optimality_dimension(contact) + slackness_dimension(contact)
 
 function parameter_dimension(contact::PolySphere1160{T,D}) where {T,D}
     nAp = length(contact.A_parent_collider)
@@ -145,8 +141,8 @@ function residual!(e, x, θ, contact::PolySphere1160{T,D,NP},
     ϕ = [sqrt((pc3[1:2] - contact_w)' * (pc3[1:2] - contact_w))] - radc
 
     # contact normal and tangent in the world frame
-    # normal_pw = -x_2d_rotation(pp3[3:3]) * Ap' * λp
-    normal_pw = contact_w - pc3[1:2]
+    normal_pw = -x_2d_rotation(pp3[3:3]) * Ap' * λp
+    # normal_pw = contact_w - pc3[1:2]
     normal_cw = contact_w - pc3[1:2]
     R = [0 1; -1 0]
     tangent_pw = R * normal_pw
@@ -195,6 +191,12 @@ function residual!(e, x, θ, contact::PolySphere1160{T,D,NP},
     return nothing
 end
 
+function residual!(e, x, θ, contact::PolySphere1160, bodies::Vector)
+    pbody = find_body(bodies, contact.parent_name)
+    cbody = find_body(bodies, contact.child_name)
+    residual!(e, x, θ, contact, pbody, cbody)
+    return nothing
+end
 
 #
 #

@@ -51,12 +51,6 @@ end
 
 primal_dimension(contact::PolyHalfSpace1160{T,D}) where {T,D} = D + 1 # x, ϕ
 cone_dimension(contact::PolyHalfSpace1160{T,D,NP}) where {T,D,NP} = 1 + 1 + 2 + NP + 1 # γ ψ β λp, λc
-variable_dimension(contact::PolyHalfSpace1160{T,D}) where {T,D} = primal_dimension(contact) + 2 * cone_dimension(contact)
-equality_dimension(contact::PolyHalfSpace1160{T,D}) where {T,D} = primal_dimension(contact) + cone_dimension(contact)
-optimality_dimension(contact::PolyHalfSpace1160{T,D}) where {T,D} = primal_dimension(contact)
-slackness_dimension(contact::PolyHalfSpace1160{T,D}) where {T,D} = cone_dimension(contact)
-equality_dimension(contact::PolyHalfSpace1160{T,D}) where {T,D} = optimality_dimension(contact) + slackness_dimension(contact)
-
 
 function parameter_dimension(contact::PolyHalfSpace1160{T,D}) where {T,D}
     nAp = length(contact.A_parent_collider)
@@ -181,5 +175,11 @@ function residual!(e, x, θ, contact::PolyHalfSpace1160{T,D,NP},
     e[contact.index.optimality] .+= optimality
     e[contact.index.slackness] .+= slackness
     e[pbody.index.optimality] .-= wrench_p
+    return nothing
+end
+
+function residual!(e, x, θ, contact::PolyHalfSpace1160, bodies::Vector)
+    pbody = find_body(bodies, contact.parent_name)
+    residual!(e, x, θ, contact, pbody)
     return nothing
 end

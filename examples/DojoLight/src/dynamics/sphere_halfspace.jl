@@ -46,11 +46,6 @@ end
 
 primal_dimension(contact::SphereHalfSpace1160{T,D}) where {T,D} = 0
 cone_dimension(contact::SphereHalfSpace1160{T,D}) where {T,D} = 1 + 1 + 2 # γ ψ β
-variable_dimension(contact::SphereHalfSpace1160{T,D}) where {T,D} = primal_dimension(contact) + 2 * cone_dimension(contact)
-equality_dimension(contact::SphereHalfSpace1160{T,D}) where {T,D} = primal_dimension(contact) + cone_dimension(contact)
-optimality_dimension(contact::SphereHalfSpace1160{T,D}) where {T,D} = primal_dimension(contact)
-slackness_dimension(contact::SphereHalfSpace1160{T,D}) where {T,D} = cone_dimension(contact)
-equality_dimension(contact::SphereHalfSpace1160{T,D}) where {T,D} = optimality_dimension(contact) + slackness_dimension(contact)
 
 
 function parameter_dimension(contact::SphereHalfSpace1160{T,D}) where {T,D}
@@ -160,5 +155,11 @@ function residual!(e, x, θ, contact::SphereHalfSpace1160{T,D},
     # fill the equality vector (residual of the equality constraints)
     e[contact.index.slackness] .+= slackness
     e[pbody.index.optimality] .-= wrench_p
+    return nothing
+end
+
+function residual!(e, x, θ, contact::SphereHalfSpace1160, bodies::Vector)
+    pbody = find_body(bodies, contact.parent_name)
+    residual!(e, x, θ, contact, pbody)
     return nothing
 end

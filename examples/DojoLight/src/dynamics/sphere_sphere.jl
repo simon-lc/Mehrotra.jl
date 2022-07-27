@@ -57,10 +57,6 @@ end
 
 primal_dimension(contact::SphereSphere1160{T,D}) where {T,D} = 0
 cone_dimension(contact::SphereSphere1160{T,D}) where {T,D} = 1 + 1 + 2 # γ ψ β
-variable_dimension(contact::SphereSphere1160{T,D}) where {T,D} = primal_dimension(contact) + 2 * cone_dimension(contact)
-optimality_dimension(contact::SphereSphere1160{T,D}) where {T,D} = primal_dimension(contact)
-slackness_dimension(contact::SphereSphere1160{T,D}) where {T,D} = cone_dimension(contact)
-equality_dimension(contact::SphereSphere1160{T,D}) where {T,D} = optimality_dimension(contact) + slackness_dimension(contact)
 
 function parameter_dimension(contact::SphereSphere1160{T,D}) where {T,D}
     nθ = 1 + 1 + D + 1 + D
@@ -175,5 +171,12 @@ function residual!(e, x, θ, contact::SphereSphere1160{T,D},
     e[contact.index.slackness] .+= slackness
     e[pbody.index.optimality] .-= wrench_p
     e[cbody.index.optimality] .-= wrench_c
+    return nothing
+end
+
+function residual!(e, x, θ, contact::SphereSphere1160, bodies::Vector)
+    pbody = find_body(bodies, contact.parent_name)
+    cbody = find_body(bodies, contact.child_name)
+    residual!(e, x, θ, contact, pbody, cbody)
     return nothing
 end

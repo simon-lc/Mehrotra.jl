@@ -59,10 +59,6 @@ end
 
 primal_dimension(contact::PolyPoly1160{T,D}) where {T,D} = D + 1 # x, ϕ
 cone_dimension(contact::PolyPoly1160{T,D,NP,NC}) where {T,D,NP,NC} = 1 + 1 + 2 + NP + NC # γ ψ β λp, λc
-variable_dimension(contact::PolyPoly1160{T,D}) where {T,D} = primal_dimension(contact) + 2 * cone_dimension(contact)
-optimality_dimension(contact::PolyPoly1160{T,D}) where {T,D} = primal_dimension(contact)
-slackness_dimension(contact::PolyPoly1160{T,D}) where {T,D} = cone_dimension(contact)
-equality_dimension(contact::PolyPoly1160{T,D}) where {T,D} = optimality_dimension(contact) + slackness_dimension(contact)
 
 function parameter_dimension(contact::PolyPoly1160{T,D}) where {T,D}
     nAp = length(contact.A_parent_collider)
@@ -195,6 +191,13 @@ function residual!(e, x, θ, contact::PolyPoly1160{T,D,NP,NC},
     e[contact.index.slackness] .+= slackness
     e[pbody.index.optimality] .-= wrench_p
     e[cbody.index.optimality] .-= wrench_c
+    return nothing
+end
+
+function residual!(e, x, θ, contact::PolyPoly1160, bodies::Vector)
+    pbody = find_body(bodies, contact.parent_name)
+    cbody = find_body(bodies, contact.child_name)
+    residual!(e, x, θ, contact, pbody, cbody)
     return nothing
 end
 

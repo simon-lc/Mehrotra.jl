@@ -1,5 +1,10 @@
 abstract type Node{T} end
 
+variable_dimension(body::Node) = primal_dimension(body) + 2 * cone_dimension(body)
+optimality_dimension(body::Node) = primal_dimension(body)
+slackness_dimension(body::Node) = cone_dimension(body)
+equality_dimension(body::Node) = optimality_dimension(body) + slackness_dimension(body)
+
 mutable struct NodeIndices1160
     optimality::Vector{Int}
     slackness::Vector{Int}
@@ -27,7 +32,7 @@ end
 
 function indexing!(nodes::Vector)
     # residual
-    off = 0        
+    off = 0
     for node in nodes
         n = optimality_dimension(node)
         node.index.optimality = collect(off .+ (1:n)); off += n
@@ -35,18 +40,18 @@ function indexing!(nodes::Vector)
     for node in nodes
         n = slackness_dimension(node)
         node.index.slackness = collect(off .+ (1:n)); off += n
-    end    
+    end
     for node in nodes
         index = node.index
         index.equality = [index.optimality; index.slackness]
     end
-    
+
     # variables
     off = 0
     for node in nodes
         n = primal_dimension(node)
         node.index.primals = collect(off .+ (1:n)); off += n
-    end   
+    end
     for node in nodes
         n = cone_dimension(node)
         node.index.duals = collect(off .+ (1:n)); off += n
@@ -59,7 +64,7 @@ function indexing!(nodes::Vector)
         index = node.index
         index.variables = [index.primals; index.duals; index.slacks]
     end
-    
+
     # parameters
     off = 0
     for node in nodes

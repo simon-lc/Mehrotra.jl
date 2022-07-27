@@ -34,14 +34,15 @@ mech = get_sphere_bundle(;
     method_type=:symbolic,
     # method_type=:finite_difference,
     options=Options(
-        verbose=false,
+        verbose=true,
         complementarity_tolerance=1e-4,
         compressed_search_direction=true,
         max_iterations=30,
         sparse_solver=true,
         differentiate=false,
-        warm_start=false,
+        warm_start=true,
         complementarity_correction=0.5,
+        # complementarity_decoupling=true
         )
     );
 
@@ -75,6 +76,6 @@ set_background!(vis)
 visualize!(vis, mech, storage, build=true)
 
 
-# scatter(storage.iterations)
+scatter(storage.iterations)
 # plot!(hcat(storage.variables...)')
 # RobotVisualizer.convert_frames_to_video_and_gif("sphere_polytope_drop")
