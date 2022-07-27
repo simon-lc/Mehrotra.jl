@@ -1,20 +1,20 @@
-abstract type Shape1140{T} end
+abstract type Shape1160{T} end
 
-struct PolytopeShape1140{T}
+struct PolytopeShape1160{T}
     A::Matrix{T}
     b::Vector{T}
 end
 
-function PolytopeShape1140(A, b)
+function PolytopeShape1160(A, b)
     T = eltype(b[1])
-    return PolytopeShape1140{T}(A, b)
+    return PolytopeShape1160{T}(A, b)
 end
 
-struct SphereShape1140{T}
+struct SphereShape1160{T}
     radius::Vector{T}
     position_offset::Vector{T}
 end
 
-function SphereShape1140(radius::T, position_offset=zeros(T,2)) where T
-    return SphereShape1140{T}([radius], position_offset)
+function SphereShape1160(radius::T, position_offset=zeros(T,2)) where T
+    return SphereShape1160{T}([radius], position_offset)
 end

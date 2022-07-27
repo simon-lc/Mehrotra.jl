@@ -55,28 +55,28 @@ function get_polytope_bundle(;
         ];
 
     # nodes
-    parent_shapes = [PolytopeShape1140(Ap1, bp1), PolytopeShape1140(Ap2, bp2)]
-    child_shapes = [PolytopeShape1140(Ac, bc)]
+    parent_shapes = [PolytopeShape1160(Ap1, bp1), PolytopeShape1160(Ap2, bp2)]
+    child_shapes = [PolytopeShape1160(Ac, bc)]
     bodies = [
-        Body1140(timestep, mass, inertia, parent_shapes, gravity=+gravity, name=:pbody),
-        Body1140(timestep, mass, inertia, child_shapes, gravity=+gravity, name=:cbody),
+        Body1160(timestep, mass, inertia, parent_shapes, gravity=+gravity, name=:pbody),
+        Body1160(timestep, mass, inertia, child_shapes, gravity=+gravity, name=:cbody),
         ]
     contacts = [
-        PolyPoly1140(bodies[1], bodies[2],
+        PolyPoly1160(bodies[1], bodies[2],
             friction_coefficient=friction_coefficient,
             name=:contact_1),
-        PolyPoly1140(bodies[1], bodies[2],
+        PolyPoly1160(bodies[1], bodies[2],
             parent_collider_id=2,
             friction_coefficient=friction_coefficient,
             name=:contact_2),
-        PolyHalfSpace1140(bodies[1], Af, bf,
+        PolyHalfSpace1160(bodies[1], Af, bf,
             friction_coefficient=friction_coefficient,
             name=:halfspace_p1),
-        PolyHalfSpace1140(bodies[1], Af, bf,
+        PolyHalfSpace1160(bodies[1], Af, bf,
             parent_collider_id=2,
             friction_coefficient=friction_coefficient,
             name=:halfspace_p2),
-        PolyHalfSpace1140(bodies[2], Af, bf,
+        PolyHalfSpace1160(bodies[2], Af, bf,
             friction_coefficient=friction_coefficient,
             name=:halfspace_c),
         ]
@@ -85,7 +85,7 @@ function get_polytope_bundle(;
     local_mechanism_residual(primals, duals, slacks, parameters) =
         mechanism_residual(primals, duals, slacks, parameters, bodies, contacts)
 
-    mechanism = Mechanism1140(
+    mechanism = Mechanism1160(
         local_mechanism_residual,
         bodies,
         contacts,

@@ -1,4 +1,4 @@
-function dynamics(z1, mechanism::Mechanism1140, z, u, w)
+function dynamics(z1, mechanism::Mechanism1160, z, u, w)
     solver = mechanism.solver
     solver.options.differentiate = false
 
@@ -11,7 +11,7 @@ function dynamics(z1, mechanism::Mechanism1140, z, u, w)
     return nothing
 end
 
-function dynamics_jacobian_state(dz, mechanism::Mechanism1140{T,D,NB}, z, u, w) where {T,D,NB}
+function dynamics_jacobian_state(dz, mechanism::Mechanism1160{T,D,NB}, z, u, w) where {T,D,NB}
     solver = mechanism.solver
     solver.options.differentiate = true
     timestep = mechanism.bodies[1].timestep[1]
@@ -32,7 +32,7 @@ function dynamics_jacobian_state(dz, mechanism::Mechanism1140{T,D,NB}, z, u, w) 
     return nothing
 end
 
-function dynamics_jacobian_input(du, mechanism::Mechanism1140{T,D,NB}, z, u, w) where {T,D,NB}
+function dynamics_jacobian_input(du, mechanism::Mechanism1160{T,D,NB}, z, u, w) where {T,D,NB}
     solver = mechanism.solver
     solver.options.differentiate = true
     timestep = mechanism.bodies[1].timestep[1]

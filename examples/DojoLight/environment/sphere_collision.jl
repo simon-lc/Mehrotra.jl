@@ -1,4 +1,4 @@
-function get_sphere_drop(;
+function get_sphere_collision(;
     timestep=0.05,
     gravity=-9.81,
     mass=1.0,
@@ -22,12 +22,19 @@ function get_sphere_drop(;
     # nodes
     shapes = [SphereShape1160(sphere_radius)]
     bodies = [
-        Body1160(timestep, mass, inertia, shapes, gravity=+gravity, name=:pbody),
+        Body1160(timestep, mass, inertia, shapes, gravity=+gravity, name=:pbody1),
+        Body1160(timestep, mass, inertia, shapes, gravity=+gravity, name=:pbody2),
         ]
     contacts = [
         SphereHalfSpace1160(bodies[1], Af, bf,
             friction_coefficient=friction_coefficient,
             name=:halfspace_p1),
+        SphereHalfSpace1160(bodies[2], Af, bf,
+            friction_coefficient=friction_coefficient,
+            name=:halfspace_p2),
+        SphereSphere1160(bodies[1], bodies[2],
+            friction_coefficient=friction_coefficient,
+            name=:sphere_sphere),
         ]
     indexing!([bodies; contacts])
 

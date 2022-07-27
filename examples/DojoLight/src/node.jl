@@ -1,6 +1,6 @@
 abstract type Node{T} end
 
-mutable struct NodeIndices1140
+mutable struct NodeIndices1160
     optimality::Vector{Int}
     slackness::Vector{Int}
     equality::Vector{Int}
@@ -11,8 +11,8 @@ mutable struct NodeIndices1140
     parameters::Vector{Int}
 end
 
-function NodeIndices1140()
-    return NodeIndices1140(
+function NodeIndices1160()
+    return NodeIndices1160(
         collect(1:0),
         collect(1:0),
         collect(1:0),

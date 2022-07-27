@@ -1,13 +1,13 @@
 ################################################################################
 # Indices
 ################################################################################
-struct MechanismIndices1140
+struct MechanismIndices1160
     solution_state::Vector{Int}
     parameter_state::Vector{Int}
     input::Vector{Int}
 end
 
-function MechanismIndices1140(bodies::Vector, contacts::Vector)
+function MechanismIndices1160(bodies::Vector, contacts::Vector)
     solution_state = zeros(Int,0)
     parameter_state = zeros(Int,0)
     input = zeros(Int,0)
@@ -18,7 +18,7 @@ function MechanismIndices1140(bodies::Vector, contacts::Vector)
         input = vcat(input, body.index.parameters[7:9]) # input
     end
 
-    return MechanismIndices1140(
+    return MechanismIndices1160(
         solution_state,
         parameter_state,
         input,
@@ -28,7 +28,7 @@ end
 ################################################################################
 # dimensions
 ################################################################################
-struct MechanismDimensions1140
+struct MechanismDimensions1160
     body_configuration::Int
     body_velocity::Int
     body_state::Int
@@ -46,7 +46,7 @@ struct MechanismDimensions1140
     # equality::Int
 end
 
-function MechanismDimensions1140(bodies::Vector, contacts::Vector)
+function MechanismDimensions1160(bodies::Vector, contacts::Vector)
     # dimensions
     body_configuration = 3 # in 2D
     body_velocity = 3 # in 2D
@@ -69,7 +69,7 @@ function MechanismDimensions1140(bodies::Vector, contacts::Vector)
     # num_slacks = num_cone
     # num_equality = sum(equality_dimension.(nodes))
 
-    return MechanismDimensions1140(
+    return MechanismDimensions1160(
         body_configuration,
         body_velocity,
         body_state,
@@ -91,27 +91,27 @@ end
 ################################################################################
 # mechanism
 ################################################################################
-struct Mechanism1140{T,D,NB,NC,C}
+struct Mechanism1160{T,D,NB,NC,C}
     variables::Vector{T}
     parameters::Vector{T}
     solver::Solver{T}
-    bodies::Vector{Body1140{T}}
+    bodies::Vector{Body1160{T}}
     contacts::Vector{C}
-    dimensions::MechanismDimensions1140
-    indices::MechanismIndices1140
+    dimensions::MechanismDimensions1160
+    indices::MechanismIndices1160
     # equalities::Vector{Equality{T}}
     # inequalities::Vector{Inequality{T}}
 end
 
-function Mechanism1140(residual, bodies::Vector, contacts::Vector;
+function Mechanism1160(residual, bodies::Vector, contacts::Vector;
         options::Options{T}=Options(),
         D::Int=2,
         method_type::Symbol=:finite_difference) where {T}
 
     # # Dimensions
     nodes = [bodies; contacts]
-    dim = MechanismDimensions1140(bodies, contacts)
-    idx = MechanismIndices1140(bodies, contacts)
+    dim = MechanismDimensions1160(bodies, contacts)
+    idx = MechanismIndices1160(bodies, contacts)
     num_primals = sum(primal_dimension.(nodes))
     num_cone = sum(cone_dimension.(nodes))
 
@@ -139,7 +139,7 @@ function Mechanism1140(residual, bodies::Vector, contacts::Vector;
 
     nb = length(bodies)
     nc = length(contacts)
-    mechanism = Mechanism1140{T,D,nb,nc,eltype(contacts)}(
+    mechanism = Mechanism1160{T,D,nb,nc,eltype(contacts)}(
         variables,
         parameters,
         solver,
@@ -175,20 +175,27 @@ function mechanism_residual(primals::Vector{T}, duals::Vector{T},
     return e
 end
 
-function residual!(e, x, θ, contact::PolyPoly1140, bodies::Vector)
+function residual!(e, x, θ, contact::PolyPoly1160, bodies::Vector)
     pbody = find_body(bodies, contact.parent_name)
     cbody = find_body(bodies, contact.child_name)
     residual!(e, x, θ, contact, pbody, cbody)
     return nothing
 end
 
-function residual!(e, x, θ, contact::PolyHalfSpace1140, bodies::Vector)
+function residual!(e, x, θ, contact::SphereSphere1160, bodies::Vector)
+    pbody = find_body(bodies, contact.parent_name)
+    cbody = find_body(bodies, contact.child_name)
+    residual!(e, x, θ, contact, pbody, cbody)
+    return nothing
+end
+
+function residual!(e, x, θ, contact::PolyHalfSpace1160, bodies::Vector)
     pbody = find_body(bodies, contact.parent_name)
     residual!(e, x, θ, contact, pbody)
     return nothing
 end
 
-function residual!(e, x, θ, contact::SphereHalfSpace1140, bodies::Vector)
+function residual!(e, x, θ, contact::SphereHalfSpace1160, bodies::Vector)
     pbody = find_body(bodies, contact.parent_name)
     residual!(e, x, θ, contact, pbody)
     return nothing

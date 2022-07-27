@@ -52,7 +52,7 @@ end
 ######################################################################
 # shape
 ######################################################################
-function build_shape!(vis::Visualizer, shape::PolytopeShape1140;
+function build_shape!(vis::Visualizer, shape::PolytopeShape1160;
         collider_color=RGBA(0.2, 0.2, 0.2, 0.8),
         ) where T
 
@@ -62,20 +62,23 @@ function build_shape!(vis::Visualizer, shape::PolytopeShape1140;
     return nothing
 end
 
-function build_shape!(vis::Visualizer, shape::SphereShape1140;
+function build_shape!(vis::Visualizer, shape::SphereShape1160;
         collider_color=RGBA(0.2, 0.2, 0.2, 0.8),
         ) where T
 
     setobject!(vis,
         HyperSphere(GeometryBasics.Point(0,0,0.), shape.radius[1]),
         MeshPhongMaterial(color=collider_color));
+    setobject!(vis[:fake],
+        HyperSphere(GeometryBasics.Point(0,0,0.0005), shape.radius[1]),
+        MeshPhongMaterial(color=RGBA(0.8, 0.8, 0.8, 0.8)));
     return nothing
 end
 
 ######################################################################
 # body
 ######################################################################
-function build_body!(vis::Visualizer, body::Body1140;
+function build_body!(vis::Visualizer, body::Body1160;
         name::Symbol=body.name,
         collider_color=RGBA(0.2, 0.2, 0.2, 0.8),
         center_of_mass_color=RGBA(1, 1, 1, 1.0),
@@ -94,7 +97,7 @@ function build_body!(vis::Visualizer, body::Body1140;
     return nothing
 end
 
-function set_body!(vis::Visualizer, body::Body1140, pose; name=body.name)
+function set_body!(vis::Visualizer, body::Body1160, pose; name=body.name)
     p = pose[1:2]
     q = pose[3:3]
     pe = [0; p]
@@ -165,7 +168,7 @@ end
 ######################################################################
 # mechanism
 ######################################################################
-function build_mechanism!(vis::Visualizer, mechanism::Mechanism1140;
+function build_mechanism!(vis::Visualizer, mechanism::Mechanism1160;
         show_contact::Bool=true)
 
     for body in mechanism.bodies
@@ -179,7 +182,7 @@ function build_mechanism!(vis::Visualizer, mechanism::Mechanism1140;
     return nothing
 end
 
-function set_mechanism!(vis::Visualizer, mechanism::Mechanism1140, storage::Storage116,
+function set_mechanism!(vis::Visualizer, mechanism::Mechanism1160, storage::Storage116,
         i::Int; show_contact::Bool=true)
 
     for (j,body) in enumerate(mechanism.bodies)
@@ -197,14 +200,14 @@ function set_mechanism!(vis::Visualizer, mechanism::Mechanism1140, storage::Stor
     return nothing
 end
 
-function set_mechanism!(vis::Visualizer, mechanism::Mechanism1140, z)
+function set_mechanism!(vis::Visualizer, mechanism::Mechanism1160, z)
     for (j,body) in enumerate(mechanism.bodies)
         set_body!(vis, body, z[6*(j-1) .+ (1:3)])
     end
     return nothing
 end
 
-function visualize!(vis::Visualizer, mechanism::Mechanism1140, storage::Storage116{T,H};
+function visualize!(vis::Visualizer, mechanism::Mechanism1160, storage::Storage116{T,H};
         build::Bool=true,
         show_contact::Bool=true,
         animation=MeshCat.Animation(Int(floor(1/mechanism.bodies[1].timestep[1])))) where {T,H}
@@ -220,7 +223,7 @@ function visualize!(vis::Visualizer, mechanism::Mechanism1140, storage::Storage1
 end
 
 
-function visualize!(vis::Visualizer, mechanism::Mechanism1140, z;
+function visualize!(vis::Visualizer, mechanism::Mechanism1160, z;
         build::Bool=true,
         animation=MeshCat.Animation(Int(floor(1/mechanism.bodies[1].timestep[1])))) where {T}
 
