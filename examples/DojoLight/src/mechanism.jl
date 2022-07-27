@@ -189,6 +189,13 @@ function residual!(e, x, θ, contact::SphereSphere1160, bodies::Vector)
     return nothing
 end
 
+function residual!(e, x, θ, contact::PolySphere1160, bodies::Vector)
+    pbody = find_body(bodies, contact.parent_name)
+    cbody = find_body(bodies, contact.child_name)
+    residual!(e, x, θ, contact, pbody, cbody)
+    return nothing
+end
+
 function residual!(e, x, θ, contact::PolyHalfSpace1160, bodies::Vector)
     pbody = find_body(bodies, contact.parent_name)
     residual!(e, x, θ, contact, pbody)
