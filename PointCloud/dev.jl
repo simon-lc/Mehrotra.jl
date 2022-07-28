@@ -23,7 +23,7 @@ using Makie.GeometryBasics: Pyramid
 using GeometryBasics
 using Colors
 using LinearAlgebra
-
+using Plots
 
 pyr = Pyramid(GeometryBasics.Point3f(0), 1.0f0, 1.0f0)
 rectmesh = Rect3(GeometryBasics.Point3f(-0.5), GeometryBasics.Vec3f(1))
@@ -37,10 +37,10 @@ brain = load(assetpath("brain.stl"))
 matball = load(assetpath("matball_base.obj"))
 matball_inner = load(assetpath("matball_inner.obj"))
 matball_outer = load(assetpath("matball_outer.obj"))
-# matcapIds = Downloads.download("https://")
+matcapIds = Downloads.download("https://github.com/lazarusA/BeautifulMakie/tree/main/_assets/data/matcapIds.json", "/home/simon/Downloads/glmakie.json")
 # download the data from here:
 # https://github.com/lazarusA/BeautifulMakie/tree/main/_assets/data
-ids = JSON.parsefile("./_assets/data/matcapIds.json")
+ids = JSON.parsefile("/home/simon/Downloads/glmakie.json")
 
 function plotmat()
     idx = Observable(1)
@@ -71,3 +71,33 @@ function plotmat()
     fig
 end
 fig = with_theme(plotmat, theme_dark())
+
+# x = scatter(1:4)
+screen = display(fig)
+
+function get_depth(screen)
+    depth_color = GLMakie.depthbuffer(screen)
+end
+
+function get_depth!(depth_color, screen)
+    depth_color .= GLMakie.depthbuffer(screen)
+end
+
+depth_color = get_depth(screen)
+get_depth!(depth_color, screen)
+Plots.plot(Gray.(10(1 .- depth_color)))
+# @benchmark $get_depth($screen)
+# @benchmark $get_depth!($depth_color, $screen)
+
+set_window_config!(;
+    # renderloop = renderloop,
+    vsync = true,
+    # framerate = 30.0,
+    # float = false,
+    # pause_rendering = false,
+    # focus_on_show = false,
+    decorated = true,
+    title = "Makie"
+)
+screen = display(fig)
+# # Look at result:
