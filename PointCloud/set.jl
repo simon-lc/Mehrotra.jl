@@ -23,28 +23,18 @@ function set_floor!(vis::GLVisualizer1160;
 	    axis::Bool=false,
 	    grid::Bool=false)
 	obj = HyperRectangle(Vec(-x/2, -y/2, -z), Vec(x, y, z))
-	setobject!(vis, :floor, obj, color=color)
+	setobject!(vis, :root, obj, color=color, name=:floor)
 
 	p = origin
-	q = axes_pair_to_quaternion([0,0,1.], normal)
-    settransform!(vis[:floor], MeshCat.compose(
-		MeshCat.Translation(p...),
-		MeshCat.LinearMap(rotationmatrix(q)),
-		))
+	q = RobotVisualizer.axes_pair_to_quaternion([0,0,1.], normal)
+    settransform!(vis, :floor, p, Quaternion(q.v1, q.v2, q.v3, q.s))
     return nothing
 end
 
+vis = GLVisualizer1160()
+open(vis)
 
-
-
-
-scene = Scene()
-cam3d!(scene)
-display(scene)
-
-set_floor!(scene)
-
-
+set_floor!(vis)
 
 sphere_plot = mesh!(scene, Sphere(Point3f(0, 0, 0), 0.1), color=:black)
 sphere_plot = mesh!(scene, Sphere(Point3f(1, 0, 0), 0.1), color=:red)
