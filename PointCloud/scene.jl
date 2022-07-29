@@ -99,29 +99,58 @@ function depthbuffer!(screen::GLMakie.Screen, depth=Matrix{Float32}(undef, size(
     return depth
 end
 
+function set_camera!(vis::GLVisualizer1190;
+        eyeposition=[1,1,1.0],
+        lookat=[0,0,0.0],
+        up=[0,0,1.0])
+    update_cam!(vis.scene[:root], eyeposition, lookat, up)
+    return nothing
+end
+
+"""
+    set_floor!(vis; x, y, z, origin, normal, color)
+    adds floor to visualization
+    vis::Visualizer
+    x: lateral position
+    y: longitudinal position
+    z: vertical position
+	origin:: position of the center of the floor
+    normal:: unit vector indicating the normal to the floor
+    color: RGBA
+"""
+function RobotVisualizer.set_floor!(vis::GLVisualizer1190;
+	    x=20.0,
+	    y=20.0,
+	    z=0.1,
+	    origin=[0,0,0.0],
+		normal=[0,0,1.0],
+	    color=RGBA(0.5,0.5,0.5,1.0),
+	    axis::Bool=false,
+	    grid::Bool=false)
+	obj = HyperRectangle(Vec(-x/2, -y/2, -z), Vec(x, y, z))
+	setobject!(vis, :root, :floor, obj, color=color)
+
+	p = origin
+	q = RobotVisualizer.axes_pair_to_quaternion([0,0,1.], normal)
+    settransform!(vis, :floor, p, Makie.Quaternion(q.v1, q.v2, q.v3, q.s))
+    return nothing
+end
+
+
 vis = GLVisualizer1190(resolution=(150, 150))
 open(vis, visible=true)
 
-floor1 = HyperRectangle(Vec(-2,-2,-0.1), Vec(4, 4, 0.1))
-floor2 = HyperRectangle(Vec(-1,-1,-0.2), Vec(2, 2, 0.25))
+set_floor!(vis)
 object1 = HyperRectangle(Vec(0,0,0), Vec(0.1, 0.4, 1))
 object2 = HyperRectangle(Vec(0,0,0), Vec(0.2, 0.1, 2.0))
 
-setobject!(vis, :root, :floor1, floor1, color=RGBA(0,1,1,0.1))
-setobject!(vis, :root, :floor2, floor2, color=RGBA(0.3,0.3,1,0.1))
-setobject!(vis, :floor1, :object1, object1, color=RGBA(0,0,1,1))
+setobject!(vis, :root, :object1, object1, color=RGBA(0,0,1,1))
 setobject!(vis, :object1, :object2, object2, color=RGBA(1,0,0,1))
 
-
-eyeposition = [0, 0, 4]
-lookat = [0, 0, 0]
-up = [0, 1, 0]
-update_cam!(vis.scene[:root], eyeposition, lookat, up)
-# for (key,val) in vis.scene
-#     @show key
-#     update_cam!(vis.scene[key], eyeposition, lookat, up)
-# end
-
+set_camera!(vis;
+        eyeposition=[2,2,2.0],
+        lookat=[0,0,0.0],
+        up=[0,0,1.0])
 
 # settransform!(vis, :object1, [0,0,1.0], Quaternion(0,0,0,1.0))
 # settransform!(vis, :object1, [0,0,1.0], Quaternion(sqrt(2)/2,0,0,sqrt(2)/2))
@@ -137,33 +166,3 @@ Plots.plot(Gray.(15*(1 .- rotl90(depth_color))))
 depth_color
 maximum(depth_color)
 minimum(depth_color)
-
-function set_camera!(vis::GLVisualizer1190)
-
-    return nothing
-end
-
-scene = Scene(;
-    # clear everything behind scene
-    clear = true,
-    # the camera struct of the scene.
-    visible = true,
-    # ssao and light are explained in more detail in `Documetation/Lighting`
-    ssao = Makie.SSAO(),
-    # Creates lights from theme, which right now defaults to `
-    # set_theme!(lightposition=:eyeposition, ambient=RGBf(0.5, 0.5, 0.5))`
-    lights = Makie.automatic,
-    backgroundcolor = :gray,
-    resolution = (500, 500)
-    # gets filled in with the currently set global theme
-)
-screen = display(scene, visble=true)
-screen = display(scene)
-screen = display(scene, visble=true)
-screen = display(scene, visble=true)
-screen = display(scene, visble=true)
-for i = 1:100
-    screen = display(scene)
-end
-GLMakie.depthbuffer(screen)
-vis.scene[:root]
