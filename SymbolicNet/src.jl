@@ -1,5 +1,9 @@
 using Symbolics
 using BenchmarkTools
+using LinearAlgebra
+using Test
+using Random
+
 
 ################################################################################
 # macro

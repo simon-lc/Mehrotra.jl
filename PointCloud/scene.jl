@@ -137,6 +137,11 @@ function RobotVisualizer.set_floor!(vis::GLVisualizer1190;
 end
 
 
+
+
+
+
+
 vis = GLVisualizer1190(resolution=(150, 150))
 open(vis, visible=true)
 
