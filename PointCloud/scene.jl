@@ -11,31 +11,35 @@ using Makie
 using Random
 using Graphs
 using Quaternions
+using RobotVisualizer
+using BenchmarkTools
 
-struct GLVisualizer1160
+struct GLVisualizer1190
     scene::Dict{Symbol,Any}
     trans::Dict{Symbol,Any}
     names::Vector{Symbol}
     graph::SimpleDiGraph
+    screen::Vector
 end
 
-function GLVisualizer1160()
-    scene = Scene()
+function GLVisualizer1190(; resolution=(800,600))
+    scene = Scene(resolution=resolution)
     cam3d!(scene)
     scene = Dict{Symbol,Any}(:root => scene)
     trans = Dict{Symbol,Any}()
     names = [:root]
     graph = SimpleDiGraph()
     add_vertex!(graph)
-    return GLVisualizer1160(scene, trans, names, graph)
+    screen = Vector{Any}()
+    push!(screen, nothing)
+    return GLVisualizer1190(scene, trans, names, graph, screen)
 end
 
-function Base.open(vis::GLVisualizer1160)
-    display(vis.scene[:root])
+function Base.open(vis::GLVisualizer1190; visible::Bool=true)
+    vis.screen[1] = display(vis.scene[:root], visible=visible)
 end
 
-function set_object!(vis::GLVisualizer1160, parent::Symbol, object;
-        name::Symbol=Symbol(randstring(4)),
+function setobject!(vis::GLVisualizer1190, parent::Symbol, name::Symbol, object;
         color=RGBA(0.3, 0.3, 0.3, 0.7))
 
     parent_scene = vis.scene[parent]
@@ -53,50 +57,128 @@ function set_object!(vis::GLVisualizer1160, parent::Symbol, object;
     return nothing
 end
 
-function set_transformation!(vis::GLVisualizer1160, name::Symbol, x, q)
+function settransform!(vis::GLVisualizer1190, name::Symbol, x, q)
     set_translation!(vis, name, x)
     set_rotation!(vis, name, q)
     return nothing
 end
 
-function set_translation!(vis::GLVisualizer1160, name::Symbol, x)
+function set_translation!(vis::GLVisualizer1190, name::Symbol, x)
     GLMakie.translate!(vis.scene[name], x...)
     return nothing
 end
 
-function set_rotation!(vis::GLVisualizer1160, name::Symbol, q)
+function set_rotation!(vis::GLVisualizer1190, name::Symbol, q)
     GLMakie.rotate!(vis.scene[name], q)
     return nothing
 end
 
+function depth_buffer(vis::GLVisualizer1190)
+    depth = depthbuffer!(vis.screen[1])
+end
+
+function depth_buffer!(depth::Matrix, vis::GLVisualizer1190)
+    (vis.screen[1] == nothing) && open(vis, visible=false)
+    depthbuffer!(vis.screen[1], depth)
+end
+
+function depthbuffer!(screen::GLMakie.Screen, depth=Matrix{Float32}(undef, size(screen.framebuffer.buffers[:depth])))
+    GLMakie.ShaderAbstractions.switch_context!(screen.glscreen)
+    GLMakie.render_frame(screen, resize_buffers=false) # let it render
+    GLMakie.glFinish() # block until opengl is done rendering
+    source = screen.framebuffer.buffers[:depth]
+    @assert size(source) == size(depth)
+    GLMakie.GLAbstraction.bind(source)
+    GLMakie.GLAbstraction.glGetTexImage(source.texturetype, 0, GLMakie.GL_DEPTH_COMPONENT, GLMakie.GL_FLOAT, depth)
+    GLMakie.GLAbstraction.bind(source, 0)
+    return depth
+end
 
 
 
+vis = GLVisualizer1190(resolution=(100, 1000))
+open(vis, visible=false)
 
-vis = GLVisualizer1160()
-open(vis)
-x = 0.1
-y = 0.2
-z = 1.0
+vis.scene[:root].px_area.val.widths
+
+
 floor1 = HyperRectangle(Vec(-2,-2,-0.1), Vec(4, 4, 0.1))
-set_object!(vis, :root, floor1, color=RGBA(0,1,1,1), name=:floor1)
 floor2 = HyperRectangle(Vec(-1,-1,-0.2), Vec(2, 2, 0.25))
-set_object!(vis, :root, floor2, color=RGBA(0.3,0.3,1,1), name=:floor2)
-object1 = HyperRectangle(Vec(0,0,0), Vec(0.1, 0.2, 1))
-set_object!(vis, :floor1, object1, color=RGBA(0,0,1,1), name=:object1)
-object2 = HyperRectangle(Vec(0,0,0), Vec(0.2, 0.1, 1.4))
-set_object!(vis, :object1, object2, color=RGBA(1,0,0,1), name=:object2)
+object1 = HyperRectangle(Vec(0,0,0), Vec(0.1, 0.4, 1))
+object2 = HyperRectangle(Vec(0,0,0), Vec(0.2, 0.1, 2.0))
 
-set_transformation!(vis, :object1, [0,0,0.0], Quaternion(0,0,0,1.0))
-GLMakie.translate!(vis.scene[:floor1], 0,0,0.2)
-GLMakie.translate!(vis.scene[:object1], 0,0,0.2)
-GLMakie.translate!(vis.scene[:object2], 0,0,0.2)
+setobject!(vis, :root, :floor1, floor1, color=RGBA(0,1,1,0.1))
+setobject!(vis, :root, :floor2, floor2, color=RGBA(0.3,0.3,1,0.1))
+setobject!(vis, :floor1, :object1, object1, color=RGBA(0,0,1,1))
+setobject!(vis, :object1, :object2, object2, color=RGBA(1,0,0,1))
 
-GLMakie.rotate!(vis.scene[:floor1], Vec3f(0, 0, 1), 0.2)
-GLMakie.rotate!(vis.scene[:object1], Vec3f(0, 0, 1), 0.2)
-GLMakie.rotate!(vis.scene[:object2], Vec3f(0, 0, 1), 0.2)
-GLMakie.rotate!(vis.scene[:object2], q)
-q = Quaternion(normalize([0,1,1,1.0])...)
+# settransform!(vis, :object1, [0,0,1.0], Quaternion(0,0,0,1.0))
+# settransform!(vis, :object1, [0,0,1.0], Quaternion(sqrt(2)/2,0,0,sqrt(2)/2))
+# settransform!(vis, :object1, [0,0,1.0], Quaternion(1,0,0,0.0))
+
+depth_color = depth_buffer(vis)
+depth_buffer!(depth_color, vis)
+# @benchmark $depth_buffer($vis)
+# @benchmark $depth_buffer!($depth_color, $vis)
+
+# Plots.spy(10*rotl90(depth_color))
+Plots.plot(Gray.(15*(1 .- rotl90(depth_color))))
+
+
+function set_camera!(vis::GLVisualizer1190)
+
+    return nothing
+end
+
+function set_resolution!(vis::GLVisualizer1190)
+
+    return nothing
+end
+
+scene = Scene(;
+    # clear everything behind scene
+    clear = true,
+    # the camera struct of the scene.
+    visible = true,
+    # ssao and light are explained in more detail in `Documetation/Lighting`
+    ssao = Makie.SSAO(),
+    # Creates lights from theme, which right now defaults to `
+    # set_theme!(lightposition=:eyeposition, ambient=RGBf(0.5, 0.5, 0.5))`
+    lights = Makie.automatic,
+    backgroundcolor = :gray,
+    resolution = (500, 500)
+    # gets filled in with the currently set global theme
+)
+screen = display(scene)
+GLMakie.depthbuffer(screen)
+
+
+
+
+
+GLMakie.ShaderAbstractions.switch_context!(screen.glscreen)
+GLMakie.render_frame(screen, resize_buffers=false) # let it render
+GLMakie.glFinish() # block until opengl is done rendering
+source = screen.framebuffer.buffers[:depth]
+depth = Matrix{Float32}(undef, size(source))
+GLMakie.GLAbstraction.bind(source)
+GLMakie.GLAbstraction.glGetTexImage(source.texturetype, 0, GLMakie.GL_DEPTH_COMPONENT, GLMakie.GL_FLOAT, depth)
+GLMakie.GLAbstraction.bind(source, 0)
+
+
+depthbuffer!(screen, depth)
+
+
+
+# GLMakie.translate!(vis.scene[:floor1], 0,0,0.2)
+# GLMakie.translate!(vis.scene[:object1], 0,0,0.2)
+# GLMakie.translate!(vis.scene[:object2], 0,0,0.2)
+#
+# GLMakie.rotate!(vis.scene[:floor1], Vec3f(0, 0, 1), 0.2)
+# GLMakie.rotate!(vis.scene[:object1], Vec3f(0, 0, 1), 0.2)
+# GLMakie.rotate!(vis.scene[:object2], Vec3f(0, 0, 1), 0.2)
+# GLMakie.rotate!(vis.scene[:object2], q)
+# q = Quaternion(normalize([0,1,1,1.0])...)
 
 
 child = Transformation(vis.scene)

@@ -13,7 +13,7 @@
     axis: flag to turn on visualizer axis
     grid: flag to turn on visualizer grid
 """
-function set_floor!(scene::Scene;
+function set_floor!(vis::GLVisualizer1160;
 	    x=20.0,
 	    y=20.0,
 	    z=0.1,
@@ -23,21 +23,14 @@ function set_floor!(scene::Scene;
 	    axis::Bool=false,
 	    grid::Bool=false)
 	obj = HyperRectangle(Vec(-x/2, -y/2, -z), Vec(x, y, z))
-	sphere_plot = mesh!(scene, obj, color=color)
+	setobject!(vis, :floor, obj, color=color)
 
-
-
-    setobject!(vis[:floor], obj, mat)
 	p = origin
 	q = axes_pair_to_quaternion([0,0,1.], normal)
     settransform!(vis[:floor], MeshCat.compose(
 		MeshCat.Translation(p...),
 		MeshCat.LinearMap(rotationmatrix(q)),
 		))
-	#
-    # setvisible!(vis["/Axes"], axis)
-    # setvisible!(vis["/Grid"], grid)
-
     return nothing
 end
 
