@@ -37,7 +37,6 @@ macro layer(var)
                 # add a vertex for the current variable
                 num_vertices += 1
                 add_vertex!(graph)
-                @show $var_name
                 push!(var_names, $var_name)
 
                 # then it means this is not a root of the tree
@@ -150,7 +149,7 @@ num_vertices0, var_names0, graph0, svariables0, expr0, expr_edge0, edge_dict0 = 
 ################################################################################
 # net
 ################################################################################
-struct SymNet1420{T,NV,NE,NR,NC,NL,Fs,∂Fs}
+struct SymNet1440{T,NV,NE,NR,NC,NL,Fs,∂Fs}
     x::Vector{Vector{T}} # evaluations
     jvp::Vector{Vector{T}} # jacobian vector products
     jvp_temp::Vector{Vector{T}} # jacobian vector products temporary variables
@@ -159,6 +158,7 @@ struct SymNet1420{T,NV,NE,NR,NC,NL,Fs,∂Fs}
     graph::SimpleDiGraph
     fcts::Fs
     ∂fcts::∂Fs
+    name_dict::Dict{Symbol,Int}
     leaves::Vector{Int}
     edge_vector::Vector{Tuple{Int,Int}}
     edge_dict::Dict{Tuple{Int,Int},Int}
@@ -205,6 +205,9 @@ function generate_symgraph(f::Function, input_dims::Vector{Int}; T=Float64)
     jvps = [zeros(T,n) for n in length.(svariables)]
     jvp_temps = [zeros(T,n) for n in length.(svariables)]
 
+    # name dictionary to retreive the variables' names easily
+    name_dict = Dict{Symbol,Int}(Symbol(var_names[i]) => i for i = 1:num_vertices)
+
     # number of roots and children
     roots = findall(x -> x==nothing, expr)
     num_roots = length(roots)
@@ -230,8 +233,8 @@ function generate_symgraph(f::Function, input_dims::Vector{Int}; T=Float64)
     NL = num_leaves
     types = [T; NV; NE; NR; NC; NL; typeof.([fcts, ∂fcts])]
 
-    return SymNet1420{types...}(xs, jvps, jvp_temps, Ps, Js, graph, fcts, ∂fcts,
-        leaves, edge_vector, edge_dict, vertex_streams, edge_streams)
+    return SymNet1440{types...}(xs, jvps, jvp_temps, Ps, Js, graph, fcts, ∂fcts,
+        name_dict, leaves, edge_vector, edge_dict, vertex_streams, edge_streams)
 end
 
 function jacobian_stream(graph::SimpleDiGraph, leaves::Vector{Int}, edge_dict::Dict)
@@ -279,7 +282,7 @@ end
 ################################################################################
 # evaluation
 ################################################################################
-function evaluation50!(symnet::SymNet1420{T,NV,NE,NR}, xroots::Vector) where {T,NV,NE,NR}
+function evaluation50!(symnet::SymNet1440{T,NV,NE,NR}, xroots::Vector) where {T,NV,NE,NR}
     for i in eachindex(xroots)
         symnet.x[i] .= xroots[i]
     end
@@ -288,27 +291,32 @@ function evaluation50!(symnet::SymNet1420{T,NV,NE,NR}, xroots::Vector) where {T,
     end
 end
 
-@generated function evaluation50!(symnet::SymNet1420{T,NV,NE,NR}, i::Int) where {T,NV,NE,NR}
+function get_evaluation(symnet::SymNet1440, leaf::Symbol)
+    ileaf = symnet.name_dict[leaf]
+    return symnet.x[ileaf]
+end
+
+@generated function evaluation50!(symnet::SymNet1440{T,NV,NE,NR}, i::Int) where {T,NV,NE,NR}
     vec = [:(symnet.x[i]); [:(symnet.x[$j]) for j = 1:NV]]
     return :(symnet.fcts[i]($(vec...)))
 end
 
-function partial_jacobian50!(symnet::SymNet1420{T,NV,NE}) where {T,NV,NE}
+function partial_jacobian50!(symnet::SymNet1440{T,NV,NE}) where {T,NV,NE}
     for i = 1:NE
         partial_jacobian50!(symnet, i)
     end
     return nothing
 end
 
-@generated function partial_jacobian50!(symnet::SymNet1420{T,NV,NE,NR}, i::Int) where {T,NV,NE,NR}
+@generated function partial_jacobian50!(symnet::SymNet1440{T,NV,NE,NR}, i::Int) where {T,NV,NE,NR}
     vec = [:(symnet.x[$j]) for j = 1:NV]
     return :(symnet.∂fcts[i](symnet.P[i], $(vec...)))
 end
 
-function jvp50!(symnet::SymNet1420{T,NV,NE,NR}, vec::Vector, xroots::Vector;
+function jvp50!(symnet::SymNet1440{T,NV,NE,NR}, vec::Vector, xroots::Vector, leaf::Symbol;
         evaluation::Bool=true,
         partial_jacobian::Bool=true,
-        leaf::Int=1) where {T,NV,NE,NR}
+        ) where {T,NV,NE,NR}
     # forward pass
     evaluation && evaluation50!(symnet, xroots)
 
@@ -316,16 +324,17 @@ function jvp50!(symnet::SymNet1420{T,NV,NE,NR}, vec::Vector, xroots::Vector;
     partial_jacobian && partial_jacobian50!(symnet)
 
     # reset the jacobian vector products and intialize the leaf
-    symnet.jvp[leaf] .= vec
+    ileaf = symnet.name_dict[leaf]
+    symnet.jvp[ileaf] .= vec
     for i = 1:NV
-        (i != leaf) && fill!(symnet.jvp[i], 0.0)
+        (i != ileaf) && fill!(symnet.jvp[i], 0.0)
     end
 
     # traverse the graph upstreams going back to the roots that affect the selected leaf
     # contributions from all the routes guiding to the same root add up
-    ileaf = findfirst(x -> x == leaf, symnet.leaves)
-    vertex_stream = symnet.vertex_streams[ileaf]
-    edge_stream = symnet.edge_streams[ileaf]
+    jleaf = findfirst(x -> x == ileaf, symnet.leaves)
+    vertex_stream = symnet.vertex_streams[jleaf]
+    edge_stream = symnet.edge_streams[jleaf]
     for i = 1:length(vertex_stream)-1
         ei = edge_stream[i]
         src = vertex_stream[i+1]
@@ -335,11 +344,12 @@ function jvp50!(symnet::SymNet1420{T,NV,NE,NR}, vec::Vector, xroots::Vector;
     end
 end
 
-function jacobian50!(jac::Matrix, symnet::SymNet1420{T,NV,NE,NR}, xroots::Vector;
+function jacobian50!(jac::Matrix, symnet::SymNet1440{T,NV,NE,NR}, xroots::Vector,
+        root::Symbol,
+        leaf::Symbol;
         evaluation::Bool=true,
         partial_jacobian::Bool=true,
-        root::Int=1,
-        leaf::Int=1) where {T,NV,NE,NR}
+        ) where {T,NV,NE,NR}
 
     # forward pass
     evaluation && evaluation50!(symnet, xroots)
@@ -347,13 +357,15 @@ function jacobian50!(jac::Matrix, symnet::SymNet1420{T,NV,NE,NR}, xroots::Vector
     # compute the partial jacobians
     partial_jacobian && partial_jacobian50!(symnet)
 
-    nout = length(symnet.jvp[leaf])
-    for i = 1:nout
-        vec = symnet.jvp[leaf]
+    ileaf = symnet.name_dict[leaf]
+    iroot = symnet.name_dict[root]
+    nleaf = length(symnet.jvp[ileaf])
+    for i = 1:nleaf
+        vec = symnet.jvp[ileaf]
         fill!(vec, 0.0)
         vec[i] = 1.0
-        jvp50!(symnet, vec, xroots, evaluation=false, partial_jacobian=false, leaf=leaf)
-        jac[i,:] .= symnet.jvp[root]
+        jvp50!(symnet, vec, xroots, leaf, evaluation=false, partial_jacobian=false)
+        jac[i,:] .= symnet.jvp[iroot]
     end
 
     return nothing
@@ -369,15 +381,15 @@ xroots0 = [rand(n), rand(n)]
 xroot10 = xroots0[1]
 xroot20 = xroots0[2]
 
-root0 = 1
-leaf0 = 6
+root0 = :x1
+leaf0 = :x7
 
 # evaluation
 evaluation50!(symgraph, xroots0)
-e1 = symgraph.x[leaf0]
 # Main.@code_warntype evaluation50!(symgraph, xroots0)
 # @benchmark $evaluation50!($symgraph, $xroots0)
 num_allocs = @ballocated $evaluation50!($symgraph, $xroots0)
+e1 = get_evaluation(symgraph, leaf0)
 
 e0 = f1234(xroots0...)
 norm(e0, Inf)
@@ -387,10 +399,10 @@ norm(e0 - e1, Inf)
 
 # jacobian vector product
 v0 = rand(n+3)
-jvp50!(symgraph, v0, xroots0, leaf=leaf0)
-# Main.@code_warntype jvp50!(symgraph, v0, xroots0, leaf=leaf0)
-# @benchmark $jvp50!($symgraph, $v0, $xroots0, leaf=$leaf0)
-num_allocs = @ballocated $jvp50!($symgraph, $v0, $xroots0, leaf=$leaf0)
+jvp50!(symgraph, v0, xroots0, leaf0)
+# Main.@code_warntype jvp50!(symgraph, v0, xroots0, leaf0)
+# @benchmark $jvp50!($symgraph, $v0, $xroots0, $leaf0)
+num_allocs = @ballocated $jvp50!($symgraph, $v0, $xroots0, $leaf0)
 
 jv1 = symgraph.jvp[1]
 jv0 = FiniteDiff.finite_difference_gradient(x1 -> f1234(x1, xroots0[2])'*v0, xroots0[1])
@@ -401,10 +413,10 @@ norm(jv0 - jv1, Inf)
 
 # Jacobian
 jac0 = zeros(n+3,n)
-jacobian50!(jac0, symgraph, xroots0, root=root0, leaf=leaf0)
-# Main.@code_warntype jacobian50!(jac0, symgraph, xroots0, root=root0, leaf=leaf0)
-# @benchmark $jacobian50!($jac0, $symgraph, $xroots0, root=$root0, leaf=$leaf0)
-num_allocs = @ballocated $jacobian50!($jac0, $symgraph, $xroots0, root=$root0, leaf=$leaf0)
+jacobian50!(jac0, symgraph, xroots0, root0, leaf0)
+# Main.@code_warntype jacobian50!(jac0, symgraph, xroots0, root0, leaf0)
+# @benchmark $jacobian50!($jac0, $symgraph, $xroots0, $root0, $leaf0)
+num_allocs = @ballocated $jacobian50!($jac0, $symgraph, $xroots0, $root0, $leaf0)
 
 jac1 = FiniteDiff.finite_difference_jacobian(x1 -> f1234(x1, xroots0[2]), xroots0[1])
 norm(jac0, Inf)
