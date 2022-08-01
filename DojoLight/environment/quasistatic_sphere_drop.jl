@@ -23,6 +23,7 @@ function get_quasistatic_sphere_drop(;
     shapes = [SphereShape1170(sphere_radius)]
     bodies = [
         QuasistaticObject1170(timestep, mass, inertia, shapes, gravity=+gravity, name=:pbody),
+        # QuasistaticRobot1170(timestep, mass, inertia, shapes, gravity=+gravity, name=:pbody),
         ]
     contacts = [
         SphereHalfSpace1170(bodies[1], Af, bf,

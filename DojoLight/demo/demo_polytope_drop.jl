@@ -10,10 +10,6 @@ open(vis)
 
 include("../src/DojoLight.jl")
 
-include("../environment/polytope_bundle.jl")
-include("../environment/polytope_drop.jl")
-
-
 ################################################################################
 # demo
 ################################################################################

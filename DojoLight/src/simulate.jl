@@ -120,8 +120,15 @@ function simulate!(mechanism::Mechanism1170{T}, z0, H::Int;
     return storage
 end
 
-
-
+function open_loop_controller(u::Vector)
+    H = length(u)
+    function ctrl(mechanism, i)
+        set_input!(mechanism, u[min(H,i)])
+        update_parameters!(mechanism)
+        return nothing
+    end
+    return ctrl
+end
 
 
 

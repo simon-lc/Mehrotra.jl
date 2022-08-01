@@ -1,6 +1,8 @@
 [deps]
 GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 GeometryBasics = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
+GraphRecipes = "bd48cda9-67a9-57be-86fa-5b3c104eda73"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
 IterativeLQR = "605048dd-e178-462b-beb9-98a09398ef27"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MeshCat = "283c5d60-a78f-5afe-a0af-af636b173e11"

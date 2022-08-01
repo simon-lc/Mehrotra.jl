@@ -10,11 +10,6 @@ open(vis)
 
 include("../src/DojoLight.jl")
 
-include("../environment/polytope_bundle.jl")
-include("../environment/polytope_drop.jl")
-include("../environment/sphere_drop.jl")
-
-
 ################################################################################
 # demo
 ################################################################################
@@ -52,11 +47,13 @@ xp2 = [+0.0,1.5,-0.25]
 # z0 = [xp2; vp15]
 z0 = [xp2;]
 
-u0 = zeros(3)
 H0 = 65
 # solve!(mech.solver)
 
-@elapsed storage = simulate!(mech, z0, H0)
+u0 = [1, 2.5, 1.50]
+ctrl = open_loop_controller([u0])
+
+@elapsed storage = simulate!(mech, z0, H0, controller=ctrl)
 # Main.@profiler [solve!(mech.solver) for i=1:300]
 # @benchmark $solve!($(mech.solver))
 # scatter(storage.iterations)
@@ -76,6 +73,6 @@ set_mechanism!(vis, mech, storage, 10)
 visualize!(vis, mech, storage, build=false)
 
 
-# scatter(storage.iterations)
+scatter(storage.iterations)
 # plot!(hcat(storage.variables...)')
 # RobotVisualizer.convert_frames_to_video_and_gif("quasistatic_sphere_drop")

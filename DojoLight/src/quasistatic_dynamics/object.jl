@@ -108,11 +108,6 @@ function unpack_pose_timestep(θ::Vector, body::QuasistaticObject1170{T,D}) wher
     return pose, timestep
 end
 
-function find_body(bodies::AbstractVector{<:QuasistaticObject1170}, name::Symbol)
-    idx = findfirst(x -> x == name, getfield.(bodies, :name))
-    return bodies[idx]
-end
-
 function residual!(e, x, θ, body::QuasistaticObject1170)
     index = body.index
     # variables = primals = velocity

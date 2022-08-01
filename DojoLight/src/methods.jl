@@ -1,6 +1,231 @@
-################################################################################
-# methods
-################################################################################
+function graph_symbolic_methods(symgraph::SymbolicNet, dim::Dimensions, ind::Indices;
+        checkbounds=true,
+        threads=false)
+
+    parallel = threads ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()
+    parallel_parameters = (threads && num_parameters > 0) ? Symbolics.MultithreadedForm() : Symbolics.SerialForm()
+    parameter_keywords = ind.parameter_keywords
+
+    idx_nn = ind.cone_nonnegative
+    idx_soc = ind.cone_second_order
+
+    x = Symbolics.variables(:x, 1:dim.variables) # variables
+    θ = Symbolics.variables(:θ, 1:dim.parameters) # parameters
+    κ = Symbolics.variables(:κ, 1:dim.cone) # central path
+    r = Symbolics.variables(:r, 1:dim.variables) # residual
+    rs = Symbolics.variables(:rs, 1:dim.cone) # cone product residual with corrections
+    Δz = Symbolics.variables(:Δz, 1:dim.cone) # dual step
+    Δza = Symbolics.variables(:Δza, 1:dim.cone) # dual affine step
+    Δsa = Symbolics.variables(:Δsa, 1:dim.cone) # slack affine step
+    y = x[ind.primals]
+    z = x[ind.duals]
+    s = x[ind.slacks]
+
+    # equality residual
+    f = dim.parameters > 0 ?
+        func(y, z, s, θ) :
+        func(y, z, s)
+
+    # equality jacobians
+    fx = Symbolics.sparsejacobian(f, x)
+
+    # correction
+    c = copy(r)
+    c[ind.cone_product] .-= (κ - cone_product(Δza, Δsa, idx_nn, idx_soc))
+
+    warning = "compressed search direction is not implemented with finite difference methods."
+    function equality_constraint_compressed(out, x, θ)
+        @warn warning
+    end
+
+    # jacobian variables compressed
+    function equality_jacobian_variables_compressed(vector_cache, x, θ)
+        error(warning)
+    end
+
+    # correction compressed
+    function correction_compressed(cc, r, Δza, Δsa, x, κ)
+        error(warning)
+    end
+
+    # slack direction
+    function slack_direction(Δs, Δz, x, rs)
+        error(warning)
+    end
+
+    # jacobian parameters
+    function equality_jacobian_parameters(vector_cache, x, θ)
+        # f(out, θ) = equality_constraint(out, x, θ)
+        # matrix_cache = reshape(vector_cache, (dim.equality, dim.parameters))
+        # FiniteDiff.finite_difference_jacobian!(matrix_cache, f, θ)
+        # return nothing
+        error(warning)
+    end
+
+    equality_jacobian_keywords = Vector{Function}()
+    for k in eachindex(parameter_keywords)
+        function func(vector_cache, x, θ)
+            # function f(out, θi)
+            #     θc = copy(θ)
+            #     θc[parameter_keywords[k]] .= θi
+            #     equality_constraint(out, x, θc)
+            # end
+            # matrix_cache = reshape(vector_cache, (dim.equality, length(parameter_keywords[k])))
+            # FiniteDiff.finite_difference_jacobian!(matrix_cache, f, θ[parameter_keywords[k]])
+            # return nothing
+            error(warning)
+        end
+        push!(equality_jacobian_keywords, func)
+    end
+
+    ex_sparsity = collect(zip([findnz(sparse(ones(dim.equality, dim.variables)))[1:2]...]...))
+    exc_sparsity = collect(zip([findnz(sparse(ones(dim.equality, dim.equality)))[1:2]...]...))
+    eθ_sparsity = collect(zip([findnz(sparse(ones(dim.equality, dim.parameters)))[1:2]...]...))
+    eθ_indices = zeros(Int, dim.equality, dim.parameters)
+    vec(eθ_indices) .= 1:length(eθ_indices)
+    ek_indices = Vector{Vector{Int}}()
+    for (key, val) in parameter_keywords
+        indices = vec(eθ_indices[:,val])
+        push!(ek_indices, indices)
+    end
+
+    # # sparsity
+    # fx_sparsity = collect(zip([findnz(fx)[1:2]...]...))
+    # fxc_sparsity = collect(zip([findnz(fxc)[1:2]...]...))
+    # fθ_sparsity = collect(zip([findnz(fθ)[1:2]...]...))
+    # fθ_indices = similar(fθ, Int)
+    # fθ_indices.nzval .= 1:nnz(fθ_indices)
+    # fk_indices = Vector{Vector{Int}}()
+    # for (key, val) in parameter_keywords
+    #     idx = fθ_indices[:,val].nzval
+    #     push!(fk_indices, idx)
+    # end
+
+    # expressions
+    f_expr = Symbolics.build_function(f, x, θ,
+        parallel=parallel,
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+    fx_expr = Symbolics.build_function(fx.nzval, x, θ,
+        parallel=parallel,
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+    c_expr = Symbolics.build_function(c, r, Δza, Δsa, κ,
+        parallel=parallel,
+        checkbounds=checkbounds,
+        expression=Val{false})[2]
+
+    methods = ProblemMethods(
+        e_expr,
+        equality_constraint_compressed,
+        ex_expr,
+        equality_jacobian_variables_compressed,
+        equality_jacobian_parameters,
+        equality_jacobian_keywords,
+        c_expr,
+        correction_compressed,
+        slack_direction,
+        zeros(length(ex_sparsity)),
+        zeros(length(exc_sparsity)),
+        zeros(length(eθ_sparsity)),
+        ex_sparsity,
+        exc_sparsity,
+        eθ_sparsity,
+        ek_indices,
+    )
+
+    return methods
+end
+
+
+
+
+function mechanism_symbolic_graph(residual, )
+
+
+    return symgraph
+end
+
+using Graphs
+using GraphRecipes
+using Plots
+
+include(joinpath(module_dir(), "SymbolicNet", "src", "macro.jl"))
+include(joinpath(module_dir(), "SymbolicNet", "src", "net.jl"))
+include(joinpath(module_dir(), "SymbolicNet", "src", "evaluation.jl"))
+
+
+
+timestep=0.05
+gravity=-9.81
+mass=1.0
+inertia=0.2 * ones(1,1)
+friction_coefficient=0.9
+Af = [0.0  +1.0]
+bf = [0.0]
+parent_shapes = [PolytopeShape1170(Af, bf),]
+body = Body1170(timestep, mass, inertia, parent_shapes, gravity=+gravity, name=:pbody)
+indexing!([body])
+
+function residual!(e, x, θ, body::Body1170; symbolic_parsing=false)
+    @rootlayer x
+    @layer θ
+    @layer e
+
+    index = body.index
+    # variables = primals = velocity
+    v25 = unpack_variables(x[index.variables], body)
+    # parameters
+    p2, v15, u, timestep, gravity, mass, inertia = unpack_parameters(θ[index.parameters], body)
+    # integrator
+    p1 = p2 - timestep[1] * v15
+    p3 = p2 + timestep[1] * v25
+    @layer p1
+    @layer p3
+
+    # mass matrix
+    M = Diagonal([mass[1]; mass[1]; inertia[1]])
+    # dynamics
+    optimality = M * (p3 - 2*p2 + p1)/timestep[1] - timestep[1] * [0; mass .* gravity; 0] - u * timestep[1];
+    @layer optimality
+    eout = e
+    # eout[index.optimality] .+= optimality
+    eout[index.optimality] .+= optimality
+    @leaflayer eout
+    return nothing
+end
+
+function local_residual(e, x, θ; symbolic_parsing=false)
+    return residual!(e, x, θ, body; symbolic_parsing=symbolic_parsing)
+end
+
+function get_name(dict::Dict, i::Int)
+    for (key, val) in dict
+        l = min(length(string(key)),3)
+        (val == i) && (return string(key)[1:l])
+    end
+end
+
+nθ = length(body.index.parameters)
+nx = length(body.index.variables)
+
+symgraph = generate_symgraph(local_residual, [nx, nx, nθ])
+name_vector = [get_name(symgraph.name_dict, i) for i=1:nv(symgraph.graph)]
+plt = graphplot(symgraph.graph, names=name_vector, curvature_scalar=0.01, linewidth=3, fontsize=15)
+
+
+e0 = rand(nx)
+x0 = rand(nx)
+θ0 = rand(nθ)
+
+
+
+evaluation50!(symgraph, [e0, x0, θ0])
+
+
+
+
+
 function generate_gradients(func::Function, num_equality::Int, num_variables::Int,
         num_parameters::Int;
         checkbounds=true,
