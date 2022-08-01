@@ -169,24 +169,26 @@ end
 # mechanism
 ######################################################################
 function build_mechanism!(vis::Visualizer, mechanism::Mechanism1170;
-        show_contact::Bool=true)
+        show_contact::Bool=true,
+        color=RGBA(0.2, 0.2, 0.2, 0.8),
+        name::Symbol=:robot)
 
     for body in mechanism.bodies
-        build_body!(vis, body)
+        build_body!(vis[name], body, collider_color=color)
     end
     if show_contact
         for contact in mechanism.contacts
-            build_2d_frame!(vis, name=contact.name)
+            build_2d_frame!(vis[name], name=contact.name)
         end
     end
     return nothing
 end
 
 function set_mechanism!(vis::Visualizer, mechanism::Mechanism1170, storage::Storage116,
-        i::Int; show_contact::Bool=true)
+        i::Int; show_contact::Bool=true, name::Symbol=:robot)
 
     for (j,body) in enumerate(mechanism.bodies)
-        set_body!(vis, body, storage.x[i][j])
+        set_body!(vis[name], body, storage.x[i][j])
     end
     if show_contact
         for (j, contact) in enumerate(mechanism.contacts)
@@ -194,17 +196,17 @@ function set_mechanism!(vis::Visualizer, mechanism::Mechanism1170, storage::Stor
             origin = storage.contact_point[ii][j]
             normal = storage.normal[ii][j]
             tangent = storage.tangent[ii][j]
-            set_2d_frame!(vis, contact, origin, normal, tangent)
+            set_2d_frame!(vis[name], contact, origin, normal, tangent)
         end
     end
     return nothing
 end
 
-function set_mechanism!(vis::Visualizer, mechanism::Mechanism1170, z)
+function set_mechanism!(vis::Visualizer, mechanism::Mechanism1170, z; name::Symbol=:robot)
     off = 0
     for (j,body) in enumerate(mechanism.bodies)
         nz = state_dimension(body)
-        set_body!(vis, body, z[off .+ (1:nz)]); off += nz
+        set_body!(vis[name], body, z[off .+ (1:nz)]); off += nz
     end
     return nothing
 end
@@ -212,12 +214,13 @@ end
 function visualize!(vis::Visualizer, mechanism::Mechanism1170, storage::Storage116{T,H};
         build::Bool=true,
         show_contact::Bool=true,
+        name::Symbol=:robot,
         animation=MeshCat.Animation(Int(floor(1/mechanism.bodies[1].timestep[1])))) where {T,H}
 
-    build && build_mechanism!(vis, mechanism, show_contact=show_contact)
+    build && build_mechanism!(vis, mechanism, show_contact=show_contact, name=name)
     for i = 1:H
         atframe(animation, i) do
-            set_mechanism!(vis, mechanism, storage, i, show_contact=show_contact)
+            set_mechanism!(vis, mechanism, storage, i, show_contact=show_contact, name=name)
         end
     end
     MeshCat.setanimation!(vis, animation)
@@ -227,13 +230,14 @@ end
 
 function visualize!(vis::Visualizer, mechanism::Mechanism1170, z;
         build::Bool=true,
+        name::Symbol=:robot,
         animation=MeshCat.Animation(Int(floor(1/mechanism.bodies[1].timestep[1])))) where {T}
 
     H = length(z)
-    build && build_mechanism!(vis, mechanism, show_contact=false)
+    build && build_mechanism!(vis, mechanism, show_contact=false, name=name)
     for i = 1:H
         atframe(animation, i) do
-            set_mechanism!(vis, mechanism, z[i])
+            set_mechanism!(vis, mechanism, z[i], name=name)
         end
     end
     MeshCat.setanimation!(vis, animation)

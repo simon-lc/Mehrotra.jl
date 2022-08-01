@@ -95,4 +95,3 @@ visualize!(vis, mech, storage, build=true)
 scatter(storage.iterations)
 # plot!(hcat(storage.variables...)')
 RobotVisualizer.convert_frames_to_video_and_gif("hand_coded_lift_clean")
-0.05*1*
