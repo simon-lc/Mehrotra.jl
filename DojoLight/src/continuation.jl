@@ -10,7 +10,7 @@ function reset!(mechanism::Mechanism1170; residual_tolerance=1e-4, complementari
     return nothing
 end
 
-function continuation_callback!(solver::IterativeLQR.Solver, mechanism::Mechanism1170; ρ=1.5, visualize=false)
+function continuation_callback!(solver, mechanism::Mechanism1170; ρ=1.5, visualize=false)
     msolver = mechanism.solver
     moptions = msolver.options
     # contact smoothness continuation

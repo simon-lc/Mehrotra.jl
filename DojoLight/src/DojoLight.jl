@@ -1,10 +1,10 @@
 using Polyhedra
 using MeshCat
 using RobotVisualizer
-using StaticArrays
+# using StaticArrays
 using Quaternions
 using Plots
-using IterativeLQR
+# using IterativeLQR
 using LinearAlgebra
 
 
