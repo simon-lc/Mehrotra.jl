@@ -69,19 +69,75 @@ H0 = 100
 # Main.@profiler [solve!(mech.solver) for i=1:300]
 # @benchmark $solve!($(mech.solver))
 
-# 7.5/0.148
-# 14.8/0.148
-
+# scatter(storage.iterations)
+# plot!(hcat(storage.variables...)')
 
 ################################################################################
-# visualization
+# MeshCat visualization
 ################################################################################
 set_floor!(vis)
 set_light!(vis)
 set_background!(vis)
-visualize!(vis, mech, storage, build=true)
+vis, anim = visualize!(vis, mech, storage, build=true)
+
+################################################################################
+# GLVisualizer visualization
+################################################################################
+glvis = GLVisualizer.Visualizer()
+open(glvis)
+
+GLVisualizer.set_camera!(glvis;
+    eyeposition=[5,0,0.5],
+    lookat=[0,0,0.0],
+    up=[0,0,1.0])
+GLVisualizer.set_floor!(glvis)
+
+build_mechanism!(glvis, mech)
+for i = 1:H0
+    # sleep(timestep)
+    set_mechanism!(glvis, mech, storage, i)
+end
 
 
-scatter(storage.iterations)
-# plot!(hcat(storage.variables...)')
-# RobotVisualizer.convert_frames_to_video_and_gif("sphere_polytope_drop")
+################################################################################
+# GLVisualizer point-cloud
+################################################################################
+resolution = (300, 700)
+glvis = GLVisualizer.Visualizer(resolution=resolution)
+open(glvis)
+GLVisualizer.set_camera!(glvis;
+    eyeposition=[0,-4,3.0],
+    lookat=[0,0,0.0],
+    up=[0,1,0.0])
+
+build_mechanism!(glvis, mech)
+GLVisualizer.set_floor!(glvis)
+
+p1 = [Int(floor(resolution[1]/2))]
+p2 = Vector(1:10:resolution[2])
+n1 = length(p1)
+n2 = length(p2)
+
+depth = zeros(Float32, resolution...)
+world_coordinates = zeros(3, n1 * n2)
+pixel = HyperSphere(GeometryBasics.Point(0,0,0.0), 0.025)
+for j = 1:n1*n2
+    setobject!(vis[:pointcloud][Symbol(j)], pixel, MeshPhongMaterial(color=RGBA(0,0,0,1)))
+end
+for i = 1:H0
+    atframe(anim, i) do
+        set_mechanism!(glvis, mech, storage, i)
+        depth_buffer!(depth, glvis)
+        depthpixel_to_world!(world_coordinates, depth, p1, p2, glvis)
+        for j in 1:n1*n2
+            settransform!(vis[:pointcloud][Symbol(j)], MeshCat.Translation(world_coordinates[:,j]))
+        end
+    end
+end
+MeshCat.setanimation!(vis, anim)
+
+linear_depth = (depth .- minimum(depth)) ./ (1e-5+(maximum(depth) - minimum(depth)))
+plot(Gray.(linear_depth))
+
+
+# RobotVisualizer.convert_frames_to_video_and_gif("point_cloud_sphere_bundle_tilt")

@@ -8,9 +8,24 @@ function build_polytope!(vis::GLVisualizer.Visualizer, parent::Symbol, name::Sym
     h = hrep(A, b)
     p = polyhedron(h)
     m = Polyhedra.Mesh(p)
-    setobject!(vis, parent, name, m, MeshPhongMaterial(color=color))
+    GLVisualizer.setobject!(vis, parent, name, m, color=color)
     return nothing
 end
+
+function build_2d_polytope!(vis::GLVisualizer.Visualizer, parent::Symbol, name::Symbol,
+        A::Matrix{T}, b::Vector{T};
+        color=RGBA(0.8, 0.8, 0.8, 1.0)) where T
+
+    n = size(A)[1]
+    Ae = [zeros(n) A]
+    Ae = [Ae;
+         -1 0 0;
+          1 0 0]
+    be = [b; 0.05; 0.05]
+    build_polytope!(vis, parent, name, Ae, be, color=color)
+    return nothing
+end
+
 
 ######################################################################
 # shape
@@ -29,10 +44,10 @@ function build_shape!(vis::GLVisualizer.Visualizer, parent::Symbol, name::Symbol
         shape::SphereShape1170; collider_color=RGBA(0.2, 0.2, 0.2, 0.8),
         ) where T
 
-    setobject!(vis, parent, name,
+    GLVisualizer.setobject!(vis, parent, name,
         HyperSphere(GeometryBasics.Point(0,0,0.), shape.radius[1]),
         color=collider_color)
-    setobject!(vis, parent, Symbol(name, :_fake)
+    GLVisualizer.setobject!(vis, parent, Symbol(name, :_fake),
         HyperSphere(GeometryBasics.Point(0,0,0.0005), shape.radius[1]),
         color=RGBA(0.8, 0.8, 0.8, 0.8))
     return nothing
@@ -48,7 +63,7 @@ function build_body!(vis::GLVisualizer.Visualizer, body::Body;
         center_of_mass_radius=0.025,
         ) where T
     # set parent invisible objet
-    setobject!(vis, :root, name,
+    GLVisualizer.setobject!(vis, :root, name,
         HyperSphere(GeometryBasics.Point(0,0,0.), 0.0));
 
     # shapes
@@ -58,7 +73,7 @@ function build_body!(vis::GLVisualizer.Visualizer, body::Body;
     end
 
     # center of mass
-    setobject!(vis, name, Symbol(name, :_com),
+    GLVisualizer.setobject!(vis, name, Symbol(name, :_com),
         HyperSphere(GeometryBasics.Point(0,0,0.), center_of_mass_radius),
         color=center_of_mass_color);
     return nothing
@@ -68,8 +83,9 @@ function set_body!(vis::GLVisualizer.Visualizer, body::Body, pose; name=body.nam
     p = pose[1:2]
     q = pose[3:3]
     pe = [0; p]
-    qe = []
-    settransform!(vis, :root, name, pe, qe)
+    qe = RotX(q[1])
+    qe = GLVisualizer.Quaternion(qe.v1, qe.v2, qe.v3, qe.s)
+    GLVisualizer.settransform!(vis, name, pe, qe)
     return nothing
 end
 
