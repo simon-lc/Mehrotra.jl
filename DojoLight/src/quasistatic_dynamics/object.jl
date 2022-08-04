@@ -5,13 +5,11 @@ struct QuasistaticObject1170{T,D} <: Body{T}
     name::Symbol
     index::NodeIndices1170
     pose::Vector{T}
-    # velocity::Vector{T}
     input::Vector{T}
     gravity::Vector{T}
     timestep::Vector{T}
     mass::Vector{T}
     inertia::Matrix{T}
-    # stiffness::Vector{T}
     shapes::Vector
 end
 
@@ -26,7 +24,6 @@ function QuasistaticObject1170(timestep::T, mass, inertia::Matrix,
         name,
         index,
         zeros(D+1),
-        # zeros(D+1),
         zeros(D+1),
         [gravity],
         [timestep],
@@ -42,13 +39,11 @@ cone_dimension(body::QuasistaticObject1170{T,D}) where {T,D} = 0
 function parameter_dimension(body::QuasistaticObject1170{T,D}) where {T,D}
     @assert D == 2
     nq = 3 # configuration
-    # nv = 3 # velocity
     nu = 3 # input
     n_gravity = 1 # mass
     n_timestep = 1 # mass
     n_mass = 1 # mass
     n_inertia = 1 # inertia
-    # nθ = nq + nv + nu + n_gravity + n_timestep + n_mass + n_inertia
     nθ = nq + nu + n_gravity + n_timestep + n_mass + n_inertia
     return nθ
 end
@@ -60,23 +55,19 @@ end
 function get_parameters(body::QuasistaticObject1170{T,D}) where {T,D}
     @assert D == 2
     pose = body.pose
-    # velocity = body.velocity
     input = body.input
 
     gravity = body.gravity
     timestep = body.timestep
     mass = body.mass
     inertia = body.inertia
-    # θ = [pose; velocity; input; gravity; timestep; mass; inertia[1]]
     θ = [pose; input; gravity; timestep; mass; inertia[1]]
     return θ
 end
 
 function set_parameters!(body::QuasistaticObject1170{T,D}, θ) where {T,D}
-    # pose, velocity, input, timestep, gravity, mass, inertia = unpack_parameters(θ, body)
     pose, input, timestep, gravity, mass, inertia = unpack_parameters(θ, body)
     body.pose .= pose
-    # body.velocity .= velocity
     body.input .= input
 
     body.gravity .= gravity
@@ -90,14 +81,12 @@ function unpack_parameters(θ::Vector, body::QuasistaticObject1170{T,D}) where {
     @assert D == 2
     off = 0
     pose = θ[off .+ (1:D+1)]; off += D+1
-    # velocity = θ[off .+ (1:D+1)]; off += D+1
     input = θ[off .+ (1:D+1)]; off += D+1
 
     gravity = θ[off .+ (1:1)]; off += 1
     timestep = θ[off .+ (1:1)]; off += 1
     mass = θ[off .+ (1:1)]; off += 1
     inertia = θ[off .+ 1] * ones(1,1); off += 1
-    # return pose, velocity, input, timestep, gravity, mass, inertia
     return pose, input, timestep, gravity, mass, inertia
 end
 parameter_state_indices(body::QuasistaticObject1170) = Vector(1:3)
@@ -113,10 +102,8 @@ function residual!(e, x, θ, body::QuasistaticObject1170)
     # variables = primals = velocity
     v25 = unpack_variables(x[index.variables], body)
     # parameters
-    # p2, v15, u, timestep, gravity, mass, inertia = unpack_parameters(θ[index.parameters], body)
     p2, u, timestep, gravity, mass, inertia = unpack_parameters(θ[index.parameters], body)
     # integrator
-    # p1 = p2 - timestep[1] * v15
     p3 = p2 + timestep[1] * v25
 
     # mass matrix
