@@ -119,7 +119,7 @@ WC = [point_cloud(glvis, mech, z_nominal, p1, p2, resolution, e, lookat, up) for
 θ0, bundle_dimensions0 = pack_halfspaces([A0, A1], [b0, b1], [zeros(2), zeros(2)])
 δ0 = 1e+2
 Δ0 = 2e-2
-βb0 = 1e-3
+βb0 = 1e-4
 βo0 = 1e-3
 plt = plot_polytope(A0, b0, δ0)
 plt = plot_polytope(A1, b1, δ0)
@@ -132,7 +132,7 @@ local_loss(θ) = loss(WC, E, bundle_dimensions, θ, βb=βb0, βo=βo0, Δ=Δ0, 
 
 local_initial_invH(θ) = zeros(2*(2n+2),2*(2n+2)) + 1e-3*I
 
-θinit = vcat([[range(-π, π, length=n+1)[1:end-1]; 0.5*ones(n); zeros(2)] + 0.01*rand(2n+2) for i=1:2]...)
+θinit = vcat([[range(-π, π, length=n+1)[1:end-1]; 0.5*ones(n); zeros(2)] + 0.5*rand(2n+2) for i=1:2]...)
 Ainit, binit, oinit = unpack_halfspaces(θinit, bundle_dimensions)
 res = Optim.optimize(local_loss, θinit,
     # BFGS(),
@@ -165,7 +165,8 @@ build_2d_polytope!(vis, A0, b0, name=:reference1,
 build_2d_polytope!(vis, A1, b1, name=:reference2,
     color=RGBA(0.7,0.2,0.6,1.0))
 for i = 1:2
-    build_2d_polytope!(vis, Ainit[i], binit[i] + Ainit[i]*oinit[i], name=Symbol(:initial, i),
+    # build_2d_polytope!(vis, Ainit[i], binit[i] + Ainit[i]*oinit[i], name=Symbol(:initial, i),
+    build_2d_polytope!(vis, Ainit[i], binit[i], name=Symbol(:initial, i),
             color=RGBA(1,0.3,0.0,0.5))
 end
 
