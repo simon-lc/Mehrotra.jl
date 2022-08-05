@@ -59,7 +59,7 @@ build_mechanism!(glvis, mech)
 GLVisualizer.set_floor!(glvis)
 
 p1 = [Int(floor((resolution[1]+1)/2))] # perfectly centered for uneven number of pixels
-p2 = Vector(1:10:resolution[2])
+p2 = Vector(1:30:resolution[2])
 n1 = length(p1)
 n2 = length(p2)
 
@@ -116,23 +116,24 @@ set_mechanism!(vis, mech, z_nominal)
 WC = [point_cloud(glvis, mech, z_nominal, p1, p2, resolution, e, lookat, up) for e in E]
 
 
-θ0, bundle_dimensions0 = pack_halfspaces([A0, A1], [b0, b1])
+θ0, bundle_dimensions0 = pack_halfspaces([A0, A1], [b0, b1], [zeros(2), zeros(2)])
 δ0 = 1e+2
 Δ0 = 2e-2
-β0 = 1e-3
+βb0 = 1e-3
+βo0 = 1e-3
 plt = plot_polytope(A0, b0, δ0)
 plt = plot_polytope(A1, b1, δ0)
 bundle_dimensions = [4,4]
-@time loss(WC, E, bundle_dimensions0, θ0, β=β0, Δ=Δ0, δ=δ0)
+@time loss(WC, E, bundle_dimensions0, θ0, βb=βb0, βo=βo0, Δ=Δ0, δ=δ0)
 
-n = 8
+n = 4
 bundle_dimensions = [n,n]
-local_loss(θ) = loss(WC, E, bundle_dimensions, θ, β=β0, Δ=Δ0, δ=δ0)
+local_loss(θ) = loss(WC, E, bundle_dimensions, θ, βb=βb0, βo=βo0, Δ=Δ0, δ=δ0)
 
 local_initial_invH(θ) = zeros(4n,4n) + 1e-1*I
 
-θinit = vcat([[range(-π, π, length=n+1)[1:end-1]; 0.5*ones(n)] + 0.5*rand(2n) for i=1:2]...)
-Ainit, binit = unpack_halfspaces(θinit, bundle_dimensions0)
+θinit = vcat([[range(-π, π, length=n+1)[1:end-1]; 0.5*ones(n); zeros(2)] + 0.1*rand(2n+2) for i=1:2]...)
+Ainit, binit, oinit = unpack_halfspaces(θinit, bundle_dimensions0)
 res = Optim.optimize(local_loss, θinit,
     BFGS(),
     # BFGS(initial_invH = local_initial_invH),
@@ -144,7 +145,7 @@ res = Optim.optimize(local_loss, θinit,
         # callback=local_callback,
         extended_trace = true,
         store_trace = true,
-        show_trace = false),
+        show_trace = true),
     );
 # fieldnames(typeof(Optim.trace(res)[1])).iteration
 
@@ -152,7 +153,7 @@ res = Optim.optimize(local_loss, θinit,
 # unpack results
 ################################################################################
 θopt = Optim.minimizer(res)
-Aopt, bopt = unpack_halfspaces(θopt, bundle_dimensions)
+Aopt, bopt, oopt = unpack_halfspaces(θopt, bundle_dimensions)
 solution_trace = [iterate.metadata["x"] for iterate in Optim.trace(res)]
 plot(hcat(solution_trace...)')
 
@@ -164,7 +165,7 @@ build_2d_polytope!(vis, A0, b0, name=:reference1,
 build_2d_polytope!(vis, A1, b1, name=:reference2,
     color=RGBA(0.7,0.2,0.6,1.0))
 for i = 1:2
-    build_2d_polytope!(vis, Ainit[i], binit[i], name=Symbol(:initial, i),
+    build_2d_polytope!(vis, Ainit[i], binit[i] + Ainit[i]*oinit[i], name=Symbol(:initial, i),
             color=RGBA(1,0.3,0.0,0.5))
 end
 # for i = 1:2
@@ -174,9 +175,13 @@ end
 
 for j = 1:length(solution_trace)
     for i = 1:2
-        Aopt, bopt = unpack_halfspaces(solution_trace[j], bundle_dimensions)
-        build_2d_polytope!(vis[:optimized][Symbol(i)], Aopt[i], bopt[i], name=Symbol(j),
-            color=RGBA(1,1,0.0,0.5))
+        Aopt, bopt, oopt = unpack_halfspaces(solution_trace[j], bundle_dimensions)
+        try
+            # build_2d_polytope!(vis[:optimized][Symbol(i)], Aopt[i], bopt[i] + Aopt[i]*oopt[i], name=Symbol(j),
+            build_2d_polytope!(vis[:optimized][Symbol(i)], Aopt[i], bopt[i], name=Symbol(j),
+                color=RGBA(1,1,0.0,0.5))
+        catch e
+        end
     end
 end
 
