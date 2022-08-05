@@ -1,4 +1,4 @@
-function get_polytope_bundle(;
+function get_bundle_drop(;
     timestep=0.05,
     gravity=-9.81,
     mass=1.0,
@@ -18,57 +18,66 @@ function get_polytope_bundle(;
     Af = [0.0  +1.0]
     bf = [0.0]
     Ap1 = [
-        1.0  0.0;
-        0.0  1.0;
-        -1.0  0.0;
-        0.0 -1.0;
-        ] .- 0.30ones(4,2);
-    bp1 = 0.2*[
+        +1.0 -0.2;
+        +0.0 +1.0;
+        -1.0 -0.2;
+        +0.0 -1.0;
+        ]
+    for i = 1:4
+        Ap1[i,:] ./= norm(Ap1[i,:])
+    end
+    bp1 = 0.5*[
         +1,
         +1,
         +1,
-        1,
+        +0,
         ];
     Ap2 = [
-        1.0  0.0;
-        0.0  1.0;
-        -1.0  0.0;
-        0.0 -1.0;
-        ] .+ 0.20ones(4,2);
-    bp2 = 0.2*[
-        -0.5,
+        +1.0 +0.3;
+        +0.0 +1.0;
+        -1.0 +0.1;
+        +0.0 -1.0;
+        ]
+    for i = 1:4
+        Ap2[i,:] ./= norm(Ap2[i,:])
+    end
+    bp2 = 0.5*[
+        +0.5,
+        +2,
         +1,
-        +1.5,
-        1,
+        -1,
         ];
-    Ac = [
-         1.0  0.0;
-         0.0  1.0;
-        -1.0  0.0;
-         0.0 -1.0;
-        ] .+ 0.20ones(4,2);
-    bc = 0.2*[
-        1,
-        1,
-        1,
-        1,
-        ];
+    # Ap1 = [
+    #     1.0  0.0;
+    #     0.0  1.0;
+    #     -1.0  0.0;
+    #     0.0 -1.0;
+    #     ] .- 0.30ones(4,2);
+    # bp1 = 0.2*[
+    #     +1,
+    #     +1,
+    #     +1,
+    #     1,
+    #     ];
+    # Ap2 = [
+    #     1.0  0.0;
+    #     0.0  1.0;
+    #     -1.0  0.0;
+    #     0.0 -1.0;
+    #     ] .+ 0.20ones(4,2);
+    # bp2 = 0.2*[
+    #     -0.5,
+    #     +1,
+    #     +1.5,
+    #     1,
+    #     ];
 
     # nodes
     parent_shapes = [PolytopeShape1170(Ap1, bp1), PolytopeShape1170(Ap2, bp2)]
-    child_shapes = [PolytopeShape1170(Ac, bc)]
     bodies = [
         Body1170(timestep, mass, inertia, parent_shapes, gravity=+gravity, name=:pbody),
-        Body1170(timestep, mass, inertia, child_shapes, gravity=+gravity, name=:cbody),
         ]
     contacts = [
-        PolyPoly1170(bodies[1], bodies[2],
-            friction_coefficient=friction_coefficient,
-            name=:contact_1),
-        PolyPoly1170(bodies[1], bodies[2],
-            parent_collider_id=2,
-            friction_coefficient=friction_coefficient,
-            name=:contact_2),
         PolyHalfSpace1170(bodies[1], Af, bf,
             friction_coefficient=friction_coefficient,
             name=:halfspace_p1),
@@ -76,9 +85,6 @@ function get_polytope_bundle(;
             parent_collider_id=2,
             friction_coefficient=friction_coefficient,
             name=:halfspace_p2),
-        PolyHalfSpace1170(bodies[2], Af, bf,
-            friction_coefficient=friction_coefficient,
-            name=:halfspace_c),
         ]
     indexing!([bodies; contacts])
 

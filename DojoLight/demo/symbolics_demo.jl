@@ -31,7 +31,7 @@ mass = 1.0;
 inertia = 0.2 * ones(1);
 
 
-mech = get_polytope_bundle(; 
+mech = get_bundle_collision(; 
     timestep=0.05, 
     gravity=-9.81, 
     mass=1.0, 

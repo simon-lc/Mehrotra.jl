@@ -23,7 +23,7 @@ mass = 1.0;
 inertia = 0.2 * ones(1);
 
 
-Main.@profiler mech = get_polytope_bundle(;
+Main.@profiler mech = get_bundle_collision(;
 # mech = get_polytope_drop(;
     timestep=0.05,
     gravity=-9.81,
