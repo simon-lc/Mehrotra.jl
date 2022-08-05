@@ -59,7 +59,7 @@ build_mechanism!(glvis, mech)
 GLVisualizer.set_floor!(glvis)
 
 p1 = [Int(floor((resolution[1]+1)/2))] # perfectly centered for uneven number of pixels
-p2 = Vector(1:30:resolution[2])
+p2 = Vector(1:20:resolution[2])
 n1 = length(p1)
 n2 = length(p2)
 
@@ -126,17 +126,17 @@ plt = plot_polytope(A1, b1, δ0)
 bundle_dimensions = [4,4]
 @time loss(WC, E, bundle_dimensions0, θ0, βb=βb0, βo=βo0, Δ=Δ0, δ=δ0)
 
-n = 4
+n = 10
 bundle_dimensions = [n,n]
 local_loss(θ) = loss(WC, E, bundle_dimensions, θ, βb=βb0, βo=βo0, Δ=Δ0, δ=δ0)
 
-local_initial_invH(θ) = zeros(4n,4n) + 1e-1*I
+local_initial_invH(θ) = zeros(2*(2n+2),2*(2n+2)) + 1e-3*I
 
-θinit = vcat([[range(-π, π, length=n+1)[1:end-1]; 0.5*ones(n); zeros(2)] + 0.1*rand(2n+2) for i=1:2]...)
-Ainit, binit, oinit = unpack_halfspaces(θinit, bundle_dimensions0)
+θinit = vcat([[range(-π, π, length=n+1)[1:end-1]; 0.5*ones(n); zeros(2)] + 0.01*rand(2n+2) for i=1:2]...)
+Ainit, binit, oinit = unpack_halfspaces(θinit, bundle_dimensions)
 res = Optim.optimize(local_loss, θinit,
-    BFGS(),
-    # BFGS(initial_invH = local_initial_invH),
+    # BFGS(),
+    BFGS(initial_invH = local_initial_invH),
     # Newton(),
     Optim.Options(
         # f_tol=1e-3,
@@ -168,10 +168,6 @@ for i = 1:2
     build_2d_polytope!(vis, Ainit[i], binit[i] + Ainit[i]*oinit[i], name=Symbol(:initial, i),
             color=RGBA(1,0.3,0.0,0.5))
 end
-# for i = 1:2
-#     build_2d_polytope!(vis, Aopt[i], bopt[i], name=Symbol(:optimized, i),
-#         color=RGBA(1,1,0.0,0.5))
-# end
 
 for j = 1:length(solution_trace)
     for i = 1:2
@@ -211,4 +207,4 @@ set_background!(vis)
 
 RobotVisualizer.set_camera!(vis, zoom=40.0)
 
-# RobotVisualizer.convert_frames_to_video_and_gif("learning_cvxbundle_perfect")
+# RobotVisualizer.convert_frames_to_video_and_gif("stable_learning_overparameterized_bundle_front")
