@@ -27,9 +27,9 @@ function get_bundle_drop(;
         Ap1[i,:] ./= norm(Ap1[i,:])
     end
     bp1 = 0.5*[
+        +1.5,
         +1,
-        +1,
-        +1,
+        +1.5,
         +0,
         ];
     Ap2 = [
@@ -45,6 +45,21 @@ function get_bundle_drop(;
         +0.5,
         +2,
         +1,
+        -1,
+        ];
+    Ap3 = [
+        +1.0 -0.3;
+        +0.0 +1.0;
+        -1.0 +0.5;
+        +0.0 -1.0;
+        ]
+    for i = 1:4
+        Ap3[i,:] ./= norm(Ap3[i,:])
+    end
+    bp3 = 0.5*[
+        +0.75,
+        +3,
+        +0,
         -1,
         ];
     # Ap1 = [
@@ -73,7 +88,7 @@ function get_bundle_drop(;
     #     ];
 
     # nodes
-    parent_shapes = [PolytopeShape1170(Ap1, bp1), PolytopeShape1170(Ap2, bp2)]
+    parent_shapes = [PolytopeShape1170(Ap1, bp1), PolytopeShape1170(Ap2, bp2), PolytopeShape1170(Ap3, bp3)]
     bodies = [
         Body1170(timestep, mass, inertia, parent_shapes, gravity=+gravity, name=:pbody),
         ]
@@ -85,6 +100,10 @@ function get_bundle_drop(;
             parent_collider_id=2,
             friction_coefficient=friction_coefficient,
             name=:halfspace_p2),
+        PolyHalfSpace1170(bodies[1], Af, bf,
+            parent_collider_id=3,
+            friction_coefficient=friction_coefficient,
+            name=:halfspace_p3),
         ]
     indexing!([bodies; contacts])
 

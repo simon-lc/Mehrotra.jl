@@ -1,10 +1,10 @@
-function unpack_halfspaces(θ::Vector, bundle_dimensions::Vector{Int})
+function unpack_halfspaces(θ::Vector{T}, bundle_dimensions::Vector{Int}) where T
     nθ = 2 .+ 2 .* bundle_dimensions
     m = length(bundle_dimensions)
 
-    A = [zeros(i, 2) for i in bundle_dimensions]
-    b = [zeros(i) for i in bundle_dimensions]
-    o = [zeros(i) for i in bundle_dimensions]
+    A = [zeros(T, i, 2) for i in bundle_dimensions]
+    b = [zeros(T, i) for i in bundle_dimensions]
+    o = [zeros(T, i) for i in bundle_dimensions]
 
     off = 0
     for i = 1:m
@@ -14,12 +14,12 @@ function unpack_halfspaces(θ::Vector, bundle_dimensions::Vector{Int})
     return A, b, o
 end
 
-function pack_halfspaces(A::Vector{<:Matrix}, b::Vector{<:Vector}, o::Vector{<:Vector})
+function pack_halfspaces(A::Vector{Matrix{T}}, b::Vector{Vector{T}}, o::Vector{Vector{T}}) where T
     m = length(b)
     bundle_dimensions = length.(b)
     nθ = 2 .+ 2 .* bundle_dimensions
 
-    θ = zeros(sum(nθ))
+    θ = zeros(T,sum(nθ))
 
     off = 0
     for i = 1:m
@@ -29,13 +29,13 @@ function pack_halfspaces(A::Vector{<:Matrix}, b::Vector{<:Vector}, o::Vector{<:V
     return θ, bundle_dimensions
 end
 
-function unpack_halfspaces(θ::Vector)
+function unpack_halfspaces(θ::Vector{T}) where T
     nθ = length(θ)
     n = Int(floor((nθ - 2)/2))
 
-    A = zeros(n, 2)
-    b = zeros(n)
-    o = zeros(2)
+    A = zeros(T,n, 2)
+    b = zeros(T,n)
+    o = zeros(T,2)
 
     for i = 1:n
         A[i,:] .= [cos(θ[i]), sin(θ[i])]
@@ -45,9 +45,9 @@ function unpack_halfspaces(θ::Vector)
     return A, b, o
 end
 
-function pack_halfspaces(A::Matrix, b::Vector, o::Vector)
+function pack_halfspaces(A::Matrix{T}, b::Vector{T}, o::Vector{T}) where T
     n = length(b)
-    θ = zeros(2+2n)
+    θ = zeros(T,2+2n)
 
     for i = 1:n
         θ[i] = atan(A[i,2], A[i,1])
@@ -72,7 +72,7 @@ end
 # b1 .- b0
 # o1 .- o0
 
-function loss(WC, E, bundle_dimensions, θ; βb=1e-3, βo=1e-2, Δ=2e-2, δ=1e2)
+function loss(WC, E, bundle_dimensions, θ; βb=1e-3, βo=1e-2, βf=1e-2, Δ=2e-2, δ=1e2)
     nb = length(bundle_dimensions)
     n = length(WC)
     m = size(WC[1], 2)
@@ -95,7 +95,6 @@ function loss(WC, E, bundle_dimensions, θ; βb=1e-3, βo=1e-2, Δ=2e-2, δ=1e2)
     end
 
     # int, bnd, ext points
-    # bound
     for i = 1:n
         eyeposition = E[i]
         for j = 1:m
@@ -109,6 +108,22 @@ function loss(WC, E, bundle_dimensions, θ; βb=1e-3, βo=1e-2, Δ=2e-2, δ=1e2)
             l += 0.5 * (ϕ(xext)/Δ - 1)^2 / N
         end
     end
+
+    # off = 0
+    # for (i,ni) in enumerate(bundle_dimensions)
+    #     θ[]
+    # end
+    # # floor interpenetration constraints, project point cloud onto the floor
+    # # then enforce that those points are not in any polytope
+    # for i = 1:n
+    #     for j = 1:m
+    #         x = [WC[i][2,j], 0]
+    #         for k = 1:nb
+    #             l += βf * max(0, -sdf(x, A[k], b[k] + A[k]*o[k], δ))^2 / n / m / nb
+    #             l += βf * max(0, -sdf(x - [0, Δ], A[k], b[k] + A[k]*o[k], δ))^2 / n / m / nb
+    #         end
+    #     end
+    # end
 
     # add regularization on b akin to cvxnet eq. 5
     l += βb * norm(b) / length(b)
