@@ -120,6 +120,11 @@ b2 = 0.5*[
 # settransform!(vis[:reference2], MeshCat.Translation(+0.2, 0,0))
 # settransform!(vis[:reference3], MeshCat.Translation(+0.3, 0,0))
 
+# Af = [0 1.0]
+# bf = [0.0]
+# δ = 1e2
+# p = [0, -2.0]
+# gradient_sdf(p, Af, bf, δ)
 
 
 eyeposition = [0,0,3.0]

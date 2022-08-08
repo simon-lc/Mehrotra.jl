@@ -94,6 +94,20 @@
             return d
         end
 
+        function ∇ϕ(x)
+            imin = 0
+            dmin = sdf(x, Af, bf, δ)
+            for i = 1:nb
+                d = sdf(x, A[i], b[i], δ)
+                if d <= dmin
+                    imin = i
+                    dmin = d
+                end
+            end
+            (imin == 0) && return gradient_sdf(x, Af, bf, δ)
+            return sdf(x, A[imin], b[imin], δ)
+        end
+
         # int, bnd, ext points
         for i = 1:n
             eyeposition = E[i]
@@ -106,6 +120,8 @@
                 l += 0.5 * (ϕ(xbnd) - 0.0)^2 / n / m
                 l += 0.5 * (ϕ(xint)/Δ + 1)^2 / n / m
                 l += 0.5 * (ϕ(xext)/Δ - 1)^2 / n / m
+
+                # l += 0.5 * norm(∇ϕ(x) + v)^2 / n / m
             end
         end
 
@@ -128,7 +144,7 @@
         # add regularization on b akin to cvxnet eq. 5
         l += βb * norm(b) / length(b)
         for i = 1:nb
-            l += βo * norm(o[i]) / nb
+            l += βo * norm(o[i])^2 / nb
         end
         return l
     end
