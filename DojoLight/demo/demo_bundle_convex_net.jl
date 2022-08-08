@@ -29,9 +29,7 @@ mech = get_bundle_drop(;
     inertia=inertia,
     friction_coefficient=friction_coefficient,
     method_type=:symbolic,
-    # method_type=:finite_difference,
     options=Options(
-        # verbose=true,
         verbose=false,
         complementarity_tolerance=1e-4,
         compressed_search_direction=true,
@@ -40,7 +38,6 @@ mech = get_bundle_drop(;
         differentiate=false,
         warm_start=false,
         complementarity_correction=0.5,
-        # complementarity_decoupling=true
         )
     );
 
@@ -142,7 +139,6 @@ for i = 1:5
     end
 end
 
-θ0, bundle_dimensions0 = pack_halfspaces([A0, A1], [b0, b1], [zeros(2), zeros(2)])
 δ0 = 1e+2
 Δ0 = 2e-2
 βb0 = 3e-3
@@ -151,14 +147,12 @@ end
 plt = plot_polytope(A0, b0, δ0)
 plt = plot_polytope(A1, b1, δ0)
 plt = plot_polytope(A2, b2, δ0)
-bundle_dimensions = [4,4,4]
-@time loss(WC, E, bundle_dimensions0, θ0, βb=βb0, βo=βo0, βf=βf0, Δ=Δ0, δ=δ0)
+
 
 n = 5
 bundle_dimensions = [n,n,n,n,n]
 nb = length(bundle_dimensions)
-local_loss(θ) = loss(WC, E, bundle_dimensions, θ, βb=βb0, βo=βo0, βf=βf0, Δ=Δ0, δ=δ0)
-
+local_loss(θ) = loss(WC, E, θ, bundle_dimensions, βb=βb0, βo=βo0, βf=βf0, Δ=Δ0, δ=δ0)
 local_initial_invH(θ) = zeros(nb*(2n+2),nb*(2n+2)) + 1e-3*I
 
 θinit = zeros(0)
@@ -170,7 +164,8 @@ for i = 1:nb
 end
 θinit
 Ainit, binit, oinit = unpack_halfspaces(θinit, bundle_dimensions)
-local_loss(θinit)
+@time local_loss(θinit)
+
 @elapsed res = Optim.optimize(local_loss, θinit,
     # BFGS(),
     # Newton(),
@@ -183,9 +178,9 @@ local_loss(θinit)
         # callback=local_callback,
         extended_trace = true,
         store_trace = true,
-        show_trace = false),
-    )
-# fieldnames(typeof(Optim.trace(res)[1])).iteration
+        show_trace = false,
+        # show_trace = true,
+    ))
 
 ################################################################################
 # unpack results
@@ -250,4 +245,111 @@ set_background!(vis)
 
 RobotVisualizer.set_camera!(vis, zoom=40.0)
 
-# RobotVisualizer.convert_frames_to_video_and_gif("learning_bundle_point_cloud")
+
+
+################################################################################
+# pruning
+################################################################################
+function bundle_pruning(A, b, o, loss::Function)
+    nb = length(b)
+
+    l0 = loss(A, b, o)
+    @show l0
+    # delete polytopes
+    included_polytopes = []
+    for i = 1:nb
+        excl = setdiff(1:nb, i)
+        li = loss(A[excl], b[excl], o[excl])
+        @show li
+        if li - l0 >= 1e-4l0 # significant performance loss
+            push!(included_polytopes, i)
+        end
+    end
+    Ap = A[included_polytopes]
+    bp = b[included_polytopes]
+    op = o[included_polytopes]
+    # TODO need to remove inactive haflspace using some LP
+    return Ap, bp, op
+end
+
+function append_halfspace!(A, b; Af=[0.0 1.0], bf=0.0)
+    nb = length(b)
+    for i = 1:nb
+        A[i] = [A[i]; Af]
+        push!(b[i], bf)
+    end
+    return nothing
+end
+
+simple_loss(A, b, o) = loss(WC, E, pack_halfspaces(A, b, o)..., βb=0, βo=0, βf=0, Δ=Δ0, δ=δ0)
+simple_loss(Aopt, bopt, oopt)
+pack_halfspaces(Aopt, bopt, oopt)
+
+
+Aproj, bproj, oproj = bundle_pruning(Aopt, bopt, oopt, simple_loss)
+append_halfspace!(Aproj, bproj)
+Aproj
+bproj
+
+for j = 1:length(solution_trace)
+    for i = 1:nb
+        Aopt, bopt, oopt = unpack_halfspaces(solution_trace[j], bundle_dimensions)
+        Aproj, bproj, oproj = bundle_pruning(Aopt, bopt, oopt, simple_loss)
+        append_halfspace!(Aproj, bproj)
+        try
+            build_2d_polytope!(vis[:optimized][Symbol(i)], Aproj[i], bproj[i], name=Symbol(j),
+                color=RGBA(1,1,0.0,0.5))
+        catch e
+        end
+    end
+end
+
+anim = MeshCat.Animation(20)
+for j = 1:length(solution_trace)
+    atframe(anim, j) do
+        for jj = 1:length(solution_trace)
+            for i = 1:nb
+                setvisible!(vis[:optimized][Symbol(i)][Symbol(jj)], j==jj)
+            end
+        end
+    end
+end
+MeshCat.setanimation!(vis, anim)
+
+
+
+# RobotVisualizer.convert_frames_to_video_and_gif("polytope_point_cloud_great_fit")
+mech_proj = get_learned_bundle(Aproj, bproj;
+    timestep=timestep,
+    gravity=gravity,
+    mass=mass,
+    inertia=inertia,
+    friction_coefficient=friction_coefficient,
+    method_type=:symbolic,
+    options=Options(
+        verbose=false,
+        complementarity_tolerance=1e-4,
+        compressed_search_direction=true,
+        max_iterations=30,
+        sparse_solver=true,
+        differentiate=false,
+        warm_start=false,
+        complementarity_correction=0.5,
+        )
+    )
+# solve!(mech.solver)
+
+################################################################################
+# test simulation
+################################################################################
+xp2 = [+0.0,1.5,-0.25]
+vp15 = [-0,0,-0.0]
+z0 = [xp2; vp15]
+
+u0 = zeros(3)
+H0 = 150
+# solve!(mech.solver)
+
+@elapsed storage = simulate!(mech, z0, H0)
+# Main.@profiler [solve!(mech.solver) for i=1:300]
+# @benchmark $solve!($(mech.solver))

@@ -50,7 +50,7 @@ function hessian_sdf(p, A, b, δ)
 end
 
 
-function plot_halfspace(plt, a, b, show_plot::Bool=true)
+function plot_halfspace(plt, a, b; show_plot::Bool=true)
     R = [0 1; -1 0]
     v = R * a[1,:]
     x0 = a \ b
