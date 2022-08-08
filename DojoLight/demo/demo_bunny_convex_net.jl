@@ -46,7 +46,7 @@ GLVisualizer.settransform!(glvis, :pbody, [0, 0, -0.25], q1 * q0)
 GLVisualizer.set_floor!(glvis)
 
 p1 = [Int(floor((resolution[1]+1)/2))] # perfectly centered for uneven number of pixels
-p2 = Vector(1:20:resolution[2])
+p2 = Vector(1:15:resolution[2])
 n1 = length(p1)
 n2 = length(p2)
 
@@ -55,9 +55,9 @@ include("../cvxnet/loss.jl")
 include("../cvxnet/point_cloud.jl")
 
 eyeposition = [0,0,3.0]
-lookat = [0,0,0.5]
+lookat = [0,0,0.0]
 up = [0,1,0.0]
-E = [3*[0, cos(α), sin(α)] for α in range(0.1π, 0.9π, 5)]
+E = [2*[0, cos(α), sin(α)] for α in range(0.1π, 0.9π, 5)]
 z_nominal = zeros(6)
 WC = [point_cloud(glvis, p1, p2, resolution, e, lookat, up) for e in E]
 for i = 1:5
@@ -70,9 +70,15 @@ for i = 1:5
     end
 end
 
+plt = plot()
+for i = 1:5
+    plot!(plt, [norm(WC[i][2:3,j]) for j=1:n1*n2])
+end
+display(plt)
+
 δ0 = 1e+2
-Δ0 = 2e-2
-βb0 = 3e-4
+Δ0 = 5e-2
+βb0 = 3e-3
 βo0 = 1e-3
 βf0 = 3e-1
 
@@ -80,7 +86,7 @@ n = 8
 bundle_dimensions = [n,n,n,n,n]
 nb = length(bundle_dimensions)
 local_loss(θ) = loss(WC, E, θ, bundle_dimensions, βb=βb0, βo=βo0, βf=βf0, Δ=Δ0, δ=δ0)
-local_initial_invH(θ) = zeros(nb*(2n+2),nb*(2n+2)) + 1e-6*I
+local_initial_invH(θ) = zeros(nb*(2n+2),nb*(2n+2)) + 1e-3*I
 
 θinit = zeros(0)
 for i = 1:nb
