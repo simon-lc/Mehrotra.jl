@@ -115,3 +115,10 @@ function set_mechanism!(vis::GLVisualizer.Visualizer, mechanism::Mechanism1170, 
     end
     return nothing
 end
+
+function Base.delete!(vis::GLVisualizer.Visualizer, mechanism::Mechanism1170)
+    for body in mechanism.bodies
+        delete!(vis, body.name)
+    end
+    return nothing
+end
