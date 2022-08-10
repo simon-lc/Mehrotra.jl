@@ -323,7 +323,7 @@ MeshCat.setanimation!(vis, anim)
 
 
 
-# RobotVisualizer.convert_frames_to_video_and_gif("polytope_point_cloud_great_fit")
+# RobotVisualizer.convert_frames_to_video_and_gif("learning_good_perf_bunny")
 mech_proj = get_learned_bundle(Aproj, bproj;
     timestep=timestep,
     gravity=gravity,

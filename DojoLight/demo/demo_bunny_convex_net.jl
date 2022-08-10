@@ -46,7 +46,7 @@ GLVisualizer.settransform!(glvis, :pbody, [0, 0, -0.25], q1 * q0)
 GLVisualizer.set_floor!(glvis)
 
 p1 = [Int(floor((resolution[1]+1)/2))] # perfectly centered for uneven number of pixels
-p2 = Vector(1:15:resolution[2])
+p2 = Vector(1:30:resolution[2])
 n1 = length(p1)
 n2 = length(p2)
 
@@ -58,7 +58,6 @@ eyeposition = [0,0,3.0]
 lookat = [0,0,0.0]
 up = [0,1,0.0]
 E = [2*[0, cos(α), sin(α)] for α in range(0.1π, 0.9π, 5)]
-z_nominal = zeros(6)
 WC = [point_cloud(glvis, p1, p2, resolution, e, lookat, up) for e in E]
 for i = 1:5
     for j = 1:n1*n2
@@ -77,22 +76,24 @@ end
 display(plt)
 
 δ0 = 1e+2
-Δ0 = 5e-2
-βb0 = 3e-3
-βo0 = 1e-3
-βf0 = 3e-1
+Δ0 = 2e-2
+βb0 = 1e-2
+βo0 = 1e-9
+βf0 = 1e-3
+βμ0 = 1e-3
+βc0 = 1e-2
 
-n = 8
-bundle_dimensions = [n,n,n,n,n]
+n = 5
+bundle_dimensions = [n,n,n,n,n,n]
 nb = length(bundle_dimensions)
-local_loss(θ) = loss(WC, E, θ, bundle_dimensions, βb=βb0, βo=βo0, βf=βf0, Δ=Δ0, δ=δ0)
+local_loss(θ) = loss(WC, E, θ, bundle_dimensions, βb=βb0, βo=βo0, βf=βf0, βμ=βμ0, βc=βc0, Δ=Δ0, δ=δ0)
 local_initial_invH(θ) = zeros(nb*(2n+2),nb*(2n+2)) + 1e-3*I
 
 θinit = zeros(0)
 for i = 1:nb
-    θi = [range(-π, π, length=n+1)[1:end-1]; 0.40*ones(n); zeros(2)] + 0.5*rand(2n+2)
+    θi = [range(-π, π, length=n+1)[1:end-1]; 0.10*ones(n); zeros(2)] + [0.2*rand(2n); [0; 0.5rand(1)]]
     A, b, o = unpack_halfspaces(θi)
-    b .+= A * [0.2*(-1+2i/nb), 0.5]
+    # b .+= A * [0.2*(-1+2i/nb), 0.5]
     push!(θinit, pack_halfspaces(A, b, o)...)
 end
 θinit
@@ -127,17 +128,21 @@ plot(hcat(solution_trace...)', legend=false)
 # visualize results
 ################################################################################
 for i = 1:nb
-    # build_2d_polytope!(vis, Ainit[i], binit[i] + Ainit[i]*oinit[i], name=Symbol(:initial, i),
-    build_2d_polytope!(vis[:initial], Ainit[i], binit[i], name=Symbol(i),
+    build_2d_polytope!(vis[:initial], Ainit[i], binit[i] + Ainit[i]*oinit[i], name=Symbol(i),
+    # build_2d_polytope!(vis[:initial], Ainit[i], binit[i], name=Symbol(i),
             color=RGBA(1,0.3,0.0,0.5))
 end
 
 for j = 1:length(solution_trace)
     for i = 1:nb
         Aopt, bopt, oopt = unpack_halfspaces(solution_trace[j], bundle_dimensions)
+        setobject!(
+            vis[:optimized][Symbol(i)][Symbol(j)][:centroid],
+            HyperSphere(MeshCat.Point(0, oopt[i]...), 0.040),
+            MeshPhongMaterial(color=RGBA(1,0.1,0.1,1)))
         try
-            # build_2d_polytope!(vis[:optimized][Symbol(i)], Aopt[i], bopt[i] + Aopt[i]*oopt[i], name=Symbol(j),
-            build_2d_polytope!(vis[:optimized][Symbol(i)], Aopt[i], bopt[i], name=Symbol(j),
+            build_2d_polytope!(vis[:optimized][Symbol(i)], Aopt[i], bopt[i] + Aopt[i]*oopt[i], name=Symbol(j),
+            # build_2d_polytope!(vis[:optimized][Symbol(i)], Aopt[i], bopt[i], name=Symbol(j),
                 color=RGBA(1,1,0.0,0.5))
         catch e
         end
