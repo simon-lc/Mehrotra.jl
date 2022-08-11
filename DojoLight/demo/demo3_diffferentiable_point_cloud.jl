@@ -40,7 +40,7 @@ A0 = [
     +0.0 +1.0;
     -1.0 +0.0;
     +0.0 -1.0;
-    ] + 0.3*ones(4,2)
+    ] + 0.0*ones(4,2)
 for i = 1:4
     A0[i,:] ./= norm(A0[i,:])
 end
@@ -50,14 +50,14 @@ b0 = 0.5*[
     +0.5,
     +0,
     ] + 0.1*ones(4);
-o0 = [0, 0.2]
+o0 = [0, 0.1]
 
 A1 = [
     +1.0 +0.0;
     +0.0 +1.0;
     -1.0 +0.0;
     +0.0 -1.0;
-    ] - 0.4*ones(4,2)
+    ] - 0.2*ones(4,2)
 for i = 1:4
     A1[i,:] ./= norm(A1[i,:])
 end
@@ -66,14 +66,15 @@ b1 = 0.5*[
     +1.0,
     +0.5,
     +0,
-    ] - 0.2*ones(4);
-o1 = [-0.7, 0.2]
+    ] + 0.0*ones(4);
+o1 = [-0.7, 0.5]
 
 Af = [0 1.0]
 bf = [0.0]
 of = [0, 0.0]
 
 θ_ref, bundle_dimensions_ref = pack_halfspaces([A0, A1, Af], [b0, b1, bf], [o0, o1, of])
+θ_ref, bundle_dimensions_ref = pack_halfspaces([A0, Af], [b0, bf], [o0, of])
 
 ################################################################################
 # ground-truth point-cloud
@@ -85,13 +86,13 @@ eyeposition = [0,0,3.0]
 lookat = [0,0,0.0]
 ne = 3
 nβ = 20
-e = [2.0*[cos(α), sin(α)] for α in range(0.2π, 0.8π, length=ne)]
-# e = [1.5*[cos(α), sin(α)] for α in range(0.5π, 0.5π, length=ne)]
+# e = [2.0*[cos(α), sin(α)] for α in range(0.5π, 0.5π, length=ne)]
+e = [2.0*[cos(α), sin(α)] for α in range(0.3π, 0.7π, length=ne)]
 β = [range(-0.2π, -0.8π, length=nβ) for i = 1:ne]
 
 δ = 10.0
 P = [sumeet_point_cloud(e[i], β[i], θ_ref, bundle_dimensions_ref, δ) for i = 1:ne]
-build_2d_point_cloud!(vis, P, e)
+build_2d_point_cloud!(vis, P, e, name=:point_cloud)
 
 plt = plot()
 for i = 1:ne
@@ -137,17 +138,25 @@ for i = 1:np
         MeshPhongMaterial(color=colors[i]))
     settransform!(vis[:cluster][Symbol(i)][:center], MeshCat.Translation(0.2, kmres.centers[:,i]...))
 end
-
 # initialization
+b_ref = 2mean(sqrt.(kmres.costs))
 θinit = zeros(0)
 for i = 1:np
-    θi = [range(-π, π, length=nh+1)[1:end-1] + 0.00*rand(nh); 0.5*ones(nh); kmres.centers[:, i]]
-    # θi = [range(-π, π, length=nh+1)[1:end-1] + 0.15*rand(nh); 0.5*ones(nh); kmres.centers[:, i]]
+    θi = [range(-π, π, length=nh+1)[1:end-1] + 0.15*rand(nh); b_ref*ones(nh); kmres.centers[:, i]]
     A, b, o = unpack_halfspaces(θi)
     push!(θinit, pack_halfspaces(A, b, o)...)
 end
 θinit
 build_2d_convex_bundle!(vis, θinit, bundle_dimensions, name=:initial, color=RGBA(1,0,0,0.4))
+
+
+θdiag = zeros(0)
+for i = 1:np
+    θi = [1e-1 * ones(nh); 1e0 * ones(nh); 1e-0 * ones(2)]
+    A, b, o = unpack_halfspaces(θi)
+    push!(θdiag, pack_halfspaces(A, b, o)...)
+end
+θdiag
 
 ################################################################################
 # optimization
@@ -161,19 +170,17 @@ function add_floor(θ, bundle_dimensions)
     return pack_halfspaces([A..., Af], [b..., bf], [o..., of])
 end
 # loss
-function local_loss(θ, δsoft)
+function local_loss(θ, δsoft; ω_centroid=1e-1)
     θ_floor, bundle_dimensions_floor = add_floor(θ, bundle_dimensions)
     l = sumeet_loss(P, e, β, θ_floor, bundle_dimensions_floor, δsoft)
 
     A, b, o = unpack_halfspaces(θ, bundle_dimensions)
     np = length(bundle_dimensions)
     for i = 1:np
-        l += 0.5 * (o[i] - kmres.centers[:,i])' * (o[i] - kmres.centers[:,i]) * 0.3
+        l += 0.5 * (o[i] - kmres.centers[:,i])' * (o[i] - kmres.centers[:,i]) * ω_centroid
     end
     return l
 end
-
-local_initial_invH(θ) = zeros(np * (2nh+2), np * (2nh+2)) + 1e-1*I
 
 # initialization
 sumeet_loss(P, e, β, θinit, bundle_dimensions, δsoft)
@@ -192,38 +199,41 @@ function projection(θ, θmin, θmax)
 end
 local_projection(θ) = projection(θ, θmin, θmax)
 
-function mysolve!(θinit, loss, Gloss, Hloss, projection; max_iterations=40)
+function mysolve!(θinit, loss, Gloss, Hloss, projection; max_iterations=60)
     θ = deepcopy(θinit)
     trace = [deepcopy(θ)]
 
     δsoft = 3.0
-    reg = 1e2
+    reg = 1e1
 
-    δsoft_min = 3.0
+    δsoft_min = 4.0
     δsoft_max = 10.0
     reg_min = 1e-2
-    reg_max = 1e+2
+    reg_max = 1e+1
 
     # newton's method
     for i = 1:max_iterations
         l = loss(θ, δsoft)
-        (l < 5e-3) && break
+        @show local_loss(θ, δsoft, ω_centroid=0.0)
+        (local_loss(θ, δsoft, ω_centroid=0.0) < 5e-3) && break
         G = Gloss(θ, δsoft)
         H = Hloss(θ, δsoft)
-        Δθ = - (H + reg * I) \ G
+        D = Diagonal(θdiag)
+        Δθ = - (H + reg * D) \ G
         # linesearch
         α = 1.0
         for j = 1:10
             l_candidate = loss(projection(θ + α * Δθ), δsoft)
             if l_candidate <= l
-                δsoft = clamp(δsoft*1.50, δsoft_min, δsoft_max)
-                reg = clamp(reg/1.50, reg_min, reg_max)
+                δsoft = clamp(δsoft*1.30, δsoft_min, δsoft_max)
+                reg = clamp(reg/1.30, reg_min, reg_max)
                 break
             end
             α /= 2
             if j == 10
-                δsoft = clamp(δsoft/2.0, δsoft_min, δsoft_max)
-                reg = clamp(reg*2.0, reg_min, reg_max)
+                δsoft = clamp(δsoft/5.0, δsoft_min, δsoft_max)
+                reg = clamp(reg*5.0, reg_min, reg_max)
+                α = α / 10
             end
         end
         println("l ", round(l, digits=3), " α ", round(α, digits=3), " reg ", round(reg, digits=3), " δsoft ", round(δsoft, digits=3))
@@ -234,6 +244,7 @@ function mysolve!(θinit, loss, Gloss, Hloss, projection; max_iterations=40)
 end
 
 θopt, solution_trace = mysolve!(θinit, local_loss, Glocal_loss, Hlocal_loss, local_projection)
+solution_trace = [solution_trace; fill(solution_trace[end], 20)]
 
 θopt_floor, bundle_dimensions_floor = add_floor(θopt, bundle_dimensions)
 Popt = [sumeet_point_cloud(e[i], β[i], θopt_floor, bundle_dimensions_floor, δ) for i = 1:ne]
@@ -274,3 +285,4 @@ MeshCat.setanimation!(vis, anim)
 settransform!(vis[:trace], MeshCat.Translation(+0.4, 0,0))
 
 RobotVisualizer.set_camera!(vis, zoom=20.0)
+# RobotVisualizer.convert_frames_to_video_and_gif("soft_point_cloud")

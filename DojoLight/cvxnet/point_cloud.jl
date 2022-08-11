@@ -66,7 +66,7 @@ function sumeet_intersection(e::Vector, v::Vector, A::Matrix, b::Vector, o::Vect
 		cmax, imax = findmax(c)
 		c = c[setdiff(1:length(c), imax)]
 		cmax2, imax2 = findmax(c)
-		αmin += 1/(2δ) * exp(3δ * (cmax2 - cmax))
+		αmin += 1/δ^2 * exp(δ * (cmax2 - cmax))
 	end
     return αmin
 end
