@@ -57,7 +57,7 @@ A1 = [
     +0.0 +1.0;
     -1.0 +0.0;
     +0.0 -1.0;
-    ] - 0.2*ones(4,2)
+    ] - 0.1*ones(4,2)
 for i = 1:4
     A1[i,:] ./= norm(A1[i,:])
 end
@@ -66,8 +66,25 @@ b1 = 0.5*[
     +1.0,
     +0.5,
     +0,
-    ] + 0.0*ones(4);
+    ] - 0.1*ones(4);
 o1 = [-0.7, 0.5]
+
+A2 = [
+    +1.0 +0.0;
+    +0.0 +1.0;
+    -1.0 +0.0;
+    +0.0 -1.0;
+    ] + 0.2*ones(4,2)
+for i = 1:4
+    A2[i,:] ./= norm(A2[i,:])
+end
+b2 = 0.5*[
+    +1.0,
+    +1.0,
+    +0.5,
+    +0,
+    ] + 0.0*ones(4);
+o2 = [0.7, 0.5]
 
 Af = [0 1.0]
 bf = [0.0]
@@ -75,24 +92,31 @@ of = [0, 0.0]
 
 θ_ref, bundle_dimensions_ref = pack_halfspaces([A0, Af], [b0, bf], [o0, of])
 θ_ref, bundle_dimensions_ref = pack_halfspaces([A0, A1, Af], [b0, b1, bf], [o0, o1, of])
+θ_ref, bundle_dimensions_ref = pack_halfspaces([A0, A1, A2, Af], [b0, b1, b2, bf], [o0, o1, o2, of])
 
 ################################################################################
 # ground-truth point-cloud
 ################################################################################
 build_2d_polytope!(vis, A0, b0 + A0 * o0, name=:polytope_0)
 build_2d_polytope!(vis, A1, b1 + A1 * o1, name=:polytope_1)
+build_2d_polytope!(vis, A2, b2 + A2 * o2, name=:polytope_2)
 
 eyeposition = [0,0,3.0]
 lookat = [0,0,0.0]
-ne = 3
-nβ = 20
-# e = [2.0*[cos(α), sin(α)] for α in range(0.5π, 0.5π, length=ne)]
-e = [2.0*[cos(α), sin(α)] for α in range(0.3π, 0.7π, length=ne)]
+ne = 1
+nβ = 50
+e = [2.0*[cos(α), sin(α)] for α in range(0.5π, 0.5π, length=ne)]
+# e = [2.0*[cos(α), sin(α)] for α in range(0.3π, 0.7π, length=ne)]
 β = [range(-0.2π, -0.8π, length=nβ) for i = 1:ne]
 
 δ = 10.0
 P = [sumeet_point_cloud(e[i], β[i], θ_ref, bundle_dimensions_ref, δ) for i = 1:ne]
 build_2d_point_cloud!(vis, P, e, name=:point_cloud)
+# for δ = 4:10
+#     P = [sumeet_point_cloud(e[i], β[i], θ_ref, bundle_dimensions_ref, δ) for i = 1:ne]
+#     build_2d_point_cloud!(vis, P, e, name=:point_cloud)
+#     sleep(0.2)
+# end
 
 plt = plot()
 for i = 1:ne
@@ -117,7 +141,7 @@ Pobject = hcat(Pobject...)
 
 # convex bundle parameterization
 nh = 6
-bundle_dimensions = [nh, nh, nh]
+bundle_dimensions = [nh, nh, nh, nh]
 np = length(bundle_dimensions)
 
 # k-mean clustering
@@ -152,7 +176,7 @@ build_2d_convex_bundle!(vis, θinit, bundle_dimensions, name=:initial, color=RGB
 
 θdiag = zeros(0)
 for i = 1:np
-    θi = [1e-1 * ones(nh); 1e0 * ones(nh); 1e-0 * ones(2)]
+    θi = [3e-2 * ones(nh); 1e0 * ones(nh); 1e-0 * ones(2)]
     A, b, o = unpack_halfspaces(θi)
     push!(θdiag, pack_halfspaces(A, b, o)...)
 end
@@ -202,17 +226,16 @@ local_projection(θ) = projection(θ, θmin, θmax)
 function mysolve!(θinit, loss, Gloss, Hloss, projection; max_iterations=60)
     θ = deepcopy(θinit)
     trace = [deepcopy(θ)]
+    stuck = 0
 
-    δsoft = 3.0
-    reg = 1e2
+    δsoft = 4.0
+    reg = 1e3
     ω_centroid = 1.0
 
     δsoft_min = 4.0
-    δsoft_max = 10.0
+    δsoft_max = 8.0
     reg_min = 1e-2
-    reg_max = 1e+3
-    ω_centroid_min = 1e-2
-    ω_centroid_max = 1e+1
+    reg_max = 1e+2
 
     # newton's method
     for i = 1:max_iterations
@@ -228,15 +251,16 @@ function mysolve!(θinit, loss, Gloss, Hloss, projection; max_iterations=60)
         for j = 1:10
             l_candidate = loss(projection(θ + α * Δθ), δsoft)
             if l_candidate <= l
-                δsoft = clamp(δsoft*1.30, δsoft_min, δsoft_max)
+                δsoft = clamp(δsoft + 0.25, δsoft_min, δsoft_max)
                 reg = clamp(reg/1.30, reg_min, reg_max)
                 break
             end
             α /= 2
             if j == 10
-                δsoft = clamp(δsoft/5.0, δsoft_min, δsoft_max)
-                reg = clamp(reg*5.0, reg_min, reg_max)
+                δsoft = clamp(δsoft - 1.0, δsoft_min, δsoft_max)
+                reg = clamp(reg*2.0, reg_min, reg_max)
                 α = α / 10
+                stuck += 1
             end
         end
         println("l ", round(l, digits=3), " α ", round(α, digits=3), " reg ", round(reg, digits=3), " δsoft ", round(δsoft, digits=3))
@@ -259,7 +283,8 @@ settransform!(vis[:opt], MeshCat.Translation(0.1, 0,0))
 # θopt = Optim.minimizer(res)
 plot(hcat(solution_trace...)', legend=false)
 
-plot(θinit)
+plt = plot(1 ./ abs.(θinit))
+# plot!(plt, 1 ./ abs.(θdiag))
 plot(θopt)
 scatter(θinit - θopt)
 
@@ -287,5 +312,5 @@ MeshCat.setanimation!(vis, anim)
 
 settransform!(vis[:trace], MeshCat.Translation(+0.4, 0,0))
 
-RobotVisualizer.set_camera!(vis, zoom=20.0)
+RobotVisualizer.set_camera!(vis, zoom=10.0)
 # RobotVisualizer.convert_frames_to_video_and_gif("soft_point_cloud")
