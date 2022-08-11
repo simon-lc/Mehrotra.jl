@@ -8,53 +8,6 @@ using Quaternions
 using Optim
 using StaticArrays
 
-function Base.delete!(vis::Visualizer, name::Symbol)
-	if name ∈ keys(vis.scene)
-		delete!(vis.screen[1], vis.scene[name])
-	end
-	return nothing
-end
-
-function build_2d_convex_bundle!(vis::GLVisualizer.Visualizer, parent::Symbol,
-		θ::Vector, bundle_dimensions::Vector{Int},
-		color=RGBA(0.8, 0.8, 0.8, 1.0))
-
-	n = length(bundle_dimensions)
-	A, b, o = unpack_halfspaces(θ, bundle_dimensions)
-
-	for i = 1:n
-		name = Symbol(:polytope_, i)
-		delete!(vis, name)
-		build_2d_polytope!(vis, parent, name,
-				A[i], b[i];
-		        # A[i], b[i] + A[i] * o[i];
-		        color=color)
-	end
-	return nothing
-end
-
-function point_cloud_loss(vis::GLVisualizer.Visualizer, p1::Vector{Int}, p2::Vector{Int},
-		resolution, eyeposition, lookat, up, WC, E, θ, bundle_dimensions)
-	ne = length(E)
-	np = length(bundle_dimensions)
-	n1 = length(p1)
-	n2 = length(p2)
-	l = 0.0
-
-	build_2d_convex_bundle!(vis, :root, θ, bundle_dimensions)
-	WC_learned = [point_cloud(vis, p1, p2, resolution, e, lookat, up) for e in E]
-	for i = 1:ne
-		for j = 1:n1*n2
-			l += 0.5 * norm(WC[i][2:3,j] - WC_learned[i][2:3,j])^2
-		end
-	end
-	# for i = 1:np
-	# 	delete!(glvis, Symbol(:polytope_, i))
-	# end
-	return l
-end
-
-
 
 vis = Visualizer()
 open(vis)

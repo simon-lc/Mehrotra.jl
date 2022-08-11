@@ -72,10 +72,10 @@ end
 # b1 .- b0
 # o1 .- o0
 
-function loss(WC, E, θ::Vector{T}, bundle_dimensions; βb=1e-3, βo=1e-2, βf=1e-2, βμ=1e0, βc=1e-2, Δ=2e-2, δ=1e2, top_k::Int=20) where T
+function loss(P, e, θ::Vector{T}, bundle_dimensions; βb=1e-3, βo=1e-2, βf=1e-2, βμ=1e0, βc=1e-2, Δ=2e-2, δ=1e2, top_k::Int=20) where T
     nb = length(bundle_dimensions)
-    n = length(WC)
-    m = size(WC[1], 2)
+    n = length(P)
+    m = size(P[1], 2)
     N = n * m
     l = 0.0
 
@@ -85,7 +85,7 @@ function loss(WC, E, θ::Vector{T}, bundle_dimensions; βb=1e-3, βo=1e-2, βf=1
         l += βc * max(0, sdf(o[i], A[i], b[i], δ))
     end
     # add floor
-    Af = [0 1.0]
+    Af = [0.0 1.0]
     bf = [0.0]
 
     function ϕ(x)
@@ -116,9 +116,9 @@ function loss(WC, E, θ::Vector{T}, bundle_dimensions; βb=1e-3, βo=1e-2, βf=1
     indices = [zeros(Int, top_k) for i = 1:n]
     distances = [zeros(T, m) for i=1:n]
     for i = 1:n
-        distances[i] .= [0.5 * norm(o[i] - WC[i][2:3,j])^2 for j = 1:m]
+        distances[i] .= [0.5 * norm(o[i] - P[i][2:3,j])^2 for j = 1:m]
         for j = 1:m
-            if WC[i][3,j] < 1e-3
+            if P[i][3,j] < 1e-3
                 distances[i][j] = +Inf
             end
         end
@@ -128,12 +128,12 @@ function loss(WC, E, θ::Vector{T}, bundle_dimensions; βb=1e-3, βo=1e-2, βf=1
             (d < Inf) && (l += 0.5 * d / top_k / nb * βμ)
         end
     end
-    #
+
     # indices = [zeros(Int, m) for i = 1:n]
     # for i = 1:n
-    #     distances = [0.5 * norm(o[i] - WC[i][2:3,j])^2 for j = 1:m]
+    #     distances = [0.5 * norm(o[i] - P[i][2:3,j])^2 for j = 1:m]
     #     for j = 1:m
-    #         if WC[i][3,j] < 1e-3
+    #         if P[i][3,j] < 1e-3
     #             distance = +Inf
     #         end
     #     end
@@ -143,12 +143,11 @@ function loss(WC, E, θ::Vector{T}, bundle_dimensions; βb=1e-3, βo=1e-2, βf=1
     #     end
     # end
 
-
     # int, bnd, ext points
     for i = 1:n
-        eyeposition = E[i]
+        eyeposition = e[i]
         for j = 1:m
-            xbnd = WC[i][2:3,j] # remove 3rd dimension which is always 0 in 2D
+            xbnd = P[i][2:3,j] # remove 3rd dimension which is always 0 in 2D
             v = xbnd - eyeposition[2:3]
             v ./= 1e-5 + norm(v)
             xint = xbnd + Δ * v
@@ -156,14 +155,6 @@ function loss(WC, E, θ::Vector{T}, bundle_dimensions; βb=1e-3, βo=1e-2, βf=1
             l += 0.5 * (ϕ(xbnd) - 0.0*Δ)^2 / n / m
             l += 0.5 * (ϕ(xint) + 1.0*Δ)^2 / n / m
             l += 0.5 * (ϕ(xext) - 1.0*Δ)^2 / n / m
-            # for k in (1,)
-            #     xext = xbnd - k*Δ * v
-            #     l += 0.5 * (ϕ(xext)/(k*Δ) - 1)^2 / n / m / 1
-            # end
-            # xext20 = xbnd - 20Δ * v
-            # l += 0.5 * (ϕ(xext10)/(10Δ) - 1)^2 / n / m
-            # l += 0.5 * (ϕ(xext20)/(20Δ) - 1)^2 / n / m
-            # l += 0.5 * norm(∇ϕ(xbnd) + v)^2 / n / m / 100
         end
     end
 
@@ -175,7 +166,7 @@ function loss(WC, E, θ::Vector{T}, bundle_dimensions; βb=1e-3, βo=1e-2, βf=1
     # # then enforce that those points are not in any polytope
     # for i = 1:n
     #     for j = 1:m
-    #         x = [WC[i][2,j], 0]
+    #         x = [P[i][2,j], 0]
     #         for k = 1:nb
     #             l += βf * max(0, -sdf(x, A[k], b[k] + A[k]*o[k], δ))^2 / n / m / nb
     #             l += βf * max(0, -sdf(x - [0, Δ], A[k], b[k] + A[k]*o[k], δ))^2 / n / m / nb

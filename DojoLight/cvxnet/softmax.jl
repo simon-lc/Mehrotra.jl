@@ -116,3 +116,36 @@ end
 #
 # δ = 1e2
 # plot_polyhedron(A, b, δ)
+
+
+function softmax_mean(values, weight, δ)
+    n = length(values)
+
+    wmax = maximum(weight)
+    normalizer = 0.0
+    for i = 1:n
+        normalizer += exp(δ * (weight[i] - wmax))
+    end
+
+    m = 0.0
+    for i = 1:n
+        m += values[i] * exp(δ * (weight[i] - wmax)) / normalizer
+    end
+    return m
+end
+
+function softmax(values, δ)
+    n = length(values)
+
+    vmax = maximum(values)
+    normalizer = 0.0
+    for i = 1:n
+        normalizer += exp(δ * (values[i] - vmax))
+    end
+    m = 0.0
+    for v in values
+        (v == -Inf) && continue
+        m += v * exp(δ * (v - vmax)) / normalizer
+    end
+    return m
+end

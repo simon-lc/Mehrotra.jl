@@ -26,6 +26,24 @@ function build_2d_polytope!(vis::GLVisualizer.Visualizer, parent::Symbol, name::
     return nothing
 end
 
+function build_2d_convex_bundle!(vis::GLVisualizer.Visualizer, parent::Symbol,
+		θ::Vector, bundle_dimensions::Vector{Int},
+		color=RGBA(0.8, 0.8, 0.8, 1.0))
+
+	n = length(bundle_dimensions)
+	A, b, o = unpack_halfspaces(θ, bundle_dimensions)
+
+	for i = 1:n
+		name = Symbol(:polytope_, i)
+		delete!(vis, name)
+		build_2d_polytope!(vis, parent, name,
+				A[i], b[i];
+		        # A[i], b[i] + A[i] * o[i];
+		        color=color)
+	end
+	return nothing
+end
+
 
 ######################################################################
 # shape
