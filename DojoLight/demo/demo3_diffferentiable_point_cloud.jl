@@ -73,8 +73,8 @@ Af = [0 1.0]
 bf = [0.0]
 of = [0, 0.0]
 
-θ_ref, bundle_dimensions_ref = pack_halfspaces([A0, A1, Af], [b0, b1, bf], [o0, o1, of])
 θ_ref, bundle_dimensions_ref = pack_halfspaces([A0, Af], [b0, bf], [o0, of])
+θ_ref, bundle_dimensions_ref = pack_halfspaces([A0, A1, Af], [b0, b1, bf], [o0, o1, of])
 
 ################################################################################
 # ground-truth point-cloud
@@ -170,7 +170,7 @@ function add_floor(θ, bundle_dimensions)
     return pack_halfspaces([A..., Af], [b..., bf], [o..., of])
 end
 # loss
-function local_loss(θ, δsoft; ω_centroid=1e-1)
+function local_loss(θ, δsoft; ω_centroid=1e-2)
     θ_floor, bundle_dimensions_floor = add_floor(θ, bundle_dimensions)
     l = sumeet_loss(P, e, β, θ_floor, bundle_dimensions_floor, δsoft)
 
@@ -204,12 +204,15 @@ function mysolve!(θinit, loss, Gloss, Hloss, projection; max_iterations=60)
     trace = [deepcopy(θ)]
 
     δsoft = 3.0
-    reg = 1e1
+    reg = 1e2
+    ω_centroid = 1.0
 
     δsoft_min = 4.0
     δsoft_max = 10.0
     reg_min = 1e-2
-    reg_max = 1e+1
+    reg_max = 1e+3
+    ω_centroid_min = 1e-2
+    ω_centroid_max = 1e+1
 
     # newton's method
     for i = 1:max_iterations
