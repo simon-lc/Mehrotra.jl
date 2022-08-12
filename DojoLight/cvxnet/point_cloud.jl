@@ -66,9 +66,7 @@ function sumeet_intersection(e::Vector, v::Vector, A::Matrix, b::Vector, o::Vect
 		cmax, imax = findmax(c)
 		c = c[setdiff(1:length(c), imax)]
 		cmax2, imax2 = findmax(c)
-		# αmin += 1/δ^2 * exp(sqrt(δ) * (cmax2 - cmax))
-		αmin += 5/δ^2 * exp(30(cmax2 - cmax))
-		# αmin += 5/δ^2 * exp(30(sum(c) - cmax))
+		αmin += 10/δ^2 * exp(10(cmax2 - cmax))
 	end
     return αmin
 end
@@ -115,7 +113,7 @@ function sumeet_loss(P::Vector{<:Matrix}, e::Vector{<:Vector}, β::Vector, θ::V
     l = 0.0
     for i = 1:ne
         Pθ = sumeet_point_cloud(e[i], β[i], θ, bundle_dimensions, δ)
-        l += 0.5 * norm(P[i] - Pθ)^2
+        l += 0.5 * norm(P[i] - Pθ)^2 / size(Pθ, 2)
     end
     return l
 end
