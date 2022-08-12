@@ -192,3 +192,70 @@ function loss(P, e, θ::Vector{T}, bundle_dimensions; βb=1e-3, βo=1e-2, βf=1e
 
     return l
 end
+
+
+
+function mysolve!(θinit, loss, Gloss, Hloss, projection; max_iterations=60)
+    θ = deepcopy(θinit)
+    trace = [deepcopy(θ)]
+    stuck = 0
+
+    δsoft = 6.0
+    reg = 1e3
+    ω_centroid = 1.0
+
+    δsoft_min = 6.0
+    δsoft_max = 100.0
+    reg_min = 1e-5
+    reg_max = 1e+2
+
+    # newton's method
+    for iterations = 1:max_iterations
+        l = loss(θ, δsoft)
+        core_loss = local_loss(θ, δsoft, ω_centroid=0.0, ω_offset=0.0)
+        (core_loss < 1e-4) && break
+        G = Gloss(θ, δsoft)
+        # H = Hloss(θ, δsoft)
+        H = G * G'
+        D = Diagonal(θdiag)
+        Δθ = - (H + reg * D) \ G
+        # linesearch
+        α = 1.0
+        for j = 1:5
+            l_candidate = loss(projection(θ + α * Δθ), δsoft)
+            if l_candidate <= l
+                δsoft = clamp(δsoft + 0.50, δsoft_min, δsoft_max)
+                reg = clamp(reg/1.3, reg_min, reg_max)
+                break
+            end
+            α /= 2
+            if j == 20
+                δsoft = clamp(δsoft - 0.50, δsoft_min, δsoft_max)
+                reg = clamp(reg*2.0, reg_min, reg_max)
+                α = α / 10
+                stuck += 1
+            end
+        end
+
+        # header
+        if rem(iterations - 1, 10) == 0
+            @printf "-------------------------------------------------------------------\n"
+            @printf "iter   core_loss   loss        step        reg         δsoft \n"
+            @printf "-------------------------------------------------------------------\n"
+        end
+
+        # iteration information
+        @printf("%3d   %9.2e   %9.2e   %9.2e   %9.2e   %9.2e \n",
+            iterations,
+            core_loss,
+            l,
+            α,
+            reg,
+            δsoft)
+
+        # println("core_l ", round(core_loss, digits=4), " l ", round(l, digits=3), " α ", round(α, digits=3), " reg ", round(reg, digits=3), " δsoft ", round(δsoft, digits=3))
+        θ = projection(θ + α * Δθ)
+        push!(trace, deepcopy(θ))
+    end
+    return θ, trace
+end

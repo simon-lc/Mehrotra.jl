@@ -9,6 +9,7 @@ using Optim
 using StaticArrays
 using Clustering
 using ForwardDiff
+using BenchmarkTools
 
 vis = Visualizer()
 open(vis)
@@ -40,7 +41,7 @@ A0 = [
     +0.0 +1.0;
     -1.0 +0.0;
     +0.0 -1.0;
-    ] + 0.0*ones(4,2)
+    ] + 0.2*ones(4,2)
 for i = 1:4
     A0[i,:] ./= norm(A0[i,:])
 end
@@ -57,7 +58,7 @@ A1 = [
     +0.0 +1.0;
     -1.0 +0.0;
     +0.0 -1.0;
-    ] - 0.1*ones(4,2)
+    ] - 0.3*ones(4,2)
 for i = 1:4
     A1[i,:] ./= norm(A1[i,:])
 end
@@ -66,7 +67,7 @@ b1 = 0.5*[
     +1.0,
     +0.5,
     +0,
-    ] - 0.1*ones(4);
+    ] + 0.0*ones(4);
 o1 = [-0.7, 0.5]
 
 A2 = [
@@ -74,7 +75,7 @@ A2 = [
     +0.0 +1.0;
     -1.0 +0.0;
     +0.0 -1.0;
-    ] + 0.2*ones(4,2)
+    ] + 0.4*ones(4,2)
 for i = 1:4
     A2[i,:] ./= norm(A2[i,:])
 end
@@ -104,17 +105,17 @@ build_2d_polytope!(vis, A2, b2 + A2 * o2, name=:polytope_2)
 eyeposition = [0,0,3.0]
 lookat = [0,0,0.0]
 ne = 2
-nβ = 30
+nβ = 50
 # e = [2.0*[cos(α), sin(α)] for α in range(0.5π, 0.5π, length=ne)]
 e = [2.0*[cos(α), sin(α)] for α in range(0.4π, 0.6π, length=ne)]
 β = [range(-0.2π, -0.8π, length=nβ) for i = 1:ne]
 
-for δ = 4:10
+for δ = 6:20
     P = [sumeet_point_cloud(e[i], β[i], θ_ref, bundle_dimensions_ref, δ) for i = 1:ne]
     build_2d_point_cloud!(vis, P, e, name=:point_cloud)
     sleep(0.2)
 end
-δ = 20.0
+δ = 100.0
 P = [sumeet_point_cloud(e[i], β[i], θ_ref, bundle_dimensions_ref, δ) for i = 1:ne]
 build_2d_point_cloud!(vis, P, e, name=:point_cloud)
 
@@ -141,7 +142,7 @@ Pobject = hcat(Pobject...)
 
 # convex bundle parameterization
 nh = 6
-bundle_dimensions = [nh, nh, nh, nh]
+bundle_dimensions = [nh, nh, nh, nh, nh]
 np = length(bundle_dimensions)
 
 # k-mean clustering
@@ -163,7 +164,7 @@ for i = 1:np
     settransform!(vis[:cluster][Symbol(i)][:center], MeshCat.Translation(0.2, kmres.centers[:,i]...))
 end
 # initialization
-b_ref = 2mean(sqrt.(kmres.costs))
+b_ref = 2 * mean(sqrt.(kmres.costs))
 θinit = zeros(0)
 for i = 1:np
     θi = [range(-π, π, length=nh+1)[1:end-1] + 0.15*rand(nh); b_ref*ones(nh); kmres.centers[:, i]]
@@ -207,6 +208,7 @@ function local_loss(θ, δsoft; ω_centroid=1e-2, ω_offset=1e-4)
     return l
 end
 
+
 # initialization
 sumeet_loss(P, e, β, θinit, bundle_dimensions, δsoft)
 @time local_loss(θinit, δsoft)
@@ -224,54 +226,12 @@ function projection(θ, θmin, θmax)
 end
 local_projection(θ) = projection(θ, θmin, θmax)
 
-function mysolve!(θinit, loss, Gloss, Hloss, projection; max_iterations=60)
-    θ = deepcopy(θinit)
-    trace = [deepcopy(θ)]
-    stuck = 0
 
-    δsoft = 4.0
-    reg = 1e3
-    ω_centroid = 1.0
+θopt, solution_trace = mysolve!(θinit, local_loss, Glocal_loss,
+    Hlocal_loss, local_projection, max_iterations=100)
 
-    δsoft_min = 4.0
-    δsoft_max = 20.0
-    reg_min = 1e-2
-    reg_max = 1e+2
-
-    # newton's method
-    for i = 1:max_iterations
-        l = loss(θ, δsoft)
-        @show local_loss(θ, δsoft, ω_centroid=0.0)
-        (local_loss(θ, δsoft, ω_centroid=0.0) < 1e-4) && break
-        G = Gloss(θ, δsoft)
-        H = Hloss(θ, δsoft)
-        D = Diagonal(θdiag)
-        Δθ = - (H + reg * D) \ G
-        # linesearch
-        α = 1.0
-        for j = 1:10
-            l_candidate = loss(projection(θ + α * Δθ), δsoft)
-            if l_candidate <= l
-                δsoft = clamp(δsoft + 0.50, δsoft_min, δsoft_max)
-                reg = clamp(reg/1.30, reg_min, reg_max)
-                break
-            end
-            α /= 2
-            if j == 10
-                δsoft = clamp(δsoft - 0.50, δsoft_min, δsoft_max)
-                reg = clamp(reg*2.0, reg_min, reg_max)
-                α = α / 10
-                stuck += 1
-            end
-        end
-        println("l ", round(l, digits=3), " α ", round(α, digits=3), " reg ", round(reg, digits=3), " δsoft ", round(δsoft, digits=3))
-        θ = projection(θ + α * Δθ)
-        push!(trace, deepcopy(θ))
-    end
-    return θ, trace
-end
-
-θopt, solution_trace = mysolve!(θinit, local_loss, Glocal_loss, Hlocal_loss, local_projection)
+# Main.@profiler θopt, solution_trace = mysolve!(θinit, local_loss, Glocal_loss,
+    # Hlocal_loss, local_projection, max_iterations=30)
 solution_trace = [solution_trace; fill(solution_trace[end], 20)]
 
 θopt_floor, bundle_dimensions_floor = add_floor(θopt, bundle_dimensions)

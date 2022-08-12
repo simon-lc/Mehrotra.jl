@@ -54,8 +54,8 @@ function sumeet_intersection(e::Vector, v::Vector, A::Matrix, b::Vector, o::Vect
         denum = (A[i,:]' * v)
         (abs(denum) < 1e-3) && continue
         α = (b[i] - A[i,:]' * eoff) / denum
-        x = eoff + α * v
-        s = maximum(A * x - b)
+        x = eoff + α .* v
+        s = maximum(A * x .- b)
         (s <= 1e-10) && (αmin = min(αmin, α))
     end
 
@@ -66,7 +66,7 @@ function sumeet_intersection(e::Vector, v::Vector, A::Matrix, b::Vector, o::Vect
 		cmax, imax = findmax(c)
 		c = c[setdiff(1:length(c), imax)]
 		cmax2, imax2 = findmax(c)
-		αmin += 10/δ^2 * exp(10(cmax2 - cmax))
+		αmin += 2/δ * exp(4(cmax2 - cmax))
 	end
     return αmin
 end
