@@ -58,7 +58,8 @@ function build_shape!(vis::Visualizer, shape::PolytopeShape1170;
 
     A = shape.A
     b = shape.b
-    build_2d_polytope!(vis, A, b, color=collider_color)
+    o = shape.o
+    build_2d_polytope!(vis, A, b + A * o, color=collider_color)
     return nothing
 end
 

@@ -54,7 +54,8 @@ function build_shape!(vis::GLVisualizer.Visualizer, parent::Symbol, name::Symbol
 
     A = shape.A
     b = shape.b
-    build_2d_polytope!(vis, parent, name, A, b, color=collider_color)
+	o = shape.o
+    build_2d_polytope!(vis, parent, name, A, b + A * o, color=collider_color)
     return nothing
 end
 

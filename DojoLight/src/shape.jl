@@ -3,11 +3,11 @@ abstract type Shape1170{T} end
 struct PolytopeShape1170{T}
     A::Matrix{T}
     b::Vector{T}
+    o::Vector{T}
 end
 
-function PolytopeShape1170(A, b)
-    T = eltype(b[1])
-    return PolytopeShape1170{T}(A, b)
+function PolytopeShape1170(A, b::Vector{T}, o=zeros(T,size(A,2))) where T
+    return PolytopeShape1170{T}(A, b, o)
 end
 
 struct SphereShape1170{T}

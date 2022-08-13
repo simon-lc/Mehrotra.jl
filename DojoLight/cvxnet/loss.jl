@@ -1,5 +1,6 @@
 function unpack_halfspaces(θ::Vector{T}, bundle_dimensions::Vector{Int}) where T
-    nθ = 2 .+ 2 .* bundle_dimensions
+    # nθ = 2 .+ 2 .* bundle_dimensions
+    nθ = 2 .+ 3 .* bundle_dimensions
     m = length(bundle_dimensions)
 
     A = [zeros(T, i, 2) for i in bundle_dimensions]
@@ -15,14 +16,15 @@ function unpack_halfspaces(θ::Vector{T}, bundle_dimensions::Vector{Int}) where 
 end
 
 function pack_halfspaces(A::Vector{Matrix{T}}, b::Vector{Vector{T}}, o::Vector{Vector{T}}) where T
-    m = length(b)
+    n = length(b)
     bundle_dimensions = length.(b)
-    nθ = 2 .+ 2 .* bundle_dimensions
+    # nθ = 2 .+ 2 .* bundle_dimensions
+    nθ = 2 .+ 3 .* bundle_dimensions
 
     θ = zeros(T,sum(nθ))
 
     off = 0
-    for i = 1:m
+    for i = 1:n
         θ[off .+ (1:nθ[i])] .= pack_halfspaces(A[i], b[i], o[i])
         off += nθ[i]
     end
@@ -31,29 +33,37 @@ end
 
 function unpack_halfspaces(θ::Vector{T}) where T
     nθ = length(θ)
-    n = Int(floor((nθ - 2)/2))
+    # n = Int(floor((nθ - 2)/2))
+    n = Int(floor((nθ - 2)/3))
 
-    A = zeros(T,n, 2)
-    b = zeros(T,n)
-    o = zeros(T,2)
+    A = zeros(T, n, 2)
+    b = zeros(T, n)
+    o = zeros(T, 2)
 
     for i = 1:n
-        A[i,:] .= [cos(θ[i]), sin(θ[i])]
+        # A[i,:] .= [cos(θ[i]), sin(θ[i])]
+        A[i,:] .= θ[2*(i-1) .+ (1:2)]
     end
-    b .= θ[n .+ (1:n)]
-    o = θ[2n .+ (1:2)]
+    # b .= θ[n .+ (1:n)]
+    b .= θ[2n .+ (1:n)]
+    # o = θ[2n .+ (1:2)]
+    o = θ[3n .+ (1:2)]
     return A, b, o
 end
 
 function pack_halfspaces(A::Matrix{T}, b::Vector{T}, o::Vector{T}) where T
     n = length(b)
-    θ = zeros(T,2+2n)
+    # θ = zeros(T,2+2n)
+    θ = zeros(T,2+3n)
 
     for i = 1:n
-        θ[i] = atan(A[i,2], A[i,1])
+        # θ[i] = atan(A[i,2], A[i,1])
+        θ[2*(i-1) .+ (1:2)] = A[i,1:2]
     end
-    θ[n .+ (1:n)] .= b
-    θ[2n .+ (1:2)] .= o
+    # θ[n .+ (1:n)] .= b
+    θ[2n .+ (1:n)] .= b
+    # θ[2n .+ (1:2)] .= o
+    θ[3n .+ (1:2)] .= o
     return θ
 end
 
@@ -195,18 +205,17 @@ end
 
 
 
-function mysolve!(θinit, loss, Gloss, Hloss, projection; max_iterations=60)
+function mysolve!(θinit, loss, Gloss, Hloss, projection, clamping, nθ; max_iterations=60)
     θ = deepcopy(θinit)
     trace = [deepcopy(θ)]
-    stuck = 0
 
     δsoft = 6.0
-    reg = 1e3
+    reg = 1e+2
     ω_centroid = 1.0
 
     δsoft_min = 6.0
     δsoft_max = 100.0
-    reg_min = 1e-5
+    reg_min = 1e-3
     reg_max = 1e+2
 
     # newton's method
@@ -215,25 +224,41 @@ function mysolve!(θinit, loss, Gloss, Hloss, projection; max_iterations=60)
         core_loss = local_loss(θ, δsoft, ω_centroid=0.0, ω_offset=0.0)
         (core_loss < 1e-4) && break
         G = Gloss(θ, δsoft)
-        # H = Hloss(θ, δsoft)
-        H = G * G'
+        H = Hloss(θ, δsoft)
         D = Diagonal(θdiag)
         Δθ = - (H + reg * D) \ G
+
         # linesearch
         α = 1.0
-        for j = 1:5
-            l_candidate = loss(projection(θ + α * Δθ), δsoft)
+        for j = 1:10
+            l_candidate = loss(projection(θ + clamping(α * Δθ)), δsoft)
             if l_candidate <= l
-                δsoft = clamp(δsoft + 0.50, δsoft_min, δsoft_max)
-                reg = clamp(reg/1.3, reg_min, reg_max)
+                δsoft = clamp(δsoft * 1.10, δsoft_min, δsoft_max)
+                reg = clamp(reg/1.5, reg_min, reg_max)
                 break
             end
             α /= 2
-            if j == 20
-                δsoft = clamp(δsoft - 0.50, δsoft_min, δsoft_max)
-                reg = clamp(reg*2.0, reg_min, reg_max)
-                α = α / 10
-                stuck += 1
+            if j == 10
+                # δsoft = clamp(δsoft*1.05, δsoft_min, δsoft_max)
+                # reg = clamp(reg/1.3, reg_min, reg_max)
+                δsoft = clamp(δsoft/1.05, δsoft_min, δsoft_max)
+                reg = clamp(reg*1.5, reg_min, reg_max)
+                # α = α / 10
+
+                # individual line search
+                α = 1e-0*ones(np)
+                off = 0
+                for k = 1:length(nθ)
+                    ind = off .+ (1:nθ[k]); off += nθ[k]
+                    for ii = 1:10
+                        θ_candidate = copy(θ)
+                        θ_candidate[ind] .+= clamping(α[k] * Δθ)[ind]
+                        l_candidate = loss(projection(θ_candidate), δsoft)
+                        (l_candidate <= l) && break
+                        α[k] /= 2
+                    end
+                end
+
             end
         end
 
@@ -243,18 +268,24 @@ function mysolve!(θinit, loss, Gloss, Hloss, projection; max_iterations=60)
             @printf "iter   core_loss   loss        step        reg         δsoft \n"
             @printf "-------------------------------------------------------------------\n"
         end
-
         # iteration information
         @printf("%3d   %9.2e   %9.2e   %9.2e   %9.2e   %9.2e \n",
             iterations,
             core_loss,
             l,
-            α,
+            mean(α),
             reg,
             δsoft)
-
-        # println("core_l ", round(core_loss, digits=4), " l ", round(l, digits=3), " α ", round(α, digits=3), " reg ", round(reg, digits=3), " δsoft ", round(δsoft, digits=3))
-        θ = projection(θ + α * Δθ)
+        if typeof(α) <: Vector
+            off = 0
+            for k = 1:length(nθ)
+                ind = off .+ (1:nθ[k]); off += nθ[k]
+                θ[ind] += clamping(α[k] * Δθ)[ind]
+            end
+            θ = projection(θ)
+        else
+            θ = projection(θ + clamping(α * Δθ))
+        end
         push!(trace, deepcopy(θ))
     end
     return θ, trace

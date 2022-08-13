@@ -61,11 +61,11 @@ v = [0.0, -1.0]
 P = sumeet_point_cloud(e, β, θ, bundle_dimensions, δ)
 sumeet_point_cloud!(P, e, β, θ, bundle_dimensions, δ)
 ForwardDiff.jacobian(θ -> sumeet_point_cloud(e, β, θ, bundle_dimensions, δ), θ)
-ForwardDiff.gradient(θ -> sumeet_loss([P], [e], [β], θ .+ 0.001, bundle_dimensions, δ), θ)
+ForwardDiff.gradient(θ -> sumeet_loss([P], [e], [β], δ, θ .+ 0.001, bundle_dimensions), θ)
 
 
 scatter!(plt, P[1,:], P[2,:])
-sumeet_loss([P], [e], [β], θ, bundle_dimensions, δ)
+sumeet_loss([P], [e], [β], δ, θ, bundle_dimensions)
 
 
 # @benchmark P = sumeet_point_cloud(e, β, θ, bundle_dimensions, δ)
