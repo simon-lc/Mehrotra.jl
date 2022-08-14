@@ -118,7 +118,20 @@ function sumeet_loss(P::Vector{<:Matrix}, e::Vector{<:Vector}, β::Vector, δ, �
     return l
 end
 
+function add_floor(θ, bundle_dimensions)
+    A, b, o = unpack_halfspaces(θ, bundle_dimensions)
+    Af = [0 1.0]
+    bf = [0.0]
+    of = [0, 0.0]
+    return pack_halfspaces([A..., Af], [b..., bf], [o..., of])
+end
 
+function add_floor(A, b, o)
+    Af = [0.0 1.0]
+    bf = [0.0]
+    of = [0.0, 0.0]
+    return [A..., Af], [b..., bf], [o..., of]
+end
 
 
 ################################################################################

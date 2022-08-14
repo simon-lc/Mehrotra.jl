@@ -190,13 +190,7 @@ end
 # optimization
 ################################################################################
 # optimization parameters
-function add_floor(θ, bundle_dimensions)
-    A, b, o = unpack_halfspaces(θ, bundle_dimensions)
-    Af = [0 1.0]
-    bf = [0.0]
-    of = [0, 0.0]
-    return pack_halfspaces([A..., Af], [b..., bf], [o..., of])
-end
+
 # loss
 function local_loss(θ, δsoft; ω_centroid=1e-2, ω_offset=2e-3)
     θ_floor, bundle_dimensions_floor = add_floor(θ, bundle_dimensions)

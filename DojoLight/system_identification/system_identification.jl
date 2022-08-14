@@ -25,6 +25,14 @@ include("../cvxnet/point_cloud.jl")
 
 
 ################################################################################
+# TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+################################################################################
+# partial observability: we currently observe the whole state
+# works with multiple bodies and especially finger that are of known geometry
+# need to integrate sphere to the point cloud generator
+
+
+################################################################################
 # structure
 ################################################################################
 # measurement obtained at each time step
@@ -53,27 +61,13 @@ abstract type Optimizer{T} end
 struct CvxMeasurement1290{T} <: Measurement{T}
     # x::Vector{T} # polytope position
     # q::Vector{T} # polytope orientation
-    z::Vector{T} # polytope state, we assume the whole state is observed
+    z::Vector{T} # polytope state, we assume the whole state is observed TODO
     p::Vector{Matrix{T}} # point cloud obtained from several cameras
 end
 
 ## state
 struct CvxState1290{T} <: State{T}
     z::Vector{T}
-end
-
-function unpack(state::CvxState1290)
-    off = 0
-    x = z[off .+ (1:3)]; off += 2
-    v = z[off .+ (1:2)]; off += 2
-    q = z[off .+ (1:1)]; off += 1
-    ω = z[off .+ (1:1)]; off += 1
-    return x, v, q, ω
-end
-
-function pack!(state::CvxState1290, x, v, q, ω)
-    state.z .= [x; v; q; ω]
-    return nothing
 end
 
 ## parameters
@@ -83,16 +77,62 @@ struct CvxParameters1290{T} <: Parameters{T}
     polytope_dimensions::Vector{Int}
 end
 
+# function pack!(params::CvxParameters1290, mass::Vector, inertia::Vector, friction_coefficient::Vector, center_of_mass::Vector,
+#         A::Vector{<:Matrix}, b::Vector{<:Vector}, o::Vector{<:Vector}) where T
+#
+#     params.θ .= [mass; inertia; friction_coefficient; center_of_mass; ]
+#     return nothing
+# end
+
 function unpack(params::CvxParameters1290)
+    θ = params.θ
+    polytope_dimensions = params.polytope_dimensions
 
-    return mass, friction, center_of_mass, A, b, o
+    off = 0
+    mass = θ[off .+ (1:1)]; off += 1
+    inertia = θ[off .+ (1:1)]; off += 1
+    friction_coefficient = θ[off .+ (1:1)]; off += 1
+    center_of_mass = θ[off .+ (1:2)]; off += 2
+    A, b, o = unpack_halfspaces(θ[off + 1:end], polytope_dimensions)
+
+    return mass, inertia, friction_coefficient, center_of_mass, A, b, o
 end
 
-function pack!(params::CvxParameters1290, mass::T, friction::T, center_of_mass::T,
-        A::Vector{<:Matrix}, b::Vector{<:Vector}, o::Vector{<:Vector}) where T
+function get_parameters(context::CvxContext1290)
+    mechanism = context.mechanism
 
-    return nothing
+    z = zeros(mechanism.dimensions.state)
+    A, b, o = get_halfspaces(mechanism, z)
+    θ_geometry, polytope_dimensions = pack_halfspaces(A, b, o)
+    num_polytopes = length(polytope_dimensions)
+
+    mass = mechanism.bodies[1].mass[1]
+    inertia = mechanism.bodies[1].inertia[1]
+    friction_coefficient = mechanism.contacts[1].friction_coefficient[1]
+    center_of_mass = [0.0, 0.0]
+
+    θ_dynamics = [mass; inertia; friction_coefficient; center_of_mass]
+    θ = [θ_dynamics; θ_geometry]
+    return CvxParameters1290(θ, num_polytopes, polytope_dimensions)
 end
+
+# function set_parameters!(context::CvxContext1290, params::CvxParameters1260)
+#     mechanism = context.mechanism
+#     θ = params.θ
+#
+#
+#
+#     z = zeros(mechanism.dimensions.state)
+#     A, b, o = get_halfspaces(mechanism, z)
+#     θ_geometry, polytope_dimensions = pack_halfspaces(A, b, o)
+#     num_polytopes = length(polytope_dimensions)
+#
+#     θ_dynamics = [mass; inertia; friction_coefficient; center_of_mass]
+#     θ = [θ_dynamics; θ_geometry]
+#     return nothing
+# end
+
+
 
 # camera
 struct Camera1290{T}
@@ -116,14 +156,8 @@ struct CvxObjective1290{T} <: Objective{T}
     M_point_cloud::T # measurement regularizing cost
 end
 
-function get_parameters(context::CvxContext1290)
-    mechanism = context.mechanism
-    z = zeros(mechanism.dimensions.state)
-    A, b, o = get_halfspaces(mechanism, z)
-    θ, polytope_dimensions = pack_halfspaces(A, b, o)
-    num_polytopes = length(polytope_dimensions)
-    return CvxParameters1290(θ, num_polytopes, polytope_dimensions)
-end
+
+
 
 
 ## optimizer
@@ -220,6 +254,35 @@ function get_halfspaces(mechanism::Mechanism1170, z::Vector{T}) where T
     return A, b, o
 end
 
+function process_model(context::CvxContext1290, state::CvxState1290)
+    mechanism = context.mechanism
+    z0 = state.z
+    u = zeros(mechanism.dimensions.input)
+    z1 = zeros(mechanism.dimensions.state)
+    dynamics(z1, mechanism, z0, u, nothing)
+
+    next_state = CvxState1290(z1)
+    return next_state
+end
+
+function measurement_model(context::CvxContext1290, state::CvxState1290, params::CvxParameters1290{T}) where T
+    z = state.z
+    pose = z[1:3] # TODO this is not safe, we need to make sure these dimensions are the pose dimensions
+
+    mass, inertia, friction_coefficient, center_of_mass, Ab, bb, ob = unpack(params)
+    Aw, bw, ow = halfspace_transformation(pose, Ab, bb, ob)
+    Aw, bw, ow = add_floor(Aw, bw, ow)
+
+    p = Vector{Matrix{T}}()
+    for camera in context.cameras
+        pi = sumeet_point_cloud(camera.eye_position, camera.camera_rays, camera.softness, Aw, bw, ow)
+        push!(p, pi)
+    end
+    measurement = CvxMeasurement1290(state.z, p)
+    return measurement
+end
+
+
 include("../system_identification/visuals.jl")
 
 
@@ -261,11 +324,12 @@ vp15 = [-0,0,-0.0]
 z0 = [xp2; vp15]
 H0 = 20
 storage = simulate!(mech, z0, H0)
+zf = get_current_state(mech)
 
 eye_position = [-0.0, 3.0]
 camera_rays = range(-0.3π, -0.7π, length=50)
 look_at = [0.0, 0.0]
-softness = 10.0
+softness = 100.0
 cameras = [Camera1290(eye_position, camera_rays, look_at, softness)]
 context = CvxContext1290(mech, cameras)
 state = CvxState1290(z0)
@@ -274,45 +338,36 @@ measurements = simulate!(context, state, H0)
 vis, anim = visualize!(vis, context, measurements)
 
 
+
 function filtering_objective(context::CvxContext1290, obj::CvxObjective1290,
         state::CvxState1290, params::CvxParameters1290,
         state_prior::CvxState1290, params_prior::CvxParameters1290,
         measurement::CvxMeasurement1290)
 
-    mechanism = context.mechanism
-    cameras = context.cameras
-    z0 = state_prior.z
     θ0 = params_prior.θ
     z1 = state.z
     θ1 = params.θ
-    polytope_dimensions = params.polytope_dimensions
-    A1, b1, o1 = unpack_halfspaces(θ1, polytope_dimensions)
     z̄1 = measurement.z
     p̄1 = measurement.p
 
     # process model
-    u = zeros(mechanism.dimensions.input)
-    z1_pred = zeros(mechanism.dimensions.state)
-    dynamics(z1_pred, mechanism, z0, u, nothing)
+    predicted_state = process_model(context, state_prior)
+    z1_pred = predicted_state.z
 
     # measurement model
-    pose1 = z1[1:3] # TODO this is not safe,we need to make sure these dimensions are the pose dimensions
-    Ā1, b̄1, ō1 = halfspace_transformation(pose1, A1, b1, o1)
-
+    predicted_measurement = measurement_model(context, state, params)
 
     c = 0.0
     # prior state cost (process model = dynamics)
     c += 0.5 * (z1 - z1_pred)' * obj.P_state * (z1 - z1_pred)
     # measurement state cost (measurement model = identity)
     c += 0.5 * (z1 - z̄1)' * obj.M_state * (z1 - z̄1)
-
     # prior parameters cost
     c += 0.5 * obj.P_parameters * (θ0 - θ1)' * (θ0 - θ1)
     # measurement parameter cost (measurement model = point cloud)
-    for (i, p̄i1) in enumerate(p̄1)
-        camera = cameras[i]
-        pi1 = sumeet_point_cloud(camera.eye_position, camera.camera_rays, camera.softness, Ā1, b̄1, ō1)
-        c += 0.5 * obj.M_point_cloud * norm(pi1 - p̄i1)^2
+    for (i, p̄i) in enumerate(p̄1)
+        pi = predicted_measurement.p[i]
+        c += 0.5 * obj.M_point_cloud * norm(pi - p̄i)^2
     end
     return c
 end
@@ -323,10 +378,23 @@ Pp = 1.0
 Mp = 1.0
 obj = CvxObjective1290(Pz, Mz, Pp, Mp)
 
-state_prior = CvxState1290(z0)
-state_guess = CvxState1290(z0)
+state_prior = CvxState1290(zf)
+state_guess = CvxState1290(zf)
 params_prior = get_parameters(context)
 params_guess = get_parameters(context)
 
 c = filtering_objective(context, obj, state_guess, params_guess,
-    state_prior, params_prior, measurements[1])
+    state_prior, params_prior, measurements[end])
+
+@benchmark filtering_objective(context, obj, state_guess, params_guess,
+    state_prior, params_prior, measurements[end])
+
+Main.@profiler [filtering_objective(context, obj, state_guess, params_guess,
+    state_prior, params_prior, measurements[end]) for i=1:1000]
+
+
+
+# TODO
+# speedup
+# gradient and hessian approximated
+# generic optimizer
