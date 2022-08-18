@@ -44,7 +44,7 @@ function linear_egg_bowl_residual(primals, duals, slacks, parameters)
     ϕ = [bowl_radius - norm(cp)]
 
     R = [0 -1; 1 0]
-    ct = -R * cn # contact tangent
+    ct = R * cn # contact tangent
 
     γ = z[1:1]
     ψ = z[2:2]
@@ -56,11 +56,10 @@ function linear_egg_bowl_residual(primals, duals, slacks, parameters)
     sβ = s[3:4]
     # sc = s[5:5]
 
-    # cross([cp - p3; 0.0], [cn; 0.0])
-    N = [cn[1] cn[2] cross([cp - p3; 0.0], [cn; 0.0])[3]]
+    N = [cn[1] cn[2] +cross([p3 - cp; 0.0], [cn; 0.0])[3]]
     P = [
-        +ct[1] +ct[2] +cross([cp - p3; 0.0], [ct; 0.0])[3];
-        -ct[1] -ct[2] -cross([cp - p3; 0.0], [ct; 0.0])[3];
+        +ct[1] +ct[2] +cross([p3 - cp; 0.0], [ct; 0.0])[3];
+        -ct[1] -ct[2] -cross([p3 - cp; 0.0], [ct; 0.0])[3];
     ]
 
     # mass matrix
@@ -68,12 +67,13 @@ function linear_egg_bowl_residual(primals, duals, slacks, parameters)
 
     # friction cone
     fric = [
-        friction_coefficient * γ[1:1] - [sum(β[1:2])];
+        friction_coefficient * γ - [sum(β)];
         ]
 
     # maximum dissipation principle
     mdp = [
-        (v25 + 0*cross([p3 - cp; 0], [0; 0; ω25])[1:2] + ψ[1]*ones(2));
+        (P * [v25; ω25] + ψ[1]*ones(2));
+        # (v25 + 1*cross([p3 - cp; 0], [0; 0; ω25])[1:2] + ψ[1]*ones(2));
         ]
 
     res = [
@@ -86,6 +86,25 @@ function linear_egg_bowl_residual(primals, duals, slacks, parameters)
         ]
     return res
 end
+
+# N = [0 0 1]
+# D = [1 0 0;
+#      0 1 0]
+# P = [+D;
+#      -D]
+#
+# res = [
+#     mass * (p3 - 2p2 + p1)/timestep - timestep * mass * [0,0, gravity] - N' * γ - P' * β - u * timestep;
+#     sγ - (p3[3:3] .- side/2);
+#     sψ - (friction_coefficient * γ - [sum(β)]);
+#     sβ - (P * v25 + ψ[1]*ones(4));
+#     # z .* s .- κ[1];
+#     ]
+# return res
+# end
+
+
+linear_egg_bowl_residual(rand(num_primals), rand(num_cone), rand(num_cone), parameters)
 
 function simulate_egg_bowl(solver, p2, θ2, v15, ω15, u; timestep=0.01, mass=1.0,
         inertia=0.1, friction_coefficient=0.2, gravity=-9.81, bowl_radius=1.5,
@@ -128,8 +147,8 @@ end
 
 # include("egg_block_utils.jl")
 
-vis = Visualizer()
-render(vis)
+# vis = Visualizer()
+# open(vis)
 
 # dimensions and indices
 num_primals = 3
@@ -144,15 +163,15 @@ p2 = [1,0.0]
 v15 = [0.0, +1.0]
 ω15 = [0.0]
 u = [0.4, 0.8, 0.9]
-timestep = 0.01
+timestep = 0.10
 mass = 1.0
 inertia = 0.1
 gravity = -9.81
-friction_coefficient = 0.1
+friction_coefficient = 2.0
 bowl_radius = 1.5
-object_principal_axes = [0.3, 0.3]
+egg_principal_axes = [0.3, 0.3]
 parameters = [p2; θ2; v15; ω15; u; timestep; inertia; mass; gravity;
-    friction_coefficient; bowl_radius; object_principal_axes]
+    friction_coefficient; bowl_radius; egg_principal_axes]
 
 ################################################################################
 # solve
@@ -182,10 +201,14 @@ solver
 
 H = 1500
 U = [zeros(3) for i = 1:H]
-p, θ, _, _, iterations = simulate_egg_bowl(solver, p2, θ2, v15, ω15, U; timestep=0.01, mass=1.0,
-        inertia=0.1, friction_coefficient=0.2, gravity=-9.81,  bowl_radius=1.5,
-        egg_principal_axes=[0.3,0.3], warm_start=false)
-# plot(iterations)
+p, θ, _, _, iterations = simulate_egg_bowl(solver, p2, θ2, v15, ω15, U; timestep=timestep, mass=1.0,
+        inertia=inertia,
+        friction_coefficient=friction_coefficient,
+        gravity=gravity,
+        bowl_radius=bowl_radius,
+        egg_principal_axes=egg_principal_axes,
+        warm_start=false)
+plot(iterations)
 plot([i[1] for i in θ])
 
 
@@ -217,7 +240,7 @@ set_light!(vis)
 set_background!(vis)
 set_floor!(vis[:left], x=2, y=5, origin=[2.5,0,0.0])
 set_floor!(vis, x=2, y=5, origin=[-2.5,0,0.0])
-set_surface!(vis, x -> bowl(x, bowl_radius), xlims=[-1.5,1.5], ylims=[-2.5, 2.5], color=RGBA(0.5,0.5,0.5,1.0), n=200)
+set_surface!(vis, x -> bowl(x, bowl_radius), xlims=[-1.5,1.5], ylims=[-0.1, 0.1], color=RGBA(0.5,0.5,0.5,1.0), n=200)
 
 
 setobject!(vis[:egg][:white], HyperSphere(MeshCat.Point(0, 0, 0.0),
@@ -236,4 +259,3 @@ for i = 1:H
     end
 end
 MeshCat.setanimation!(vis, anim)
-render(vis)
