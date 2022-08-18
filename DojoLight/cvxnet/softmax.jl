@@ -149,3 +149,27 @@ function softmax(values, δ)
     end
     return m
 end
+
+function softweights(values::Vector{T}, δ) where T
+    n = length(values)
+    w = zeros(T, n)
+
+    vmax = maximum(values)
+    normalizer = 0.0
+    for i = 1:n
+        normalizer += exp(δ * (values[i] - vmax))
+    end
+
+    for (i,v) in enumerate(values)
+        (v == -Inf) && continue
+        w[i] = exp(δ * (v - vmax)) / normalizer
+    end
+    return w
+end
+
+function softmin(values, δ)
+    return -softmax(-values, δ)
+end
+softmin([-1, 2, 3, 4, -1, 3], 3)
+
+sum(softweights(rand(10), 2.0))

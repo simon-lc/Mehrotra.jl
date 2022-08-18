@@ -21,10 +21,10 @@ function PolySphere1170(parent_body::Body{T}, child_body::Body{T};
 
     parent_name = parent_body.name
     child_name = child_body.name
-    Ap = parent_body.shapes[parent_collider_id].A
-    bp = parent_body.shapes[parent_collider_id].b
-    radc = child_body.shapes[child_collider_id].radius
-    offc = child_body.shapes[child_collider_id].position_offset
+    Ap = copy(parent_body.shapes[parent_collider_id].A)
+    bp = copy(parent_body.shapes[parent_collider_id].b)
+    radc = copy(child_body.shapes[child_collider_id].radius)
+    offc = copy(child_body.shapes[child_collider_id].position_offset)
 
     return PolySphere1170(parent_name, child_name, friction_coefficient, Ap, bp, radc, offc;
         name=name)

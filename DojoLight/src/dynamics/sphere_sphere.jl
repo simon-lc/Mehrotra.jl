@@ -21,10 +21,10 @@ function SphereSphere1170(parent_body::Body{T}, child_body::Body{T};
 
     parent_name = parent_body.name
     child_name = child_body.name
-    radp = parent_body.shapes[parent_collider_id].radius
-    offp = parent_body.shapes[parent_collider_id].position_offset
-    radc = child_body.shapes[child_collider_id].radius
-    offc = child_body.shapes[child_collider_id].position_offset
+    radp = copy(parent_body.shapes[parent_collider_id].radius)
+    offp = copy(parent_body.shapes[parent_collider_id].position_offset)
+    radc = copy(child_body.shapes[child_collider_id].radius)
+    offc = copy(child_body.shapes[child_collider_id].position_offset)
 
     return SphereSphere1170(parent_name, child_name, friction_coefficient,
         radp, offp, radc, offc;

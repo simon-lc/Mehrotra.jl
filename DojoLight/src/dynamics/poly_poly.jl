@@ -21,10 +21,10 @@ function PolyPoly1170(parent_body::Body{T}, child_body::Body{T};
 
     parent_name = parent_body.name
     child_name = child_body.name
-    Ap = parent_body.shapes[parent_collider_id].A
-    bp = parent_body.shapes[parent_collider_id].b
-    Ac = child_body.shapes[child_collider_id].A
-    bc = child_body.shapes[child_collider_id].b
+    Ap = copy(parent_body.shapes[parent_collider_id].A)
+    bp = copy(parent_body.shapes[parent_collider_id].b)
+    Ac = copy(child_body.shapes[child_collider_id].A)
+    bc = copy(child_body.shapes[child_collider_id].b)
 
     return PolyPoly1170(parent_name, child_name, friction_coefficient, Ap, bp, Ac, bc;
         name=name)

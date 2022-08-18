@@ -1,4 +1,4 @@
-function visualize!(vis::Visualizer, context::CvxContext1290, measurements::Vector{<:Measurement};
+function visualize!(vis::Visualizer, context::CvxContext1310, measurements::Vector{<:Measurement};
         animation::MeshCat.Animation=MeshCat.Animation(), name::Symbol=:context)
 
     mechanism = context.mechanism

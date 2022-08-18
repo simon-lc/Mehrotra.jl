@@ -18,8 +18,8 @@ function PolyHalfSpace1170(parent_body::Body{T}, Ac::AbstractMatrix, bc::Abstrac
         friction_coefficient=0.2) where {T}
 
     parent_name = parent_body.name
-    Ap = parent_body.shapes[parent_collider_id].A
-    bp = parent_body.shapes[parent_collider_id].b
+    Ap = copy(parent_body.shapes[parent_collider_id].A)
+    bp = copy(parent_body.shapes[parent_collider_id].b)
 
     return PolyHalfSpace1170(parent_name, friction_coefficient, Ap, bp, Ac, bc;
         name=name)

@@ -49,7 +49,7 @@ end
 ################################################################################
 # julia point cloud
 ################################################################################
-function sumeet_intersection(e::Vector, v::Vector, δ, A::Matrix, b::Vector, o::Vector)
+function julia_intersection(e::Vector, v::Vector, δ, A::Matrix, b::Vector, o::Vector)
     n = length(b)
     eoff = e - o
     αmin = +Inf
@@ -75,44 +75,87 @@ function sumeet_intersection(e::Vector, v::Vector, δ, A::Matrix, b::Vector, o::
     return αmin
 end
 
-function sumeet_intersection(e::Vector, v::Vector, δ, A::Vector{<:Matrix{T}},
+function julia_intersection(e::Vector, v::Vector, δ, A::Vector{<:Matrix{T}},
         b::Vector{<:Vector{T}}, o::Vector{<:Vector{T}}) where T
 
     np = length(b)
     α = zeros(T,np)
     for i = 1:np
         n = length(b[i])
-        α[i] = sumeet_intersection(e, v, δ, A[i], b[i], o[i])
+        α[i] = julia_intersection(e, v, δ, A[i], b[i], o[i])
     end
     αsoft = -softmax(-α, δ)
     return αsoft
 end
 
-function sumeet_point_cloud(e::Vector{T}, β, δ, A, b, o) where T
+# function julia_intersection(e::Vector, v::Vector, δ, A::Matrix{T}, b::Vector, o::Vector) where T
+#     n = length(b)
+#     eoff = e - o
+#
+# 	α = zeros(T, n) # ray length
+# 	d = zeros(T, n) # distance to ray
+#     for i = 1:n
+# 		# @show i
+#         denum = (A[i,:]' * v)
+#         α[i] = (b[i] - A[i,:]' * eoff) / (denum + sign(denum)*1e-6)
+#         x = eoff + α[i] .* v
+#         d[i] = maximum(A * x .- b)
+# 		d[i] = max(1e-3, d[i])
+# 		# @show d[i]
+#     end
+#
+# 	# αsoft = softmin(max.(0,α), δ)
+# 	# dsoft = softmin(d, δ)
+# 	# @show α
+# 	# @show d
+# 	# @show softweights(-α - exp(δ) * d, δ)
+# 	# @show -α - exp(δ) * d
+# 	w = softweights(-max.(0, α) - max(100, exp(δ)) * d, δ-4)
+# 	αsoft = sum(w .* α)
+# 	dsoft = sum(w .* d)
+#     return αsoft, dsoft
+# end
+#
+# function julia_intersection(e::Vector, v::Vector, δ, A::Vector{<:Matrix{T}},
+#         b::Vector{<:Vector{T}}, o::Vector{<:Vector{T}}) where T
+#
+#     np = length(b)
+# 	α = zeros(T,np)
+#     d = zeros(T,np)
+#     for i = 1:np
+#         n = length(b[i])
+#         α[i], d[i] = julia_intersection(e, v, δ, A[i], b[i], o[i])
+#     end
+# 	w = softweights(-α - max(100, exp(δ)) * d, δ)
+#     αsoft = sum(w .* α)
+#     return αsoft
+# end
+
+function julia_point_cloud(e::Vector, β, δ, A::Vector{Matrix{T}}, b::Vector{<:Vector}, o::Vector{<:Vector}) where T
     nβ = length(β)
     P = zeros(T, 2, nβ)
-    sumeet_point_cloud!(P, e, β, δ, A, b, o)
+    julia_point_cloud!(P, e, β, δ, A, b, o)
     return P
 end
 
-function sumeet_point_cloud!(P::Matrix, e::Vector, β, δ, A, b, o)
+function julia_point_cloud!(P::Matrix, e::Vector, β, δ, A::Vector{<:Matrix}, b::Vector{<:Vector}, o::Vector{<:Vector})
 	nβ = length(β)
     for i = 1:nβ
         v = [cos(β[i]), sin(β[i])]
-        α = sumeet_intersection(e, v, δ, A, b, o)
+        α = julia_intersection(e, v, δ, A, b, o)
         P[:,i] = e + α * v
     end
     return nothing
 end
 
-function sumeet_loss(P::Vector{<:Matrix}, e::Vector{<:Vector}, β::Vector, δ, θ::Vector{T},
+function julia_loss(P::Vector{<:Matrix}, e::Vector{<:Vector}, β::Vector, δ, θ::Vector{T},
         bundle_dimensions::Vector{Int}) where T
 
     ne = length(e)
     l = 0.0
-	A, B, o = unpack_halfspaces(θ, bundle_dimensions)
+	A, b, o = unpack_halfspaces(θ, bundle_dimensions)
     for i = 1:ne
-        Pθ = sumeet_point_cloud(e[i], β[i], δ, A, b, o)
+        Pθ = julia_point_cloud(e[i], β[i], δ, A, b, o)
         l += 0.5 * norm(P[i] - Pθ)^2 / size(Pθ, 2)
     end
     return l
