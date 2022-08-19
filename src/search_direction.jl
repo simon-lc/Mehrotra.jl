@@ -82,6 +82,9 @@ function uncompressed_search_direction!(linear_solver::LinearSolver{T},
     if sparse_solver
         # ilu0!(linear_solver, data.jacobian_variables_sparse.matrix)
         # ldiv!(step.all, linear_solver, data.residual.all)
+        # @show Matrix(data.jacobian_variables_sparse.matrix)[4,:]
+        # plt = plot(Gray.(abs.(Matrix(data.jacobian_variables_sparse.matrix))))
+        # display(plt)
         step.all .= data.jacobian_variables_sparse.matrix \ data.residual.all
     else
         linear_solve!(

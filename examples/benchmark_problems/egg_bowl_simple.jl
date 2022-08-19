@@ -29,7 +29,8 @@ function linear_egg_bowl_residual(primals, duals, slacks, parameters)
     # velocity
     v25 = y[1:2]
     ω25 = y[3:3]
-    # cp = y[4:5]
+    α = y[4:4]
+    cp = y[5:6]
     p1 = p2 - timestep * v15
     θ1 = θ2 - timestep * ω15
     p3 = p2 + timestep * v25
@@ -37,11 +38,12 @@ function linear_egg_bowl_residual(primals, duals, slacks, parameters)
 
     # signed distance function
     # the center of the bowl is in 0,0
-    # ϕ = [bowl_radius - norm(cp - [0, 0])]
     # cn = -cp #/ (1e-6 + norm(cp)) # contact normal
-    cn = -p3 / (1e-6 + norm(p3)) # contact normal
-    cp = p3 - cn * egg_principal_axes[1]
-    ϕ = [bowl_radius - norm(cp)]
+    cn = -p3 / (1e-3 + norm(p3)) # contact normal
+    # cp = p3 - cn * egg_principal_axes[1]
+    # ϕ = [bowl_radius^2 - cp'*cp]
+    ϕ = α .- 1
+
 
     R = [0 -1; 1 0]
     ct = R * cn # contact tangent
@@ -49,12 +51,12 @@ function linear_egg_bowl_residual(primals, duals, slacks, parameters)
     γ = z[1:1]
     ψ = z[2:2]
     β = z[3:4]
-    # γc = z[5:5]
+    γc = z[5:5]
 
     sγ = s[1:1]
     sψ = s[2:2]
     sβ = s[3:4]
-    # sc = s[5:5]
+    sc = s[5:5]
 
     N = [cn[1] cn[2] +cross([p3 - cp; 0.0], [cn; 0.0])[3]]
     P = [
@@ -72,8 +74,7 @@ function linear_egg_bowl_residual(primals, duals, slacks, parameters)
 
     # maximum dissipation principle
     mdp = [
-        (P * [v25; ω25] + ψ[1]*ones(2));
-        # (v25 + 1*cross([p3 - cp; 0], [0; 0; ω25])[1:2] + ψ[1]*ones(2));
+        P * [v25; ω25] + ψ[1]*ones(2);
         ]
 
     res = [
@@ -81,30 +82,19 @@ function linear_egg_bowl_residual(primals, duals, slacks, parameters)
         sγ - ϕ;
         sψ - fric;
         sβ - mdp;
-        # -(cp - [0,0]) + γc .* 2(cp - p3);
-        # sc .+ (cp - p3)' * (cp - p3) .- 2*object_principal_axes[1:1].^2;
+        # +cp + γc .* (cp - p3);
+        # sc .- (0.5 * object_principal_axes[1:1].^2 .- 0.5 * (cp - p3)' * (cp - p3));
+        [1.0] + γc
         ]
     return res
 end
 
-# N = [0 0 1]
-# D = [1 0 0;
-#      0 1 0]
-# P = [+D;
-#      -D]
-#
-# res = [
-#     mass * (p3 - 2p2 + p1)/timestep - timestep * mass * [0,0, gravity] - N' * γ - P' * β - u * timestep;
-#     sγ - (p3[3:3] .- side/2);
-#     sψ - (friction_coefficient * γ - [sum(β)]);
-#     sβ - (P * v25 + ψ[1]*ones(4));
-#     # z .* s .- κ[1];
-#     ]
-# return res
-# end
+primals = ones(num_primals)
+duals = ones(num_cone)
+slacks = ones(num_cone)
+linear_egg_bowl_residual(primals, duals, slacks, parameters)
 
 
-linear_egg_bowl_residual(rand(num_primals), rand(num_cone), rand(num_cone), parameters)
 
 function simulate_egg_bowl(solver, p2, θ2, v15, ω15, u; timestep=0.01, mass=1.0,
         inertia=0.1, friction_coefficient=0.2, gravity=-9.81, bowl_radius=1.5,
@@ -151,8 +141,8 @@ end
 # open(vis)
 
 # dimensions and indices
-num_primals = 3
-num_cone = 4
+num_primals = 5
+num_cone = 5
 num_parameters = 17
 idx_nn = collect(1:num_cone)
 idx_soc = [collect(1:0)]
@@ -167,7 +157,7 @@ timestep = 0.10
 mass = 1.0
 inertia = 0.1
 gravity = -9.81
-friction_coefficient = 2.0
+friction_coefficient = 0.2
 bowl_radius = 1.5
 egg_principal_axes = [0.3, 0.3]
 parameters = [p2; θ2; v15; ω15; u; timestep; inertia; mass; gravity;
@@ -181,20 +171,23 @@ solver = Solver(linear_egg_bowl_residual, num_primals, num_cone,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,
     options=Options(
-        max_iterations=30,
+        max_iterations=20,
         verbose=true,
-        compressed_search_direction=true,
-        sparse_solver=false,
+        compressed_search_direction=false,
+        sparse_solver=true,
         )
     )
 
 solver.solution.all
-solver.solution.primals .= rand(num_primals)
+solver.solution.primals .= 0.1*ones(num_primals)
 solver.solution.duals .= 1e-1*ones(num_cone)
 solver.solution.slacks .= 1e-1*ones(num_cone)
+solver.parameters
+
 
 solve!(solver)
 solver
+solver.data
 # Main.@profiler [solve!(solver) for i=1:300]
 
 # @benchmark $solve!($solver)

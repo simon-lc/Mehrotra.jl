@@ -47,7 +47,6 @@ function Mehrotra.solve!(solver)
     # barrier + augmented Lagrangian
     α = solver.step_sizes
     κ = solver.central_paths
-    # τ = solver.fraction_to_boundary
 
     # options
     options = solver.options
