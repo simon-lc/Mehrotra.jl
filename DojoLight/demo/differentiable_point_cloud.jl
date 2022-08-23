@@ -57,17 +57,17 @@ v = [0.0, -1.0]
 # julia_intersection(e, v, Af, bf, of)
 # julia_intersection(e, v, [A0, Af], [b0, bf], [o0, of], δ)
 β = range(-0.2π, -0.8π, length=300)
-θ, bundle_dimensions = pack_halfspaces([A0, Af], [b0, bf], [o0, of])
-P = julia_point_cloud(e, β, θ, bundle_dimensions, δ)
-julia_point_cloud!(P, e, β, θ, bundle_dimensions, δ)
-ForwardDiff.jacobian(θ -> julia_point_cloud(e, β, θ, bundle_dimensions, δ), θ)
-ForwardDiff.gradient(θ -> julia_loss([P], [e], [β], δ, θ .+ 0.001, bundle_dimensions), θ)
+θ, polytope_dimensions = pack_halfspaces([A0, Af], [b0, bf], [o0, of])
+P = julia_point_cloud(e, β, θ, polytope_dimensions, δ)
+julia_point_cloud!(P, e, β, θ, polytope_dimensions, δ)
+ForwardDiff.jacobian(θ -> julia_point_cloud(e, β, θ, polytope_dimensions, δ), θ)
+ForwardDiff.gradient(θ -> julia_loss([P], [e], [β], δ, θ .+ 0.001, polytope_dimensions), θ)
 
 
 scatter!(plt, P[1,:], P[2,:])
-julia_loss([P], [e], [β], δ, θ, bundle_dimensions)
+julia_loss([P], [e], [β], δ, θ, polytope_dimensions)
 
 
-# @benchmark P = julia_point_cloud(e, β, θ, bundle_dimensions, δ)
-# @benchmark julia_point_cloud!(P, e, β, θ, bundle_dimensions, δ)
-# @benchmark ForwardDiff.jacobian(θ -> julia_point_cloud(e, β, θ, bundle_dimensions, δ), θ)
+# @benchmark P = julia_point_cloud(e, β, θ, polytope_dimensions, δ)
+# @benchmark julia_point_cloud!(P, e, β, θ, polytope_dimensions, δ)
+# @benchmark ForwardDiff.jacobian(θ -> julia_point_cloud(e, β, θ, polytope_dimensions, δ), θ)

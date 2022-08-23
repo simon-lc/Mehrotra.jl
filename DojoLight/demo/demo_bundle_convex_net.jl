@@ -155,9 +155,9 @@ plt = plot_polytope(A2, b2, δ0)
 
 
 n = 5
-bundle_dimensions = [n,n,n,n,n]
-nb = length(bundle_dimensions)
-local_loss(θ) = loss(WC, E, θ, bundle_dimensions, βb=βb0, βo=βo0, βf=βf0, Δ=Δ0, δ=δ0)
+polytope_dimensions = [n,n,n,n,n]
+nb = length(polytope_dimensions)
+local_loss(θ) = loss(WC, E, θ, polytope_dimensions, βb=βb0, βo=βo0, βf=βf0, Δ=Δ0, δ=δ0)
 local_initial_invH(θ) = zeros(nb*(2n+2),nb*(2n+2)) + 1e-3*I
 
 θinit = zeros(0)
@@ -168,7 +168,7 @@ for i = 1:nb
     push!(θinit, pack_halfspaces(A, b, o)...)
 end
 θinit
-Ainit, binit, oinit = unpack_halfspaces(θinit, bundle_dimensions)
+Ainit, binit, oinit = unpack_halfspaces(θinit, polytope_dimensions)
 @time local_loss(θinit)
 
 @elapsed res = Optim.optimize(local_loss, θinit,
@@ -191,7 +191,7 @@ Ainit, binit, oinit = unpack_halfspaces(θinit, bundle_dimensions)
 # unpack results
 ################################################################################
 θopt = Optim.minimizer(res)
-Aopt, bopt, oopt = unpack_halfspaces(θopt, bundle_dimensions)
+Aopt, bopt, oopt = unpack_halfspaces(θopt, polytope_dimensions)
 solution_trace = [iterate.metadata["x"] for iterate in Optim.trace(res)]
 plot(hcat(solution_trace...)', legend=false)
 
@@ -212,7 +212,7 @@ end
 
 for j = 1:length(solution_trace)
     for i = 1:nb
-        Aopt, bopt, oopt = unpack_halfspaces(solution_trace[j], bundle_dimensions)
+        Aopt, bopt, oopt = unpack_halfspaces(solution_trace[j], polytope_dimensions)
         try
             # build_2d_polytope!(vis[:optimized][Symbol(i)], Aopt[i], bopt[i] + Aopt[i]*oopt[i], name=Symbol(j),
             build_2d_polytope!(vis[:optimized][Symbol(i)], Aopt[i], bopt[i], name=Symbol(j),
@@ -298,7 +298,7 @@ bproj
 
 for j = 1:length(solution_trace)
     for i = 1:nb
-        Aopt, bopt, oopt = unpack_halfspaces(solution_trace[j], bundle_dimensions)
+        Aopt, bopt, oopt = unpack_halfspaces(solution_trace[j], polytope_dimensions)
         Aproj, bproj, oproj = bundle_pruning(Aopt, bopt, oopt, simple_loss)
         append_halfspace!(Aproj, bproj)
         try

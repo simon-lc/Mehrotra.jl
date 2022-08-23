@@ -49,46 +49,6 @@ function hessian_sdf(p, A, b, δ)
     return H
 end
 
-
-function plot_halfspace(plt, a, b; show_plot::Bool=true)
-    R = [0 1; -1 0]
-    v = R * a[1,:]
-    x0 = a \ b
-    xl = x0 - 100*v
-    xu = x0 + 100*v
-    plt = plot!(plt, [xl[1], xu[1]], [xl[2], xu[2]], linewidth=5.0, color=:white)
-    show_plot && display(plt)
-    return plt
-end
-
-function plot_polytope(A, b, δ;
-        xlims=(-1,1), ylims=(-1,1), S::Int=25) where {T,N,D}
-
-    X = range(xlims..., length=S)
-    Y = range(ylims..., length=S)
-    V = zeros(S,S)
-
-    for i = 1:S
-        for j = 1:S
-            p = [X[i], Y[j]]
-            V[j,i] = sdf(p, A, b, δ)[1]
-        end
-    end
-
-    plt = heatmap(
-        X, Y, V,
-        aspectratio=1.0,
-        xlims=xlims,
-        ylims=ylims,
-        xlabel="x", ylabel="y",
-        )
-    for i = 1:length(b)
-        plt = plot_halfspace(plt, A[i:i,:], b[i:i], show_plot=false)
-    end
-    plt = contour(plt, X,Y,V, levels=[0.0], color=:black, linewidth=2.0)
-    return plt
-end
-
 #
 # A = [
 #     +1.0 +0.0;
@@ -170,6 +130,3 @@ end
 function softmin(values, δ)
     return -softmax(-values, δ)
 end
-softmin([-1, 2, 3, 4, -1, 3], 3)
-
-sum(softweights(rand(10), 2.0))

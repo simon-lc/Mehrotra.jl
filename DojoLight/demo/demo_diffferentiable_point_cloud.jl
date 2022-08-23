@@ -100,9 +100,9 @@ A_ref = [A0, Af]
 b_ref = [b0, bf]
 o_ref = [o0, of]
 
-θ_ref, bundle_dimensions_ref = pack_halfspaces([A0, Af], [b0, bf], [o0, of])
-# θ_ref, bundle_dimensions_ref = pack_halfspaces([A0, A1, Af], [b0, b1, bf], [o0, o1, of])
-# θ_ref, bundle_dimensions_ref = pack_halfspaces([A0, A1, A2, Af], [b0, b1, b2, bf], [o0, o1, o2, of])
+θ_ref, polytope_dimensions_ref = pack_halfspaces([A0, Af], [b0, bf], [o0, of])
+# θ_ref, polytope_dimensions_ref = pack_halfspaces([A0, A1, Af], [b0, b1, bf], [o0, o1, of])
+# θ_ref, polytope_dimensions_ref = pack_halfspaces([A0, A1, A2, Af], [b0, b1, b2, bf], [o0, o1, o2, of])
 
 ################################################################################
 # ground-truth point-cloud
@@ -152,8 +152,8 @@ Pobject = hcat(Pobject...)
 
 # convex bundle parameterization
 nh = 5
-bundle_dimensions = [nh, nh, nh, nh, nh]
-np = length(bundle_dimensions)
+polytope_dimensions = [nh, nh, nh, nh, nh]
+np = length(polytope_dimensions)
 
 # k-mean clustering
 kmres = kmeans(Pobject, np)
@@ -184,7 +184,7 @@ for i = 1:np
     push!(θinit, pack_halfspaces(A, b, o)...)
 end
 θinit
-build_2d_convex_bundle!(vis, θinit, bundle_dimensions, name=:initial, color=RGBA(1,1,0,0.4))
+build_2d_convex_bundle!(vis, θinit, polytope_dimensions, name=:initial, color=RGBA(1,1,0,0.4))
 
 
 θdiag = zeros(0)
@@ -203,10 +203,10 @@ end
 
 # loss
 function local_loss(θ, δ; ω_centroid=1e-2, ω_offset=2e-3)
-    θ_floor, bundle_dimensions_floor = add_floor(θ, bundle_dimensions)
-    l = julia_loss(P, e, β, δ, θ_floor, bundle_dimensions_floor)
-    A, b, o = unpack_halfspaces(θ, bundle_dimensions)
-    np = length(bundle_dimensions)
+    θ_floor, polytope_dimensions_floor = add_floor(θ, polytope_dimensions)
+    l = julia_loss(P, e, β, δ, θ_floor, polytope_dimensions_floor)
+    A, b, o = unpack_halfspaces(θ, polytope_dimensions)
+    np = length(polytope_dimensions)
     for i = 1:np
         l += 0.5 * (o[i] - kmres.centers[:,i])' * (o[i] - kmres.centers[:,i]) * ω_centroid
         l += 0.5 * (b[i] .- 2b_char)' * (b[i] .- 2b_char) * ω_offset
@@ -216,7 +216,7 @@ end
 
 # initialization
 b_ref
-julia_loss1111(P, e, β, δ, θinit, bundle_dimensions)
+julia_loss1111(P, e, β, δ, θinit, polytope_dimensions)
 julia_point_cloud1111(e[1], β[1], δ, A_ref, b_ref, o_ref)
 @time local_loss(θinit, δ)
 
@@ -244,7 +244,7 @@ function block_diagonal_hessian(f::Function, blocks::Vector{Int})
     end
     return hessian
 end
-nθ = 3 .* bundle_dimensions .+ 2
+nθ = 3 .* polytope_dimensions .+ 2
 Hblock_loss = block_diagonal_hessian(local_loss, nθ)
 Hb = Hblock_loss(θinit, δ)
 
@@ -259,9 +259,9 @@ Hb = Hblock_loss(θinit, δ)
 θmin = vcat([[-Inf * ones(2nh); +0.05 * ones(nh); -Inf * ones(2)] for i=1:np]...)
 # θmax = vcat([[+Inf * ones(nh); +Inf  * ones(nh); +Inf * ones(2)] for i=1:np]...)
 θmax = vcat([[+Inf * ones(2nh); +Inf  * ones(nh); +Inf * ones(2)] for i=1:np]...)
-function projection(θ, θmin, θmax, bundle_dimensions)
-    A, b, o = unpack_halfspaces(θ, bundle_dimensions)
-    np = length(bundle_dimensions)
+function projection(θ, θmin, θmax, polytope_dimensions)
+    A, b, o = unpack_halfspaces(θ, polytope_dimensions)
+    np = length(polytope_dimensions)
     for i = 1:np
         for j = 1:size(A[i],1)
             A[i][j,:] = A[i][j,:] / (1e-6 + norm(A[i][j,:]))
@@ -269,17 +269,17 @@ function projection(θ, θmin, θmax, bundle_dimensions)
     end
     return clamp.(θ, θmin, θmax)
 end
-local_projection(θ) = projection(θ, θmin, θmax, bundle_dimensions)
+local_projection(θ) = projection(θ, θmin, θmax, polytope_dimensions)
 
 ################################################################################
 # clamping
 ################################################################################
 Δθmin = vcat([[-0.30 * ones(2nh); -0.025 * ones(nh); -0.025 * ones(2)] for i=1:np]...)
 Δθmax = vcat([[+0.30 * ones(2nh); +0.025 * ones(nh); +0.025 * ones(2)] for i=1:np]...)
-function clamping(Δθ, Δθmin, Δθmax, bundle_dimensions)
+function clamping(Δθ, Δθmin, Δθmax, polytope_dimensions)
     return clamp.(Δθ, Δθmin, Δθmax)
 end
-local_clamping(Δθ) = clamping(Δθ, Δθmin, Δθmax, bundle_dimensions)
+local_clamping(Δθ) = clamping(Δθ, Δθmin, Δθmax, polytope_dimensions)
 
 
 ################################################################################
@@ -289,9 +289,9 @@ local_clamping(Δθ) = clamping(Δθ, Δθmin, Δθmax, bundle_dimensions)
     Hblock_loss, local_projection, local_clamping, nθ, max_iterations=100)
 solution_trace = [solution_trace; fill(solution_trace[end], 20)]
 
-θopt_floor, bundle_dimensions_floor = add_floor(θopt, bundle_dimensions)
+θopt_floor, polytope_dimensions_floor = add_floor(θopt, polytope_dimensions)
 Popt = [julia_point_cloud(e[i], β[i], δ,
-    unpack_halfspaces(θopt_floor, bundle_dimensions_floor)...) for i = 1:ne]
+    unpack_halfspaces(θopt_floor, polytope_dimensions_floor)...) for i = 1:ne]
 build_2d_point_cloud!(vis, Popt, e, color=RGBA(0,0,1,0.5), name=:opt)
 settransform!(vis[:opt], MeshCat.Translation(0.1, 0,0))
 ################################################################################
@@ -309,7 +309,7 @@ scatter(θinit - θopt)
 ################################################################################
 for i = 1:length(solution_trace)
     try
-        build_2d_convex_bundle!(vis[:trace], solution_trace[i], bundle_dimensions, name=Symbol(i), color=RGBA(1,0,0,0.4))
+        build_2d_convex_bundle!(vis[:trace], solution_trace[i], polytope_dimensions, name=Symbol(i), color=RGBA(1,0,0,0.4))
     catch error
     end
 end

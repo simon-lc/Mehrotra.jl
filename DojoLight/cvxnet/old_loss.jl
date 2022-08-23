@@ -1,90 +1,3 @@
-function unpack_halfspaces(θ::Vector{T}, bundle_dimensions::Vector{Int}) where T
-    # nθ = 2 .+ 2 .* bundle_dimensions
-    nθ = 2 .+ 3 .* bundle_dimensions
-    m = length(bundle_dimensions)
-
-    A = [zeros(T, i, 2) for i in bundle_dimensions]
-    b = [zeros(T, i) for i in bundle_dimensions]
-    o = [zeros(T, i) for i in bundle_dimensions]
-
-    off = 0
-    for i = 1:m
-        A[i], b[i], o[i] = unpack_halfspaces(θ[off .+ (1:nθ[i])])
-        off += nθ[i]
-    end
-    return A, b, o
-end
-
-function pack_halfspaces(A::Vector{Matrix{T}}, b::Vector{Vector{T}}, o::Vector{Vector{T}}) where T
-    n = length(b)
-    bundle_dimensions = length.(b)
-    # nθ = 2 .+ 2 .* bundle_dimensions
-    nθ = 2 .+ 3 .* bundle_dimensions
-
-    θ = zeros(T,sum(nθ))
-
-    off = 0
-    for i = 1:n
-        θ[off .+ (1:nθ[i])] .= pack_halfspaces(A[i], b[i], o[i])
-        off += nθ[i]
-    end
-    return θ, bundle_dimensions
-end
-
-function unpack_halfspaces(θ::Vector{T}) where T
-    nθ = length(θ)
-    # n = Int(floor((nθ - 2)/2))
-    n = Int(floor((nθ - 2)/3))
-
-    A = zeros(T, n, 2)
-    b = zeros(T, n)
-    o = zeros(T, 2)
-
-    for i = 1:n
-        # A[i,:] .= [cos(θ[i]), sin(θ[i])]
-        A[i,:] .= θ[2*(i-1) .+ (1:2)]
-    end
-    # b .= θ[n .+ (1:n)]
-    b .= θ[2n .+ (1:n)]
-    # o = θ[2n .+ (1:2)]
-    o = θ[3n .+ (1:2)]
-    return A, b, o
-end
-
-function pack_halfspaces(A::Matrix{T}, b::Vector{T}, o::Vector{T}) where T
-    n = length(b)
-    # θ = zeros(T,2+2n)
-    θ = zeros(T,2+3n)
-
-    for i = 1:n
-        # θ[i] = atan(A[i,2], A[i,1])
-        θ[2*(i-1) .+ (1:2)] = A[i,1:2]
-    end
-    # θ[n .+ (1:n)] .= b
-    θ[2n .+ (1:n)] .= b
-    # θ[2n .+ (1:2)] .= o
-    θ[3n .+ (1:2)] .= o
-    return θ
-end
-
-
-
-# bundle_dimensions0 = [1,2,3,4,22]
-# A0 = [rand(i,2) for i in bundle_dimensions0]
-# b0 = [rand(i) for i in bundle_dimensions0]
-# o0 = [rand(2) for i in bundle_dimensions0]
-# for i = 1:5
-#     for j = 1:bundle_dimensions0[i]
-#         A0[i][j,:] ./= norm(A0[i][j,:])
-#     end
-# end
-# θ1, bundle_dimensions1 = pack_halfspaces(A0, b0, o0)
-# A1, b1, o1 = unpack_halfspaces(θ1, bundle_dimensions1)
-# A1 .- A0
-# b1 .- b0
-# o1 .- o0
-
-
 function mysolve!(θinit, loss, Gloss, Hloss, projection, clamping, nθ; max_iterations=60)
     θ = deepcopy(θinit)
     trace = [deepcopy(θ)]
@@ -175,15 +88,15 @@ end
 
 
 
-# function loss(P, e, θ::Vector{T}, bundle_dimensions; βb=1e-3, βo=1e-2, βf=1e-2, βμ=1e0, βc=1e-2, Δ=2e-2, δ=1e2, top_k::Int=20) where T
-#     nb = length(bundle_dimensions)
+# function loss(P, e, θ::Vector{T}, polytope_dimensions; βb=1e-3, βo=1e-2, βf=1e-2, βμ=1e0, βc=1e-2, Δ=2e-2, δ=1e2, top_k::Int=20) where T
+#     nb = length(polytope_dimensions)
 #     n = length(P)
 #     m = size(P[1], 2)
 #     N = n * m
 #     l = 0.0
 #
 #     # halfspaces
-#     A, b, o = unpack_halfspaces(θ, bundle_dimensions)
+#     A, b, o = unpack_halfspaces(θ, polytope_dimensions)
 #     for i = 1:nb
 #         l += βc * max(0, sdf(o[i], A[i], b[i], δ))
 #     end
@@ -262,7 +175,7 @@ end
 #     end
 #
 #     # off = 0
-#     # for (i,ni) in enumerate(bundle_dimensions)
+#     # for (i,ni) in enumerate(polytope_dimensions)
 #     #     θ[]
 #     # end
 #     # # floor interpenetration constraints, project point cloud onto the floor
@@ -284,10 +197,10 @@ end
 #     end
 #
 #
-#     nθ = 2 .+ 2 .* bundle_dimensions
+#     nθ = 2 .+ 2 .* polytope_dimensions
 #     off = 0
 #     for i = 1:nb
-#         mi = bundle_dimensions[i]
+#         mi = polytope_dimensions[i]
 #         Aθ = θ[off .+ (1:mi)]
 #         l += βf * 0.5 * norm(Aθ - range(-π, π, length=mi+1)[1:mi])^2 / nb
 #         off += nθ[i]

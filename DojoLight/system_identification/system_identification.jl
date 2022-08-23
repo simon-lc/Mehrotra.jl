@@ -1,4 +1,3 @@
-using GLVisualizer
 using GeometryBasics
 using Plots
 using RobotVisualizer
@@ -12,7 +11,7 @@ using ForwardDiff
 using BenchmarkTools
 
 vis = Visualizer()
-open(vis)
+render(vis)
 set_floor!(vis)
 set_light!(vis)
 set_background!(vis)
@@ -20,9 +19,11 @@ set_background!(vis)
 include("../src/DojoLight.jl")
 
 include("../cvxnet/softmax.jl")
-include("../cvxnet/loss.jl")
 include("../cvxnet/point_cloud.jl")
+include("../cvxnet/halfspace.jl")
+include("../cvxnet/visuals.jl")
 
+include("../system_identification/newton_solver.jl")
 include("../system_identification/structure.jl")
 include("../system_identification/visuals.jl")
 
@@ -49,16 +50,16 @@ struct CvxMeasurement1310{T} <: Measurement{T}
     # x::Vector{T} # polytope position
     # q::Vector{T} # polytope orientation
     z::Vector{T} # polytope state, we assume the whole state is observed TODO
-    p::Vector{Matrix{T}} # point cloud obtained from several cameras
+    d::Vector{Matrix{T}} # point cloud obtained from several cameras
 end
 
 ## state
-struct CvxState1310{T} <: State{T}
+struct CvxState1310{T} <: State{T} # TODO this should be a simple vector always
     z::Vector{T}
 end
 
 ## parameters
-struct CvxParameters1310{T} <: Parameters{T}
+struct CvxParameters1310{T} <: Parameters{T}  # TODO this should be a simple vector always
     θ::Vector{T}
     num_polytopes::Int
     polytope_dimensions::Vector{Int}
@@ -67,15 +68,20 @@ end
 function unpack(params::CvxParameters1310)
     θ = params.θ
     polytope_dimensions = params.polytope_dimensions
+    return unpack(θ, polytope_dimensions)
+end
 
+function unpack(θ, context::CvxContext1310)
+    polytope_dimensions = context.polytope_dimensions
+    return unpack(θ, polytope_dimensions)
+end
+
+function unpack(θ::Vector, polytope_dimensions::Vector{Int})
     off = 0
     mass = θ[off .+ (1:1)]; off += 1
     inertia = θ[off .+ (1:1)]; off += 1
     friction_coefficient = θ[off .+ (1:1)]; off += 1
-    # center_of_mass = θ[off .+ (1:2)]; off += 2
     A, b, o = unpack_halfspaces(θ[off + 1:end], polytope_dimensions)
-
-    # return mass, inertia, friction_coefficient, center_of_mass, A, b, o
     return mass, inertia, friction_coefficient, A, b, o
 end
 
@@ -91,6 +97,14 @@ end
 struct CvxContext1310{T} <: Context{T}
     mechanism::Mechanism1170
     cameras::Vector{Camera1310{T}}
+    polytope_dimensions::Vector{Int}
+end
+
+function CvxContext1310(mechanism::Mechanism1170, cameras::Vector{Camera1310{T}}) where T
+    z = zeros(mechanism.dimensions.state)
+    A, b, o = get_halfspaces(mechanism, z)
+    θ_geometry, polytope_dimensions = pack_halfspaces(A, b, o)
+    return CvxContext1310(mechanism, cameras, polytope_dimensions)
 end
 
 ## objective
@@ -106,8 +120,6 @@ function unpack_dynamics(θ)
     mass = θ[1]
     inertia = θ[2]
     friction_coefficient = θ[3]
-    # center_of_mass = θ[4:5]
-    # return mass, inertia, friction_coefficient, center_of_mass
     return mass, inertia, friction_coefficient
 end
 
@@ -137,55 +149,22 @@ end
 function measure(context::CvxContext1310, state::CvxState1310)
     mechanism = context.mechanism
     m = deepcopy(state.z)
-    p = get_point_cloud(mechanism, context.cameras, state.z)
-    measurement = CvxMeasurement1310(m, p)
+    d = get_point_cloud(mechanism, context.cameras, state.z)
+    measurement = CvxMeasurement1310(m, d)
     return measurement
 end
 
 function get_point_cloud(mechanism::Mechanism1170, cameras::Vector{Camera1310{T}}, z) where T
-    p = Vector{Matrix{T}}()
+    d = Vector{Matrix{T}}()
     for camera in cameras
         nr = length(camera.camera_rays)
-        pi = zeros(T, 2, nr)
+        di = zeros(T, 2, nr)
         A, b, o = get_halfspaces(mechanism, z)
-        # add floor
-        Af = [0.0  1.0]
-        bf = [0.0]
-        of = [0.0, 0.0]
-        push!(A, Af)
-        push!(b, bf)
-        push!(o, of)
-        julia_point_cloud!(pi, camera.eye_position, camera.camera_rays, camera.softness, A, b, o)
-        push!(p, pi)
+        A, b, o = add_floor(A, b, o)
+        julia_point_cloud!(di, camera.eye_position, camera.camera_rays, camera.softness, A, b, o)
+        push!(d, di) # TODO maybe this is not copyng the data correctly
     end
-    return p
-end
-
-function halfspace_transformation(pose::Vector{T}, A::Matrix, b::Vector, o::Vector) where T
-    position = pose[1:2]
-    orientation = pose[3:3]
-
-    wRb = x_2d_rotation(orientation) # rotation from body frame to world frame
-    bRw = wRb' # rotation from world frame to body frame
-    Ā = A * bRw
-    b̄ = b + A * bRw * position
-    ō = wRb * o
-    return Ā, b̄, ō
-end
-
-function halfspace_transformation(pose::Vector{T}, A::Vector{<:Matrix},
-        b::Vector{<:Vector}, o::Vector{<:Vector}) where T
-    np = length(b)
-    Ā = Vector{Matrix{T}}()
-    b̄ = Vector{Vector{T}}()
-    ō = Vector{Vector{T}}()
-    for i = 1:np
-        Āi, b̄i, ōi = halfspace_transformation(pose, A[i], b[i], o[i])
-        push!(Ā, Āi)
-        push!(b̄, b̄i)
-        push!(ō, ōi)
-    end
-    return Ā, b̄, ō
+    return d
 end
 
 function get_halfspaces(mechanism::Mechanism1170, z::Vector{T}) where T
@@ -210,14 +189,17 @@ function set_halfspaces!(mechanism::Mechanism1170,
 
     bodies = mechanism.bodies
     contacts = mechanism.contacts
-    body = bodies[1]
 
-    for (i, shape) in enumerate(body.shapes)
-        shape.A .= A[i]
-        shape.b .= b[i]
-        shape.o .= o[i]
-        contacts[i].A_parent_collider .= A[i]
-        contacts[i].b_parent_collider .= b[i] + A[i] * o[i]
+    i = 0
+    for body in bodies
+        for shape in body.shapes
+            i += 1
+            shape.A .= A[i]
+            shape.b .= b[i]
+            shape.o .= o[i]
+            contacts[i].A_parent_collider .= A[i]
+            contacts[i].b_parent_collider .= b[i] + A[i] * o[i]
+        end
     end
     return nothing
 end
@@ -242,26 +224,123 @@ function process_model(context::CvxContext1310, state::CvxState1310, params::Cvx
     dynamics(z1, mechanism, z0, u, nothing)
 
     next_state = CvxState1310(z1)
-    return next_state
+
+    return next_state, jacobian_state, jacobian_parameters
 end
+
+
+
+
+
+
+mech.dimensions
+mech.solver.dimensions
+nz = mech.dimensions.state
+nu = mech.dimensions.input
+nθ = mech.dimensions.parameters
+dθ = zeros(nz, nθ-1)
+parameters_idx = 2:nθ
+z = rand(nz)
+u = rand(nu)
+θ = rand(nθ-1)
+dynamics_jacobian_parameters(dθ, mech, z, u, θ, parameters_idx, nothing)
+plot(Gray.(abs.(Matrix(dθ))))
+
+
+
+
+
+
 
 function measurement_model(context::CvxContext1310, state::CvxState1310, params::CvxParameters1310{T}) where T
     z = state.z
     pose = z[1:3] # TODO this is not safe, we need to make sure these dimensions are the pose dimensions
 
-    # mass, inertia, friction_coefficient, center_of_mass, Ab, bb, ob = unpack(params)
     mass, inertia, friction_coefficient, Ab, bb, ob = unpack(params)
     Aw, bw, ow = halfspace_transformation(pose, Ab, bb, ob)
     Aw, bw, ow = add_floor(Aw, bw, ow)
 
-    p = Vector{Matrix{T}}()
+    d = Vector{Matrix{T}}()
     for camera in context.cameras
-        pi = julia_point_cloud(camera.eye_position, camera.camera_rays, camera.softness, Aw, bw, ow)
-        push!(p, pi)
+        di = julia_point_cloud(camera.eye_position, camera.camera_rays, camera.softness, Aw, bw, ow)
+        push!(d, di)
     end
-    measurement = CvxMeasurement1310(state.z, p)
+    measurement = CvxMeasurement1310(state.z, d)
     return measurement
 end
+
+function julia_point_cloud(context::CvxContext1310, z::Vector, θ::Vector,
+        camera_idx::Int, ray_idx::Int) where T
+    pose = z[1:3] # TODO this is not safe, we need to make sure these dimensions are the pose dimensions
+
+    mass, inertia, friction_coefficient, Ab, bb, ob = unpack(θ, context)
+    Aw, bw, ow = halfspace_transformation(pose, Ab, bb, ob)
+    Aw, bw, ow = add_floor(Aw, bw, ow)
+
+    camera = context.cameras[camera_idx]
+    d = julia_intersection(camera.eye_position, camera.camera_rays[ray_idx], camera.softness, Aw, bw, ow)
+    return d
+end
+
+function julia_point_cloud_jacobian_state(context::CvxContext1310, state::CvxState1310, params::CvxParameters1310{T},
+        camera_idx::Int, ray_idx::Int) where T
+    ForwardDiff.jacobian(z -> julia_point_cloud(context, z, params.θ, camera_idx, ray_idx), state.z)
+end
+
+function julia_point_cloud_jacobian_parameters(context::CvxContext1310, state::CvxState1310, params::CvxParameters1310{T},
+        camera_idx::Int, ray_idx::Int) where T
+    ForwardDiff.jacobian(θ -> julia_point_cloud(context, state.z, θ, camera_idx, ray_idx), params.θ)
+end
+
+function get_parameters(context::CvxContext1310)
+    mechanism = context.mechanism
+
+    z = zeros(mechanism.dimensions.state)
+    A, b, o = get_halfspaces(mechanism, z)
+    θ_geometry, polytope_dimensions = pack_halfspaces(A, b, o)
+    num_polytopes = length(polytope_dimensions)
+
+    mass = mechanism.bodies[1].mass[1]
+    inertia = mechanism.bodies[1].inertia[1]
+    friction_coefficient = mechanism.contacts[1].friction_coefficient[1]
+
+    θ_dynamics = [mass; inertia; friction_coefficient]
+    θ = [θ_dynamics; θ_geometry]
+    return CvxParameters1310(θ, num_polytopes, polytope_dimensions)
+end
+
+function set_parameters!(context::CvxContext1310, params::CvxParameters1310)
+    polytope_dimensions = params.polytope_dimensions
+    np = length(polytope_dimensions)
+    mechanism = context.mechanism
+    bodies = mechanism.bodies
+    contacts = mechanism.contacts
+    θ = params.θ
+
+    # set geometry
+    θ_geometry = θ[4:end]
+    A, b, o = unpack_halfspaces(θ_geometry, polytope_dimensions)
+    set_halfspaces!(mechanism, A, b, o)
+
+    # set dynamics
+    θ_dynamics = θ[1:3]
+    mass, inertia, friction_coefficient = unpack_dynamics(θ_dynamics)
+    # TODO we need to generalize to many contacts and bodies
+    bodies[1].mass[1] = mass
+    bodies[1].inertia[1] = inertia
+    contacts[1].friction_coefficient[1] = friction_coefficient
+
+    solver_parameters = vcat(get_parameters.(bodies)..., get_parameters.(contacts)...)
+    set_parameters!(mechanism.solver, solver_parameters)
+    return nothing
+end
+
+# # initial guess
+# params0 = get_parameters(context)
+# params0.θ[1:end] .= rand(17)
+# set_parameters!(context, params0)
+# params1 = get_parameters(context)
+# norm(params0.θ - params1.θ)
 
 
 ################################################################################
@@ -318,73 +397,16 @@ vis, anim = visualize!(vis, context, measurements)
 ################################################################################
 # test filtering
 ################################################################################
-function get_parameters(context::CvxContext1310)
-    mechanism = context.mechanism
-
-    z = zeros(mechanism.dimensions.state)
-    A, b, o = get_halfspaces(mechanism, z)
-    θ_geometry, polytope_dimensions = pack_halfspaces(A, b, o)
-    num_polytopes = length(polytope_dimensions)
-
-    mass = mechanism.bodies[1].mass[1]
-    inertia = mechanism.bodies[1].inertia[1]
-    friction_coefficient = mechanism.contacts[1].friction_coefficient[1]
-    # center_of_mass = [0.0, 0.0]
-
-    # θ_dynamics = [mass; inertia; friction_coefficient; center_of_mass]
-    θ_dynamics = [mass; inertia; friction_coefficient]
-    θ = [θ_dynamics; θ_geometry]
-    return CvxParameters1310(θ, num_polytopes, polytope_dimensions)
-end
-
-function set_parameters!(context::CvxContext1310, params::CvxParameters1310)
-    polytope_dimensions = params.polytope_dimensions
-    np = length(polytope_dimensions)
-    mechanism = context.mechanism
-    bodies = mechanism.bodies
-    contacts = mechanism.contacts
-    θ = params.θ
-
-    # set geometry
-    θ_geometry = θ[4:end]
-    A, b, o = unpack_halfspaces(θ_geometry, polytope_dimensions)
-    set_halfspaces!(mechanism, A, b, o)
-
-    # set dynamics
-    θ_dynamics = θ[1:3]
-    # mass, inertia, friction_coefficient, center_of_mass = unpack_dynamics(θ_dynamics)
-    mass, inertia, friction_coefficient = unpack_dynamics(θ_dynamics)
-    # TODO we need to generalize to many contacts and bodies
-    bodies[1].mass[1] = mass
-    bodies[1].inertia[1] = inertia
-    contacts[1].friction_coefficient[1] = friction_coefficient
-    # TODO center of mass is ignored at the moment
-
-    solver_parameters = vcat(get_parameters.(bodies)..., get_parameters.(contacts)...)
-    set_parameters!(mechanism.solver, solver_parameters)
-
-    return nothing
-end
-
-
-# # initial guess
-# params0 = get_parameters(context)
-# params0.θ[1:end] .= rand(17)
-# set_parameters!(context, params0)
-# params1 = get_parameters(context)
-# norm(params0.θ - params1.θ)
-
-
 function filtering_objective(context::CvxContext1310, obj::CvxObjective1310,
         state::CvxState1310, params::CvxParameters1310,
         state_prior::CvxState1310, params_prior::CvxParameters1310,
         measurement::CvxMeasurement1310)
 
-    θ0 = params_prior.θ
     z1 = state.z
     θ1 = params.θ
-    z̄1 = measurement.z
-    p̄1 = measurement.p
+    θ0 = params_prior.θ
+    ẑ1 = measurement.z
+    d̂1 = measurement.d
     nθ = length(θ0)
 
     # initialization
@@ -394,33 +416,68 @@ function filtering_objective(context::CvxContext1310, obj::CvxObjective1310,
 
     # process model
     predicted_state = process_model(context, state_prior, params)
+    z̄1 = predicted_state.z
     # measurement model
     predicted_measurement = measurement_model(context, state, params)
+    d1 = predicted_measurement.d
 
-    c = objective_function(obj, z1, predicted_state.z, z̄1, θ0, θ1, predicted_measurement.p, p̄1)
-    DcDz1 = dcdz1 + dz1_preddz1' * dcdz1_pred
-    DcDθ1 = dcdθ1 + dz1_preddθ1' * dcdz1_pred + dp1_preddθ1' * dcdp1_pred
+    c = objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1)
+
+    dcdz1 = ForwardDiff.gradient(z1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), z1)
+    dcdθ1 = ForwardDiff.gradient(θ1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), θ1)
+    dcdz̄1 = ForwardDiff.gradient(z̄1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), z̄1)
+
+    dz̄1dθ1 =
+
+    DcDz1 = dcdz1
+    DcDθ1 = dcdθ1 + dz̄1dθ1' * dcdz̄1
+
+    num_cameras = length(d1)
+    for i = 1:num_cameras
+        camera = context.cameras[i]
+        num_rays = size(d1[i], 2)
+        for j = 1:num_rays
+            di = d1[i][:,j]
+            d̂i = d̂1[i][:,j]
+            dcdd1 = ForwardDiff.gradient(di -> point_cloud_objective_function(obj, di, d̂i), di)
+            dd1dz1 = julia_point_cloud_jacobian_state(context, state, params, i, j)
+            dd1dθ1 = julia_point_cloud_jacobian_parameters(context, state, params, i, j)
+            DcDz1 += dd1dz1' * dcdd1
+            DcDθ1 += dd1dθ1' * dcdd1
+        end
+    end
     g = [DcDz1; DcDθ1]
-    DcD2z1 = dcd2z1
-    DcD2θ1 = dcd2θ1 + dθ1(dp1_preddθ1' * dcdp1_pred)
-    DcDz1θ1 = dcdz1θ1 + dθ1(dz1_preddz1' * dcdz1_pred)
+
+    # DcD2z1 = dcd2z1 + dd1dz1' * dcd2d1 * dd1dz1
+    # DcD2θ1 = dcd2θ1 +
+    # DcDz1θ1 = dcdz1θ1 +
+    # H = [DcD2z1 DcDz1θ1; DcDz1θ1' DcD2θ1]
     return c, g#, H
 end
 
-function objective_function(obj::CvxObjective1310, z1, z1_pred, z̄1, θ0, θ1, p1_pred, p̄1)
+function objective_function(obj::CvxObjective1310, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1)
     c = 0.0
-    # prior state cost (process model = dynamics)
-    c += 0.5 * (z1 - z1_pred)' * obj.P_state * (z1 - z1_pred)
-    # measurement state cost (measurement model = identity)
-    c += 0.5 * (z1 - z̄1)' * obj.M_observation * (z1 - z̄1)
     # prior parameters cost
-    c += 0.5 * obj.P_parameters * (θ0 - θ1)' * (θ0 - θ1)
+    c += 0.5 * obj.P_parameters * (θ1 - θ0)' * (θ1 - θ0)
+    # prior state cost (process model = dynamics)
+    c += 0.5 * (z1 - z̄1)' * obj.P_state * (z1 - z̄1)
+    # measurement state cost (measurement model = identity)
+    c += 0.5 * (z1 - ẑ1)' * obj.M_observation * (z1 - ẑ1)
     # measurement parameter cost (measurement model = point cloud)
-    for (i, p̄i) in enumerate(p̄1)
-        pi = p1_pred[i]
-        c += 0.5 * obj.M_point_cloud * norm(pi - p̄i)^2
+    num_cameras = length(d1)
+    for i = 1:num_cameras
+        num_rays = size(d1[i],2)
+        for j = 1:num_rays
+            di = d1[i][:,j]
+            d̂i = d̂1[i][:,j]
+            c += point_cloud_objective_function(obj, di, d̂i)
+        end
     end
     return c
+end
+
+function point_cloud_objective_function(obj::CvxObjective1310, d::Vector, d̂::Vector)
+    0.5 * obj.M_point_cloud * (d - d̂)' * (d - d̂)
 end
 
 
@@ -429,6 +486,7 @@ M_observation = Diagonal(ones(6))
 P_parameters = 1.0
 M_point_cloud = 1.0
 obj = CvxObjective1310(P_state, M_observation, P_parameters, M_point_cloud)
+
 
 state_prior = CvxState1310(zf)
 state_guess = CvxState1310(zf)
@@ -514,64 +572,7 @@ local_projection = x -> x
 local_clamping = x -> x
 local_D = Diagonal(1e2ones(23))
 
-function mysolve!(θinit, loss, Gloss, Hloss, projection, clamping;
-        max_iterations=20,
-        reg_min=1e-4,
-        reg_max=1e+0,
-        reg_step=2.0,
-        residual_tolerance=1e-4,
-        D=Diagonal(ones(length(θinit))))
-
-    θ = deepcopy(θinit)
-    trace = [deepcopy(θ)]
-    reg = reg_max
-
-    # newton's method
-    for iterations = 1:max_iterations
-        l = loss(θ)
-        (l < residual_tolerance) && break
-        G = Gloss(θ)
-        H = Hloss(θ)
-
-        # reg = clamp(norm(G, Inf)/10, reg_min, reg_max)
-        Δθ = - (H + reg * D) \ G
-
-        # linesearch
-        α = 1.0
-        for j = 1:10
-            l_candidate = loss(projection(θ + clamping(α * Δθ)))
-            if l_candidate <= l
-                reg = clamp(reg/reg_step, reg_min, reg_max)
-                break
-            end
-            α /= 2
-            if j == 10
-                reg = clamp(reg*reg_step, reg_min, reg_max)
-            end
-        end
-
-        # header
-        if rem(iterations - 1, 10) == 0
-            @printf "-------------------------------------------------------------------\n"
-            @printf "iter   loss        step        |step|∞     |grad|∞     reg         \n"
-            @printf "-------------------------------------------------------------------\n"
-        end
-        # iteration information
-        @printf("%3d   %9.2e   %9.2e   %9.2e   %9.2e   %9.2e\n",
-            iterations,
-            l,
-            mean(α),
-            norm(clamping(α * Δθ), Inf),
-            norm(G, Inf),
-            reg,
-            )
-        θ = projection(θ + clamping(α * Δθ))
-        push!(trace, deepcopy(θ))
-    end
-    return θ, trace
-end
-
-xsol, xtrace = mysolve!(x0,
+xsol, xtrace = newton_solver!(x0,
     local_filtering_objective,
     local_filtering_gradient,
     local_filtering_hessian,

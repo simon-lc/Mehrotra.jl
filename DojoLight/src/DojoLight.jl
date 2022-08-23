@@ -29,7 +29,7 @@ include("contact_frame.jl")
 include("storage.jl")
 include("simulate.jl")
 include("visuals.jl")
-include("visuals_opengl.jl")
+# include("visuals_opengl.jl")
 include("dynamics.jl")
 include("continuation.jl")
 

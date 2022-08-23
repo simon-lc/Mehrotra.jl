@@ -23,7 +23,7 @@ function update_nodes!(mechanism::Mechanism1170)
     off = 0
     for node in [bodies; contacts]
         nθ = parameter_dimension(node)
-        θ = solver.parameters[off .+ (1:nθ)]; off += θ
+        θ = solver.parameters[off .+ (1:nθ)]; off += nθ
         set_parameters!(node, θ)
     end
     return nothing
