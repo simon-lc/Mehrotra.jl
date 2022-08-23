@@ -53,29 +53,6 @@ struct CvxMeasurement1310{T} <: Measurement{T}
     d::Vector{Matrix{T}} # point cloud obtained from several cameras
 end
 
-## state
-struct CvxState1310{T} <: State{T} # TODO this should be a simple vector always
-    z::Vector{T}
-end
-
-## parameters
-struct CvxParameters1310{T} <: Parameters{T}  # TODO this should be a simple vector always
-    θ::Vector{T}
-    num_polytopes::Int
-    polytope_dimensions::Vector{Int}
-end
-
-function unpack(params::CvxParameters1310)
-    θ = params.θ
-    polytope_dimensions = params.polytope_dimensions
-    return unpack(θ, polytope_dimensions)
-end
-
-function unpack(θ, context::CvxContext1310)
-    polytope_dimensions = context.polytope_dimensions
-    return unpack(θ, polytope_dimensions)
-end
-
 function unpack(θ::Vector, polytope_dimensions::Vector{Int})
     off = 0
     mass = θ[off .+ (1:1)]; off += 1
@@ -107,6 +84,11 @@ function CvxContext1310(mechanism::Mechanism1170, cameras::Vector{Camera1310{T}}
     return CvxContext1310(mechanism, cameras, polytope_dimensions)
 end
 
+function unpack(θ, context::CvxContext1310)
+    polytope_dimensions = context.polytope_dimensions
+    return unpack(θ, polytope_dimensions)
+end
+
 ## objective
 struct CvxObjective1310{T} <: Objective{T}
     P_state::Diagonal{T, Vector{T}} # state prior regularizing cost
@@ -114,7 +96,6 @@ struct CvxObjective1310{T} <: Objective{T}
     P_parameters::T # parameters prior regularizing cost
     M_point_cloud::T # point cloud measurement regularizing cost
 end
-
 
 function unpack_dynamics(θ)
     mass = θ[1]
@@ -132,25 +113,25 @@ end
 ################################################################################
 # methods
 ################################################################################
-function simulate!(context::Context, state::State, H::Int)
+function simulate!(context::Context, state::Vector, H::Int)
     mechanism = context.mechanism
     nu = mechanism.dimensions.input
     u = zeros(nu)
 
     measurements = Vector{Measurement}()
     for i = 1:H
-        dynamics(state.z, mechanism, state.z, u, nothing)
+        dynamics(state, mechanism, state, u, nothing)
         measurement = measure(context, state)
         push!(measurements, measurement)
     end
     return measurements
 end
 
-function measure(context::CvxContext1310, state::CvxState1310)
+function measure(context::CvxContext1310, state::Vector)
     mechanism = context.mechanism
-    m = deepcopy(state.z)
-    d = get_point_cloud(mechanism, context.cameras, state.z)
-    measurement = CvxMeasurement1310(m, d)
+    z = deepcopy(state)
+    d = get_point_cloud(mechanism, context.cameras, state)
+    measurement = CvxMeasurement1310(z, d)
     return measurement
 end
 
@@ -214,49 +195,51 @@ end
 # norm.(b1 - b)[1]
 # norm.(o1 - o)[1]
 
-function process_model(context::CvxContext1310, state::CvxState1310, params::CvxParameters1310)
+function process_model(context::CvxContext1310, state::Vector, params::Vector)
     set_parameters!(context, params)
 
     mechanism = context.mechanism
-    z0 = state.z
-    u = zeros(mechanism.dimensions.input)
-    z1 = zeros(mechanism.dimensions.state)
-    dynamics(z1, mechanism, z0, u, nothing)
+    nz = mechanism.dimensions.state
+    nu = mechanism.dimensions.input
+    nθ = mechanism.dimensions.parameters
+    num_parameters = length(params)
 
-    next_state = CvxState1310(z1)
+    input = zeros(nu)
+    next_state = zeros(nz)
+    # jacobian_state = zeros(nz, nz)
+    jacobian_parameters = zeros(nz, nθ)
 
-    return next_state, jacobian_state, jacobian_parameters
+    dynamics(next_state, mechanism, state, input, nothing)
+    # dynamics_jacobian_state(jacobian_state, mechanism, state, input, nothing)
+    dynamics_jacobian_parameters(jacobian_parameters, mechanism, state, input, nothing)
+
+    function parameters_mapping(context::CvxContext1310, params::Vector)
+        set_parameters!(context, params)
+        return context.mechanism.parameters
+    end
+    parameters_jacobian = FiniteDiff.finite_difference_jacobian(params -> parameters_mapping(context, params), params)
+
+    # return next_state, jacobian_state, jacobian_parameters * parameters_jacobian
+    return next_state, jacobian_parameters * parameters_jacobian
 end
 
 
+# mech.dimensions
+# mech.solver.dimensions
+# nz = mech.dimensions.state
+# nu = mech.dimensions.input
+# nθ = mech.dimensions.parameters
+# dθ = zeros(nz, nθ)
+# z = rand(nz)
+# u = rand(nu)
+# θ = rand(nθ)
+# dynamics_jacobian_parameters(dθ, mech, z, u, nothing)
+# plot(Gray.(abs.(Matrix(dθ))))
 
+function measurement_model(context::CvxContext1310, state::Vector, params::Vector{T}) where T
+    pose = state[1:3] # TODO this is not safe, we need to make sure these dimensions are the pose dimensions
 
-
-
-mech.dimensions
-mech.solver.dimensions
-nz = mech.dimensions.state
-nu = mech.dimensions.input
-nθ = mech.dimensions.parameters
-dθ = zeros(nz, nθ-1)
-parameters_idx = 2:nθ
-z = rand(nz)
-u = rand(nu)
-θ = rand(nθ-1)
-dynamics_jacobian_parameters(dθ, mech, z, u, θ, parameters_idx, nothing)
-plot(Gray.(abs.(Matrix(dθ))))
-
-
-
-
-
-
-
-function measurement_model(context::CvxContext1310, state::CvxState1310, params::CvxParameters1310{T}) where T
-    z = state.z
-    pose = z[1:3] # TODO this is not safe, we need to make sure these dimensions are the pose dimensions
-
-    mass, inertia, friction_coefficient, Ab, bb, ob = unpack(params)
+    mass, inertia, friction_coefficient, Ab, bb, ob = unpack(params, context)
     Aw, bw, ow = halfspace_transformation(pose, Ab, bb, ob)
     Aw, bw, ow = add_floor(Aw, bw, ow)
 
@@ -265,15 +248,15 @@ function measurement_model(context::CvxContext1310, state::CvxState1310, params:
         di = julia_point_cloud(camera.eye_position, camera.camera_rays, camera.softness, Aw, bw, ow)
         push!(d, di)
     end
-    measurement = CvxMeasurement1310(state.z, d)
+    measurement = CvxMeasurement1310(state, d)
     return measurement
 end
 
-function julia_point_cloud(context::CvxContext1310, z::Vector, θ::Vector,
+function julia_point_cloud(context::CvxContext1310, state::Vector, params::Vector,
         camera_idx::Int, ray_idx::Int) where T
-    pose = z[1:3] # TODO this is not safe, we need to make sure these dimensions are the pose dimensions
+    pose = state[1:3] # TODO this is not safe, we need to make sure these dimensions are the pose dimensions
 
-    mass, inertia, friction_coefficient, Ab, bb, ob = unpack(θ, context)
+    mass, inertia, friction_coefficient, Ab, bb, ob = unpack(params, context)
     Aw, bw, ow = halfspace_transformation(pose, Ab, bb, ob)
     Aw, bw, ow = add_floor(Aw, bw, ow)
 
@@ -282,14 +265,14 @@ function julia_point_cloud(context::CvxContext1310, z::Vector, θ::Vector,
     return d
 end
 
-function julia_point_cloud_jacobian_state(context::CvxContext1310, state::CvxState1310, params::CvxParameters1310{T},
+function julia_point_cloud_jacobian_state(context::CvxContext1310, state::Vector, params::Vector{T},
         camera_idx::Int, ray_idx::Int) where T
-    ForwardDiff.jacobian(z -> julia_point_cloud(context, z, params.θ, camera_idx, ray_idx), state.z)
+    ForwardDiff.jacobian(state -> julia_point_cloud(context, state, params, camera_idx, ray_idx), state)
 end
 
-function julia_point_cloud_jacobian_parameters(context::CvxContext1310, state::CvxState1310, params::CvxParameters1310{T},
+function julia_point_cloud_jacobian_parameters(context::CvxContext1310, state::Vector, params::Vector{T},
         camera_idx::Int, ray_idx::Int) where T
-    ForwardDiff.jacobian(θ -> julia_point_cloud(context, state.z, θ, camera_idx, ray_idx), params.θ)
+    ForwardDiff.jacobian(params -> julia_point_cloud(context, state, params, camera_idx, ray_idx), params)
 end
 
 function get_parameters(context::CvxContext1310)
@@ -298,32 +281,28 @@ function get_parameters(context::CvxContext1310)
     z = zeros(mechanism.dimensions.state)
     A, b, o = get_halfspaces(mechanism, z)
     θ_geometry, polytope_dimensions = pack_halfspaces(A, b, o)
-    num_polytopes = length(polytope_dimensions)
 
     mass = mechanism.bodies[1].mass[1]
     inertia = mechanism.bodies[1].inertia[1]
     friction_coefficient = mechanism.contacts[1].friction_coefficient[1]
 
     θ_dynamics = [mass; inertia; friction_coefficient]
-    θ = [θ_dynamics; θ_geometry]
-    return CvxParameters1310(θ, num_polytopes, polytope_dimensions)
+    params = [θ_dynamics; θ_geometry]
+    return params
 end
 
-function set_parameters!(context::CvxContext1310, params::CvxParameters1310)
-    polytope_dimensions = params.polytope_dimensions
-    np = length(polytope_dimensions)
+function set_parameters!(context::CvxContext1310, params::Vector)
     mechanism = context.mechanism
     bodies = mechanism.bodies
     contacts = mechanism.contacts
-    θ = params.θ
 
     # set geometry
-    θ_geometry = θ[4:end]
-    A, b, o = unpack_halfspaces(θ_geometry, polytope_dimensions)
+    θ_geometry = params[4:end]
+    A, b, o = unpack_halfspaces(θ_geometry, context.polytope_dimensions)
     set_halfspaces!(mechanism, A, b, o)
 
     # set dynamics
-    θ_dynamics = θ[1:3]
+    θ_dynamics = params[1:3]
     mass, inertia, friction_coefficient = unpack_dynamics(θ_dynamics)
     # TODO we need to generalize to many contacts and bodies
     bodies[1].mass[1] = mass
@@ -389,7 +368,7 @@ look_at = [0.0, 0.0]
 softness = 100.0
 cameras = [Camera1310(eye_position, camera_rays, look_at, softness)]
 context = CvxContext1310(mech, cameras)
-state = CvxState1310(z0)
+state = z0
 
 measurements = simulate!(context, state, H0)
 vis, anim = visualize!(vis, context, measurements)
@@ -398,13 +377,12 @@ vis, anim = visualize!(vis, context, measurements)
 # test filtering
 ################################################################################
 function filtering_objective(context::CvxContext1310, obj::CvxObjective1310,
-        state::CvxState1310, params::CvxParameters1310,
-        state_prior::CvxState1310, params_prior::CvxParameters1310,
+        state::Vector, params::Vector, state_prior::Vector, params_prior::Vector,
         measurement::CvxMeasurement1310)
 
-    z1 = state.z
-    θ1 = params.θ
-    θ0 = params_prior.θ
+    z1 = state
+    θ1 = params
+    θ0 = params_prior
     ẑ1 = measurement.z
     d̂1 = measurement.d
     nθ = length(θ0)
@@ -415,8 +393,7 @@ function filtering_objective(context::CvxContext1310, obj::CvxObjective1310,
     # H = zeros(nθ, nθ)
 
     # process model
-    predicted_state = process_model(context, state_prior, params)
-    z̄1 = predicted_state.z
+    z̄1, dz̄1dθ1 = process_model(context, state_prior, params)
     # measurement model
     predicted_measurement = measurement_model(context, state, params)
     d1 = predicted_measurement.d
@@ -426,8 +403,6 @@ function filtering_objective(context::CvxContext1310, obj::CvxObjective1310,
     dcdz1 = ForwardDiff.gradient(z1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), z1)
     dcdθ1 = ForwardDiff.gradient(θ1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), θ1)
     dcdz̄1 = ForwardDiff.gradient(z̄1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), z̄1)
-
-    dz̄1dθ1 =
 
     DcDz1 = dcdz1
     DcDθ1 = dcdθ1 + dz̄1dθ1' * dcdz̄1
@@ -488,19 +463,19 @@ M_point_cloud = 1.0
 obj = CvxObjective1310(P_state, M_observation, P_parameters, M_point_cloud)
 
 
-state_prior = CvxState1310(zf)
-state_guess = CvxState1310(zf)
+state_prior = deepcopy(zf)
+state_guess = deepcopy(zf)
 params_prior = get_parameters(context)
 params_guess = get_parameters(context)
 
-c = filtering_objective(context, obj, state_guess, params_guess,
+c, g = filtering_objective(context, obj, state_guess, params_guess,
     state_prior, params_prior, measurements[end])
 
 # @benchmark filtering_objective(context, obj, state_guess, params_guess,
-#     state_prior, params_prior, measurements[end])
-#
+    # state_prior, params_prior, measurements[end])
+
 # Main.@profiler [filtering_objective(context, obj, state_guess, params_guess,
-#     state_prior, params_prior, measurements[end]) for i=1:1000]
+    # state_prior, params_prior, measurements[end]) for i=1:1000]
 
 
 
