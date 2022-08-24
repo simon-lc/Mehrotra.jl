@@ -3,6 +3,7 @@ function newton_solver!(θinit, loss, Gloss, Hloss, projection, clamping;
         reg_min=1e-4,
         reg_max=1e+0,
         reg_step=2.0,
+        line_search_iterations=15,
         residual_tolerance=1e-4,
         D=Diagonal(ones(length(θinit))))
 
@@ -22,7 +23,7 @@ function newton_solver!(θinit, loss, Gloss, Hloss, projection, clamping;
 
         # linesearch
         α = 1.0
-        for j = 1:10
+        for j = 1:line_search_iterations
             l_candidate = loss(projection(θ + clamping(α * Δθ)))
             if l_candidate <= l
                 reg = clamp(reg/reg_step, reg_min, reg_max)
@@ -30,7 +31,7 @@ function newton_solver!(θinit, loss, Gloss, Hloss, projection, clamping;
             end
             α /= 2
             if j == 10
-                reg = clamp(reg*reg_step, reg_min, reg_max)
+                reg = clamp(reg*reg_step^3, reg_min, reg_max)
             end
         end
 

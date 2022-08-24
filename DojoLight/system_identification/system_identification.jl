@@ -47,8 +47,6 @@ include("../system_identification/visuals.jl")
 
 ## measurement
 struct CvxMeasurement1310{T} <: Measurement{T}
-    # x::Vector{T} # polytope position
-    # q::Vector{T} # polytope orientation
     z::Vector{T} # polytope state, we assume the whole state is observed TODO
     d::Vector{Matrix{T}} # point cloud obtained from several cameras
 end
@@ -365,13 +363,13 @@ eye_position = [-0.0, 3.0]
 num_points = 50
 camera_rays = range(-0.3π, -0.7π, length=num_points)
 look_at = [0.0, 0.0]
-softness = 100.0
+softness = 10.0
 cameras = [Camera1310(eye_position, camera_rays, look_at, softness)]
 context = CvxContext1310(mech, cameras)
 state = z0
 
 measurements = simulate!(context, state, H0)
-vis, anim = visualize!(vis, context, measurements)
+# vis, anim = visualize!(vis, context, measurements)
 
 ################################################################################
 # test filtering
@@ -385,6 +383,7 @@ function filtering_objective(context::CvxContext1310, obj::CvxObjective1310,
     θ0 = params_prior
     ẑ1 = measurement.z
     d̂1 = measurement.d
+    nz = length(z1)
     nθ = length(θ0)
 
     # initialization
@@ -403,6 +402,10 @@ function filtering_objective(context::CvxContext1310, obj::CvxObjective1310,
     dcdz1 = ForwardDiff.gradient(z1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), z1)
     dcdθ1 = ForwardDiff.gradient(θ1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), θ1)
     dcdz̄1 = ForwardDiff.gradient(z̄1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), z̄1)
+    # H = FiniteDiff.finite_difference_hessian(x -> objective_function(obj, x[1:nz], x[nz .+ (1:nθ)], θ0, z̄1, ẑ1, d1, d̂1), [z1; θ1])
+    # H = ForwardDiff.hessian(x -> objective_function(obj, x[1:nz], x[nz .+ (1:nθ)], θ0, z̄1, ẑ1, d1, d̂1), [z1; θ1])
+    # H = ForwardDiff.hessian(z1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), z1)
+    # H = ForwardDiff.hessian(θ1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), θ1)
 
     DcDz1 = dcdz1
     DcDθ1 = dcdθ1 + dz̄1dθ1' * dcdz̄1
@@ -423,11 +426,12 @@ function filtering_objective(context::CvxContext1310, obj::CvxObjective1310,
     end
     g = [DcDz1; DcDθ1]
 
-    # DcD2z1 = dcd2z1 + dd1dz1' * dcd2d1 * dd1dz1
-    # DcD2θ1 = dcd2θ1 +
-    # DcDz1θ1 = dcdz1θ1 +
+    # DcD2z1 = dcd2z1# + dd1dz1' * dcd2d1 * dd1dz1
+    # DcD2θ1 = dcd2θ1# +
+    # DcDz1θ1 = dcdz1θ1# +
     # H = [DcD2z1 DcDz1θ1; DcDz1θ1' DcD2θ1]
-    return c, g#, H
+    H = Diagonal([diag(obj.P_state + obj.M_observation); obj.P_parameters * ones(nθ)])
+    return c, g, H
 end
 
 function objective_function(obj::CvxObjective1310, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1)
@@ -468,14 +472,14 @@ state_guess = deepcopy(zf)
 params_prior = get_parameters(context)
 params_guess = get_parameters(context)
 
-c, g = filtering_objective(context, obj, state_guess, params_guess,
+c, g, H = filtering_objective(context, obj, state_guess, params_guess,
     state_prior, params_prior, measurements[end])
 
 # @benchmark filtering_objective(context, obj, state_guess, params_guess,
-    # state_prior, params_prior, measurements[end])
+#     state_prior, params_prior, measurements[end])
 
 # Main.@profiler [filtering_objective(context, obj, state_guess, params_guess,
-    # state_prior, params_prior, measurements[end]) for i=1:1000]
+#     state_prior, params_prior, measurements[end]) for i=1:100]
 
 
 
@@ -488,64 +492,74 @@ c, g = filtering_objective(context, obj, state_guess, params_guess,
 context = deepcopy(CvxContext1310(mech, cameras))
 
 # objective
-P_state = Diagonal(1e-1ones(6))
+P_state = Diagonal(1e+2ones(6))
 M_observation = 1e-1Diagonal(ones(6))
-P_parameters = 1e-1
-M_point_cloud = 1.0
+P_parameters = 1e-2
+M_point_cloud = 1e-0
 obj = CvxObjective1310(P_state, M_observation, P_parameters, M_point_cloud)
 
-# state_prior
-state_prior = CvxState1310(zf + 3e-1 * (rand(6) .- 0.5))
-# params_prior
+# prior
+state_prior = deepcopy(zf + 0e-1 * (rand(6) .- 0.5))
 params_prior = get_parameters(context)
-params_prior.θ[4:end] .+= 3e-1 * (rand(14) .- 0.5)
+params_prior[4:end] .+= 5e-1 * (rand(14) .- 0.5)
 
-# state_guess
-state_guess= CvxState1310(zf)
-# params_guess
+# guess
+state_guess = deepcopy(zf)
 params_guess = get_parameters(context)
 # params_guess.θ[4:end] .+= 0.01
 
-# state_truth
-state_truth = CvxState1310(zf)
-# params_truth
-params_truth= get_parameters(context)
+# truth
+state_truth = deepcopy(zf)
+params_truth = get_parameters(context)
 
 # measurement
-measurement = measurement_model(context, state_truth, params_truth)
+measurement = measurement_model(context, state_truth + 5e-2(rand(6) .- 0.5), params_truth)
 
 filtering_objective(context, obj, state_guess, params_guess,
     state_prior, params_prior, measurement)
 
 function local_filtering_objective(x)
-    nz = length(state_prior.z)
-    nθ = length(params_prior.θ)
-    state_guess = CvxState1310(x[1:nz])
-    params_guess = CvxParameters1310(x[nz .+ (1:nθ)],
-        params_prior.num_polytopes,
-        params_prior.polytope_dimensions)
+    nz = length(state_prior)
+    nθ = length(params_prior)
+    state_guess = deepcopy(x[1:nz])
+    params_guess = deepcopy(x[nz .+ (1:nθ)])
 
-    c = filtering_objective(context, obj, state_guess, params_guess,
+    c, g, H = filtering_objective(context, obj, state_guess, params_guess,
         state_prior, params_prior, measurement)
     return c
 end
 
 function local_filtering_gradient(x)
-    FiniteDiff.finite_difference_gradient(x -> local_filtering_objective(x), x)
+    nz = length(state_prior)
+    nθ = length(params_prior)
+    state_guess = deepcopy(x[1:nz])
+    params_guess = deepcopy(x[nz .+ (1:nθ)])
+
+    c, g, H = filtering_objective(context, obj, state_guess, params_guess,
+        state_prior, params_prior, measurement)
+    return g
 end
 
 function local_filtering_hessian(x)
-    FiniteDiff.finite_difference_hessian(x -> local_filtering_objective(x), x)
+    nz = length(state_prior)
+    nθ = length(params_prior)
+    state_guess = deepcopy(x[1:nz])
+    params_guess = deepcopy(x[nz .+ (1:nθ)])
+
+    c, g, H = filtering_objective(context, obj, state_guess, params_guess,
+        state_prior, params_prior, measurement)
+    return H
 end
 
-x0 = [state_prior.z; params_prior.θ]# + 100e-2*(rand(23) .- 0.5)
+x0 = [state_prior; params_prior]# + 100e-2*(rand(23) .- 0.5)
 local_filtering_objective(x0)
 local_filtering_gradient(x0)
 local_filtering_hessian(x0)
 
 local_projection = x -> x
 local_clamping = x -> x
-local_D = Diagonal(1e2ones(23))
+nx = length(state_prior) + length(params_prior)
+local_D = Diagonal(1e2ones(nx))
 
 xsol, xtrace = newton_solver!(x0,
     local_filtering_objective,
@@ -555,56 +569,78 @@ xsol, xtrace = newton_solver!(x0,
     local_clamping,
     D=local_D,
     residual_tolerance=1e-4,
-    reg_min=1e-6,
-    reg_max=1e+0,
+    reg_min=1e-2,
+    reg_max=1e+2,
     reg_step=2.0,
     max_iterations=30,
+    line_search_iterations=10,
     )
 
-plot(hcat(xtrace...)')
+# plot(hcat(xtrace...)')
 
 
 # vis = Visualizer()
-# open(vis)
-# set_floor!(vis)
+# render(vis)
+# set_floor!(vis, color=RGBA(0,0,0,0.4))
 # set_light!(vis)
 # set_background!(vis)
 
-anim = MeshCat.Animation(10)
-for (i,x) in enumerate(xtrace)
-    mechanism = context.mechanism
-    nz = context.mechanism.dimensions.state
-    zi = x[1:nz]
-    θi = x[nz+1:end]
-    state_i = CvxState1310(zi)
-    params_i = CvxParameters1310(θi, 1, [4])
-    measurement_i = measurement_model(context, state_i, params_i)
+function visualize_solve!(vis::Visualizer, context::CvxContext1310, solution, trace;
+        framerate::Int=10,
+        name::Symbol=:solve,
+        animation::MeshCat.Animation=MeshCat.Animation(framerate))
 
-    set_parameters!(context, params_i)
-    build_mechanism!(vis[Symbol(i)], mechanism, name=:mechanism, show_contact=false)
-    set_mechanism!(vis[Symbol(i)], mechanism, zi, name=:mechanism)
-    build_point_cloud!(vis[Symbol(i)], [num_points], name=:point_cloud)
-    set_2d_point_cloud!(vis[Symbol(i)], [eye_position], measurement_i.p, name=:point_cloud)
-end
-for i = 1:length(xtrace)
-    atframe(anim, i) do
-        for ii = 1:length(xtrace)
-            setvisible!(vis[Symbol(ii)], ii == i)
+    T = length(trace)
+    nz = context.mechanism.dimensions.state
+    mechanism = context.mechanism
+    cameras = context.cameras
+
+    # build iterates
+    for i = 1:T
+        build_iterate!(vis[name], context, trace[i];
+                name=Symbol(i), color=RGBA(1,1,1,1))
+    end
+
+    # build ground truth
+    build_iterate!(vis[name], context, solution;
+            name=:solution, color=RGBA(1,0,0,1))
+    settransform!(vis[name][:solution], MeshCat.Translation(-0.2,0,0))
+
+    for i = 1:T
+        atframe(animation, i) do
+            for ii = 1:T
+                setvisible!(vis[name][Symbol(ii)], ii == i)
+            end
         end
     end
+    MeshCat.setanimation!(vis, animation)
+    return vis, animation
 end
-build_point_cloud!(vis[:truth], [num_points], name=:point_cloud, color=RGBA(1,0,0,1.0))
-set_2d_point_cloud!(vis[:truth], [eye_position], measurement.p, name=:point_cloud)
-set_parameters!(context, params_truth)
-build_mechanism!(vis[:truth], context.mechanism, name=:mechanism, color=RGBA(1,0,0,1.0), show_contact=false)
-set_mechanism!(vis[:truth], context.mechanism, state_truth.z, name=:mechanism)
-settransform!(vis[:truth], MeshCat.Translation(-0.2,0,0))
 
-MeshCat.setanimation!(vis, anim)
+function build_iterate!(vis::Visualizer, context::CvxContext1310, iterate;
+        name::Symbol=:iterate, color=RGBA(1,1,1,1))
 
-# function set_state!(context::CvxContext1310, state::CvxState1310)
-#     set_current_state!(context.mechanism, state.z)
-#     return nothing
-# end
+    subvis = vis[name]
+    cameras = context.cameras
+    mechanism = context.mechanism
+    nz = mechanism.dimensions.state
 
-# RobotVisualizer.convert_frames_to_video_and_gif("dyn_informed_training_second")
+    state = iterate[1:nz]
+    params = iterate[nz+1:end]
+    measurement = measurement_model(context, state, params)
+
+    set_parameters!(context, params)
+    build_mechanism!(subvis, mechanism, name=:mechanism, show_contact=false, color=color)
+    set_mechanism!(subvis, mechanism, state, name=:mechanism)
+    for (j,camera) in enumerate(cameras)
+        num_points = length(camera.camera_rays)
+        build_point_cloud!(subvis[Symbol(:camera, j)], [num_points], name=:point_cloud, color=color)
+        set_2d_point_cloud!(subvis[Symbol(:camera, j)], [camera.eye_position], measurement.d, name=:point_cloud)
+    end
+
+    return nothing
+end
+
+
+solution = [state_truth; params_truth]
+vis, anim = visualize_solve!(vis, context, solution, xtrace)

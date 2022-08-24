@@ -8,7 +8,10 @@ function build_polytope!(vis::Visualizer, A::Matrix{T}, b::Vector{T};
     h = hrep(A, b)
     p = polyhedron(h)
     m = Polyhedra.Mesh(p)
-    setobject!(vis[name], m, MeshPhongMaterial(color=color))
+    try
+        setobject!(vis[name], m, MeshPhongMaterial(color=color))
+    catch e
+    end
     return nothing
 end
 
@@ -172,10 +175,11 @@ end
 function build_mechanism!(vis::Visualizer, mechanism::Mechanism1170;
         show_contact::Bool=true,
         color=RGBA(0.2, 0.2, 0.2, 0.8),
+        center_of_mass_color=RGBA(1,1,1,1.0),
         name::Symbol=:robot)
 
     for body in mechanism.bodies
-        build_body!(vis[name], body, collider_color=color)
+        build_body!(vis[name], body, collider_color=color, center_of_mass_color=center_of_mass_color)
     end
     if show_contact
         for contact in mechanism.contacts
