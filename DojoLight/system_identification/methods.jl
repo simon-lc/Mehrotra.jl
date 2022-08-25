@@ -15,15 +15,15 @@ function simulate!(context::Context, state::Vector, H::Int)
     return measurements
 end
 
-function measure(context::CvxContext1310, state::Vector)
+function measure(context::CvxContext1320, state::Vector)
     mechanism = context.mechanism
     z = deepcopy(state)
     d = get_point_cloud(mechanism, context.cameras, state)
-    measurement = CvxMeasurement1310(z, d)
+    measurement = CvxMeasurement1320(z, d)
     return measurement
 end
 
-function get_point_cloud(mechanism::Mechanism1170, cameras::Vector{Camera1310{T}}, z) where T
+function get_point_cloud(mechanism::Mechanism1170, cameras::Vector{Camera1320{T}}, z) where T
     d = Vector{Matrix{T}}()
     for camera in cameras
         nr = length(camera.camera_rays)
@@ -85,7 +85,7 @@ end
 
 
 
-function process_model(context::CvxContext1310, state::Vector, params::Vector)
+function process_model(context::CvxContext1320, state::Vector, params::Vector)
     set_parameters!(context, params)
 
     mechanism = context.mechanism
@@ -103,7 +103,7 @@ function process_model(context::CvxContext1310, state::Vector, params::Vector)
     # dynamics_jacobian_state(jacobian_state, mechanism, state, input, nothing)
     dynamics_jacobian_parameters(jacobian_parameters, mechanism, state, input, nothing)
 
-    function parameters_mapping(context::CvxContext1310, params::Vector)
+    function parameters_mapping(context::CvxContext1320, params::Vector)
         set_parameters!(context, params)
         return context.mechanism.parameters
     end
@@ -126,7 +126,7 @@ end
 # dynamics_jacobian_parameters(dθ, mech, z, u, nothing)
 # plot(Gray.(abs.(Matrix(dθ))))
 
-function measurement_model(context::CvxContext1310, state::Vector, params::Vector{T}) where T
+function measurement_model(context::CvxContext1320, state::Vector, params::Vector{T}) where T
     pose = state[1:3] # TODO this is not safe, we need to make sure these dimensions are the pose dimensions
 
     mass, inertia, friction_coefficient, Ab, bb, ob = unpack(params, context)
@@ -138,11 +138,11 @@ function measurement_model(context::CvxContext1310, state::Vector, params::Vecto
         di = julia_point_cloud(camera.eye_position, camera.camera_rays, camera.softness, Aw, bw, ow)
         push!(d, di)
     end
-    measurement = CvxMeasurement1310(state, d)
+    measurement = CvxMeasurement1320(state, d)
     return measurement
 end
 
-function julia_point_cloud(context::CvxContext1310, state::Vector, params::Vector,
+function julia_point_cloud(context::CvxContext1320, state::Vector, params::Vector,
         camera_idx::Int, ray_idx::Int) where T
     pose = state[1:3] # TODO this is not safe, we need to make sure these dimensions are the pose dimensions
 
@@ -155,17 +155,17 @@ function julia_point_cloud(context::CvxContext1310, state::Vector, params::Vecto
     return d
 end
 
-function julia_point_cloud_jacobian_state(context::CvxContext1310, state::Vector, params::Vector{T},
+function julia_point_cloud_jacobian_state(context::CvxContext1320, state::Vector, params::Vector{T},
         camera_idx::Int, ray_idx::Int) where T
     ForwardDiff.jacobian(state -> julia_point_cloud(context, state, params, camera_idx, ray_idx), state)
 end
 
-function julia_point_cloud_jacobian_parameters(context::CvxContext1310, state::Vector, params::Vector{T},
+function julia_point_cloud_jacobian_parameters(context::CvxContext1320, state::Vector, params::Vector{T},
         camera_idx::Int, ray_idx::Int) where T
     ForwardDiff.jacobian(params -> julia_point_cloud(context, state, params, camera_idx, ray_idx), params)
 end
 
-function get_parameters(context::CvxContext1310)
+function get_parameters(context::CvxContext1320)
     mechanism = context.mechanism
 
     z = zeros(mechanism.dimensions.state)
@@ -181,7 +181,7 @@ function get_parameters(context::CvxContext1310)
     return params
 end
 
-function set_parameters!(context::CvxContext1310, params::Vector)
+function set_parameters!(context::CvxContext1320, params::Vector)
     mechanism = context.mechanism
     bodies = mechanism.bodies
     contacts = mechanism.contacts
@@ -210,3 +210,34 @@ end
 # set_parameters!(context, params0)
 # params1 = get_parameters(context)
 # norm(params0.θ - params1.θ)
+
+
+
+
+function projection(context::CvxContext1320, x;
+        bound_mass=[1e-1, 1e1],
+        bound_inertia=[1e-1, 1e1],
+        bound_friction_coefficient=[0.0, 2.0],
+        bound_b=[5e-2, 1e0],
+        bound_o=[-3.0, 3.0],
+        )
+    nz = context.mechanism.dimensions.state
+    state = deepcopy(x[1:nz])
+    params = deepcopy(x[nz+1:end])
+    mass, inertia, friction_coefficient, A, b, o = unpack(params, context)
+    mass = clamp(mass, bound_mass...)
+    inertia = clamp(inertia, bound_inertia...)
+    friction_coefficient = clamp(friction_coefficient, bound_friction_coefficient...)
+
+    for i = 1:length(A)
+        for j = 1:size(A[i],1)
+            A[i][j,:] ./= norm(A[i][j,:]) + 1e-5
+        end
+    end
+    b = [clamp.(bi, bound_b...) for bi in b]
+    o = [clamp.(oi, bound_o...) for oi in o]
+
+    π_params = pack(mass, inertia, friction_coefficient, A, b, o)
+    π_x = [state; π_params]
+    return π_x
+end

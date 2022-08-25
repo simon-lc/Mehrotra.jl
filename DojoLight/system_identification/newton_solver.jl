@@ -1,37 +1,37 @@
-function newton_solver!(θinit, loss, Gloss, Hloss, projection, clamping;
+function newton_solver!(xinit, loss, gloss, Hloss, projection, clamping;
         max_iterations=20,
         reg_min=1e-4,
         reg_max=1e+0,
         reg_step=2.0,
         line_search_iterations=15,
         residual_tolerance=1e-4,
-        D=Diagonal(ones(length(θinit))))
+        D=Diagonal(ones(length(xinit))))
 
-    θ = deepcopy(θinit)
-    trace = [deepcopy(θ)]
+    x = deepcopy(xinit)
+    trace = [deepcopy(x)]
     reg = reg_max
 
     # newton's method
     for iterations = 1:max_iterations
-        l = loss(θ)
+        l = loss(x)
         (l < residual_tolerance) && break
-        G = Gloss(θ)
-        H = Hloss(θ)
+        g = gloss(x)
+        H = Hloss(x)
 
-        # reg = clamp(norm(G, Inf)/10, reg_min, reg_max)
-        Δθ = - (H + reg * D) \ G
+        # reg = clamp(norm(g, Inf)/10, reg_min, reg_max)
+        Δx = - (H + reg * D) \ g
 
         # linesearch
         α = 1.0
         for j = 1:line_search_iterations
-            l_candidate = loss(projection(θ + clamping(α * Δθ)))
+            l_candidate = loss(projection(x + clamping(α * Δx)))
             if l_candidate <= l
                 reg = clamp(reg/reg_step, reg_min, reg_max)
                 break
             end
             α /= 2
             if j == 10
-                reg = clamp(reg*reg_step^3, reg_min, reg_max)
+                reg = clamp(reg*exp(3.0*log(reg_step)), reg_min, reg_max)
             end
         end
 
@@ -46,12 +46,12 @@ function newton_solver!(θinit, loss, Gloss, Hloss, projection, clamping;
             iterations,
             l,
             mean(α),
-            norm(clamping(α * Δθ), Inf),
-            norm(G, Inf),
+            norm(clamping(α * Δx), Inf),
+            norm(g, Inf),
             reg,
             )
-        θ = projection(θ + clamping(α * Δθ))
-        push!(trace, deepcopy(θ))
+        x = projection(x + clamping(α * Δx))
+        push!(trace, deepcopy(x))
     end
-    return θ, trace
+    return x, trace
 end

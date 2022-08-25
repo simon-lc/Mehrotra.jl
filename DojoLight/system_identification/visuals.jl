@@ -1,4 +1,4 @@
-function visualize!(vis::Visualizer, context::CvxContext1310, measurements::Vector{<:Measurement};
+function visualize!(vis::Visualizer, context::CvxContext1320, measurements::Vector{<:Measurement};
         animation::MeshCat.Animation=MeshCat.Animation(), name::Symbol=:context)
 
     mechanism = context.mechanism
@@ -24,7 +24,7 @@ function visualize!(vis::Visualizer, context::CvxContext1310, measurements::Vect
 end
 
 
-function visualize_solve!(vis::Visualizer, context::CvxContext1310, prior, solution, trace;
+function visualize_solve!(vis::Visualizer, context::CvxContext1320, prior, solution, trace;
         framerate::Int=10,
         name::Symbol=:solve,
         animation::MeshCat.Animation=MeshCat.Animation(framerate))
@@ -56,7 +56,7 @@ function visualize_solve!(vis::Visualizer, context::CvxContext1310, prior, solut
     return vis, animation
 end
 
-function build_iterate!(vis::Visualizer, context::CvxContext1310, prior, iterate;
+function build_iterate!(vis::Visualizer, context::CvxContext1320, prior, iterate;
         name::Symbol=:iterate,
         color=RGBA(1,1,1,0.4),
         color_prior=RGBA(0.3,0.3,0.3,0.4),

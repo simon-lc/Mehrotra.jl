@@ -85,8 +85,8 @@ num_points = 50
 camera_rays = range(-0.3π, -0.7π, length=num_points)
 look_at = [0.0, 0.0]
 softness = 2.5
-cameras = [Camera1310(eye_position, camera_rays, look_at, softness)]
-context = CvxContext1310(mech, cameras)
+cameras = [Camera1320(eye_position, camera_rays, look_at, softness)]
+context = CvxContext1320(mech, cameras)
 state = z0
 
 measurements = simulate!(context, state, H0)
@@ -95,9 +95,9 @@ measurements = simulate!(context, state, H0)
 ################################################################################
 # test filtering
 ################################################################################
-function filtering_objective(context::CvxContext1310, obj::CvxObjective1310,
+function filtering_objective(context::CvxContext1320, obj::CvxObjective1320,
         state::Vector, params::Vector, state_prior::Vector, params_prior::Vector,
-        measurement::CvxMeasurement1310)
+        measurement::CvxMeasurement1320)
 
     z1 = state
     θ1 = params
@@ -142,14 +142,14 @@ function filtering_objective(context::CvxContext1310, obj::CvxObjective1310,
     # DcD2θ1 = dcd2θ1# +
     # DcDz1θ1 = dcdz1θ1# +
     # H = [DcD2z1 DcDz1θ1; DcDz1θ1' DcD2θ1]
-    H = Diagonal([diag(obj.P_state + obj.M_observation); obj.P_parameters * ones(nθ)])
+    H = Diagonal([diag(obj.P_state + obj.M_observation); diag(obj.P_parameters)])
     return c, g, H
 end
 
-function objective_function(obj::CvxObjective1310, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1)
+function objective_function(obj::CvxObjective1320, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1)
     c = 0.0
     # prior parameters cost
-    c += 0.5 * obj.P_parameters * (θ1 - θ0)' * (θ1 - θ0)
+    c += 0.5 * (θ1 - θ0)' * obj.P_parameters * (θ1 - θ0)
     # prior state cost (process model = dynamics)
     c += 0.5 * (z1 - z̄1)' * obj.P_state * (z1 - z̄1)
     # measurement state cost (measurement model = identity)
@@ -167,16 +167,16 @@ function objective_function(obj::CvxObjective1310, z1, θ1, θ0, z̄1, ẑ1, d1,
     return c
 end
 
-function point_cloud_objective_function(obj::CvxObjective1310, d::Vector, d̂::Vector)
-    0.5 * obj.M_point_cloud * (d - d̂)' * (d - d̂)
+function point_cloud_objective_function(obj::CvxObjective1320, d::Vector, d̂::Vector)
+    0.5 * obj.M_point_cloud * (d - d̂)' * (d - d̂) + 0.5 * obj.M_point_cloud * norm(d - d̂)
 end
 
 
 P_state = Diagonal(ones(6))
 M_observation = Diagonal(ones(6))
-P_parameters = 1.0
+P_parameters = Diagonal([1e2*ones(3); 1e-4*ones(14)])
 M_point_cloud = 1.0
-obj = CvxObjective1310(P_state, M_observation, P_parameters, M_point_cloud)
+obj = CvxObjective1320(P_state, M_observation, P_parameters, M_point_cloud)
 
 
 state_prior = deepcopy(zf)
@@ -201,17 +201,17 @@ c, g, H = filtering_objective(context, obj, state_guess, params_guess,
 ################################################################################
 
 # context
-context = deepcopy(CvxContext1310(mech, cameras))
+context = deepcopy(CvxContext1320(mech, cameras))
 
 # objective
 P_state = Diagonal(1e+2ones(6))
 M_observation = 1e-2Diagonal(ones(6))
-P_parameters = 3e-3
+P_parameters = Diagonal([1e2*ones(3); 1e-4*ones(14)])
 M_point_cloud = 1e-0
-obj = CvxObjective1310(P_state, M_observation, P_parameters, M_point_cloud)
+obj = CvxObjective1320(P_state, M_observation, P_parameters, M_point_cloud)
 
 # prior
-state_prior = deepcopy(zf + 2e-1 * (rand(6) .- 0.5))
+state_prior = deepcopy(zf + 3e-2 * (rand(6) .- 0.5))
 params_prior = get_parameters(context)
 params_prior[4:end] .+= 5e-1 * (rand(14) .- 0.5)
 
@@ -265,44 +265,14 @@ function local_filtering_hessian(x)
     return H
 end
 
-x0 = [state_prior; params_prior]# + 100e-2*(rand(23) .- 0.5)
+x0 = [state_prior; params_prior]
 local_filtering_objective(x0)
 local_filtering_gradient(x0)
 local_filtering_hessian(x0)
-
-function projection(context::CvxContext1310, x;
-        bound_mass=[1e-1, 1e1],
-        bound_inertia=[1e-1, 1e1],
-        bound_friction_coefficient=[0.0, 2.0],
-        bound_b=[5e-2, 1e0],
-        bound_o=[-3.0, 3.0],
-        )
-    nz = context.mechanism.dimensions.state
-    state = deepcopy(x[1:nz])
-    params = deepcopy(x[nz+1:end])
-    mass, inertia, friction_coefficient, A, b, o = unpack(params, context)
-    mass = clamp(mass, bound_mass...)
-    inertia = clamp(inertia, bound_inertia...)
-    friction_coefficient = clamp(friction_coefficient, bound_friction_coefficient...)
-
-    for i = 1:length(A)
-        for j = 1:size(A[i],1)
-            A[i][j,:] ./= norm(A[i][j,:]) + 1e-5
-        end
-    end
-    b = [clamp.(bi, bound_b...) for bi in b]
-    o = [clamp.(oi, bound_o...) for oi in o]
-
-    π_params = pack(mass, inertia, friction_coefficient, A, b, o)
-    π_x = [state; π_params]
-    return π_x
-end
-
 local_projection100(x) = projection(context, x)
 local_clamping = x -> x
 
-x0
-projection(context, x0)
+
 xsol, xtrace = newton_solver!(x0,
     local_filtering_objective,
     local_filtering_gradient,
@@ -318,7 +288,7 @@ xsol, xtrace = newton_solver!(x0,
     )
 
 # plot(hcat(xtrace...)')
-
+xsol
 
 # vis = Visualizer()
 # render(vis)
@@ -329,6 +299,6 @@ xsol, xtrace = newton_solver!(x0,
 prior = [state_prior; params_prior]
 solution = [state_truth; params_truth]
 vis, anim = visualize_solve!(vis, context, prior, solution, xtrace)
-
-
 # open(vis)
+
+# RobotVisualizer.convert_frames_to_video_and_gif("one_step_filtering")

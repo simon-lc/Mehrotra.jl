@@ -30,7 +30,7 @@ abstract type Optimizer{T} end
 ################################################################################
 
 ## measurement
-struct CvxMeasurement1310{T} <: Measurement{T}
+struct CvxMeasurement1320{T} <: Measurement{T}
     z::Vector{T} # polytope state, we assume the whole state is observed TODO
     d::Vector{Matrix{T}} # point cloud obtained from several cameras
 end
@@ -56,7 +56,7 @@ function unpack_inertial(θ)
 end
 
 # camera
-struct Camera1310{T}
+struct Camera1320{T}
     eye_position::Vector{T}
     camera_rays
     look_at::Vector{T}
@@ -64,34 +64,34 @@ struct Camera1310{T}
 end
 
 ## context
-struct CvxContext1310{T} <: Context{T}
+struct CvxContext1320{T} <: Context{T}
     mechanism::Mechanism1170
-    cameras::Vector{Camera1310{T}}
+    cameras::Vector{Camera1320{T}}
     polytope_dimensions::Vector{Int}
 end
 
-function CvxContext1310(mechanism::Mechanism1170, cameras::Vector{Camera1310{T}}) where T
+function CvxContext1320(mechanism::Mechanism1170, cameras::Vector{Camera1320{T}}) where T
     z = zeros(mechanism.dimensions.state)
     A, b, o = get_halfspaces(mechanism, z)
     θ_geometry, polytope_dimensions = pack_halfspaces(A, b, o)
-    return CvxContext1310(mechanism, cameras, polytope_dimensions)
+    return CvxContext1320(mechanism, cameras, polytope_dimensions)
 end
 
-function unpack(θ, context::CvxContext1310)
+function unpack(θ, context::CvxContext1320)
     polytope_dimensions = context.polytope_dimensions
     return unpack(θ, polytope_dimensions)
 end
 
 ## objective
-struct CvxObjective1310{T} <: Objective{T}
+struct CvxObjective1320{T} <: Objective{T}
     P_state::Diagonal{T, Vector{T}} # state prior regularizing cost
     M_observation::Diagonal{T, Vector{T}} # observation measurement regularizing cost
-    P_parameters::T # parameters prior regularizing cost
+    P_parameters::Diagonal{T, Vector{T}} # parameters prior regularizing cost
     M_point_cloud::T # point cloud measurement regularizing cost
 end
 
 ## optimizer
-struct CvxOptimizer1310{T} <: Optimizer{T}
-    context::CvxContext1310{T}
-    objective::CvxObjective1310{T}
+struct CvxOptimizer1320{T} <: Optimizer{T}
+    context::CvxContext1320{T}
+    objective::CvxObjective1320{T}
 end
