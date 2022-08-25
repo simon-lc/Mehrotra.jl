@@ -1,5 +1,6 @@
 function visualize!(vis::Visualizer, context::CvxContext1320, measurements::Vector{<:Measurement};
-        animation::MeshCat.Animation=MeshCat.Animation(), name::Symbol=:context)
+        animation::MeshCat.Animation=MeshCat.Animation(Int(floor(1/context.mechanism.bodies[1].timestep[1]))),
+        name::Symbol=:context)
 
     mechanism = context.mechanism
     cameras = context.cameras
@@ -22,7 +23,6 @@ function visualize!(vis::Visualizer, context::CvxContext1320, measurements::Vect
     _, animation = visualize!(vis[name], mechanism, [m.z for m in measurements], animation=animation)
     return vis, animation
 end
-
 
 function visualize_solve!(vis::Visualizer, context::CvxContext1320, prior, solution, trace;
         framerate::Int=10,

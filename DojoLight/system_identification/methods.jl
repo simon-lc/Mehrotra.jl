@@ -241,3 +241,83 @@ function projection(context::CvxContext1320, x;
     π_x = [state; π_params]
     return π_x
 end
+
+
+################################################################################
+# test filtering
+################################################################################
+function filtering_objective(context::CvxContext1320, obj::CvxObjective1320,
+        state::Vector, params::Vector, state_prior::Vector, params_prior::Vector,
+        measurement::CvxMeasurement1320)
+
+    z1 = state
+    θ1 = params
+    θ0 = params_prior
+    ẑ1 = measurement.z
+    d̂1 = measurement.d
+    nz = length(z1)
+    nθ = length(θ0)
+
+    # process model
+    z̄1, dz̄1dθ1 = process_model(context, state_prior, params)
+    # measurement model
+    predicted_measurement = measurement_model(context, state, params)
+    d1 = predicted_measurement.d
+
+    c = objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1)
+
+    dcdz1 = ForwardDiff.gradient(z1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), z1)
+    dcdθ1 = ForwardDiff.gradient(θ1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), θ1)
+    dcdz̄1 = ForwardDiff.gradient(z̄1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), z̄1)
+
+    DcDz1 = dcdz1
+    DcDθ1 = dcdθ1 + dz̄1dθ1' * dcdz̄1
+
+    num_cameras = length(d1)
+    for i = 1:num_cameras
+        camera = context.cameras[i]
+        num_rays = size(d1[i], 2)
+        for j = 1:num_rays
+            di = d1[i][:,j]
+            d̂i = d̂1[i][:,j]
+            dcdd1 = ForwardDiff.gradient(di -> point_cloud_objective_function(obj, di, d̂i), di)
+            dd1dz1 = julia_point_cloud_jacobian_state(context, state, params, i, j)
+            dd1dθ1 = julia_point_cloud_jacobian_parameters(context, state, params, i, j)
+            DcDz1 += dd1dz1' * dcdd1
+            DcDθ1 += dd1dθ1' * dcdd1
+        end
+    end
+    g = [DcDz1; DcDθ1]
+
+    # DcD2z1 = dcd2z1# + dd1dz1' * dcd2d1 * dd1dz1
+    # DcD2θ1 = dcd2θ1# +
+    # DcDz1θ1 = dcdz1θ1# +
+    # H = [DcD2z1 DcDz1θ1; DcDz1θ1' DcD2θ1]
+    H = Diagonal([diag(obj.P_state + obj.M_observation); diag(obj.P_parameters)])
+    return c, g, H
+end
+
+function objective_function(obj::CvxObjective1320, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1)
+    c = 0.0
+    # prior parameters cost
+    c += 0.5 * (θ1 - θ0)' * obj.P_parameters * (θ1 - θ0)
+    # prior state cost (process model = dynamics)
+    c += 0.5 * (z1 - z̄1)' * obj.P_state * (z1 - z̄1)
+    # measurement state cost (measurement model = identity)
+    c += 0.5 * (z1 - ẑ1)' * obj.M_observation * (z1 - ẑ1)
+    # measurement parameter cost (measurement model = point cloud)
+    num_cameras = length(d1)
+    for i = 1:num_cameras
+        num_rays = size(d1[i],2)
+        for j = 1:num_rays
+            di = d1[i][:,j]
+            d̂i = d̂1[i][:,j]
+            c += point_cloud_objective_function(obj, di, d̂i)
+        end
+    end
+    return c
+end
+
+function point_cloud_objective_function(obj::CvxObjective1320, d::Vector, d̂::Vector)
+    0.5 * obj.M_point_cloud * (d - d̂)' * (d - d̂) + 0.5 * obj.M_point_cloud * norm(d - d̂)
+end

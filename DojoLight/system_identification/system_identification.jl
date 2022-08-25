@@ -44,11 +44,11 @@ include("../system_identification/visuals.jl")
 ################################################################################
 # demo
 ################################################################################
-timestep = 0.20;
+timestep = 0.10;
 gravity = -9.81;
 mass = 1.0;
 inertia = 0.2 * ones(1,1);
-friction_coefficient = 0.1
+friction_coefficient = 0.05
 
 mech = get_polytope_drop(;
 # mech = get_bundle_drop(;
@@ -73,8 +73,8 @@ mech = get_polytope_drop(;
 ################################################################################
 # test simulation
 ################################################################################
-xp2 = [+0.0,1.5,-0.25]
-vp15 = [-0,0,-0.0]
+xp2 = [-0.80, +0.5, +0.0]
+vp15 = [+1,0, -0.0]
 z0 = [xp2; vp15]
 H0 = 20
 storage = simulate!(mech, z0, H0)
@@ -90,88 +90,12 @@ context = CvxContext1320(mech, cameras)
 state = z0
 
 measurements = simulate!(context, state, H0)
-# vis, anim = visualize!(vis, context, measurements)
+vis, anim = visualize!(vis, context, measurements)
+
 
 ################################################################################
-# test filtering
+# test filtering objective
 ################################################################################
-function filtering_objective(context::CvxContext1320, obj::CvxObjective1320,
-        state::Vector, params::Vector, state_prior::Vector, params_prior::Vector,
-        measurement::CvxMeasurement1320)
-
-    z1 = state
-    θ1 = params
-    θ0 = params_prior
-    ẑ1 = measurement.z
-    d̂1 = measurement.d
-    nz = length(z1)
-    nθ = length(θ0)
-
-    # process model
-    z̄1, dz̄1dθ1 = process_model(context, state_prior, params)
-    # measurement model
-    predicted_measurement = measurement_model(context, state, params)
-    d1 = predicted_measurement.d
-
-    c = objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1)
-
-    dcdz1 = ForwardDiff.gradient(z1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), z1)
-    dcdθ1 = ForwardDiff.gradient(θ1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), θ1)
-    dcdz̄1 = ForwardDiff.gradient(z̄1 -> objective_function(obj, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1), z̄1)
-
-    DcDz1 = dcdz1
-    DcDθ1 = dcdθ1 + dz̄1dθ1' * dcdz̄1
-
-    num_cameras = length(d1)
-    for i = 1:num_cameras
-        camera = context.cameras[i]
-        num_rays = size(d1[i], 2)
-        for j = 1:num_rays
-            di = d1[i][:,j]
-            d̂i = d̂1[i][:,j]
-            dcdd1 = ForwardDiff.gradient(di -> point_cloud_objective_function(obj, di, d̂i), di)
-            dd1dz1 = julia_point_cloud_jacobian_state(context, state, params, i, j)
-            dd1dθ1 = julia_point_cloud_jacobian_parameters(context, state, params, i, j)
-            DcDz1 += dd1dz1' * dcdd1
-            DcDθ1 += dd1dθ1' * dcdd1
-        end
-    end
-    g = [DcDz1; DcDθ1]
-
-    # DcD2z1 = dcd2z1# + dd1dz1' * dcd2d1 * dd1dz1
-    # DcD2θ1 = dcd2θ1# +
-    # DcDz1θ1 = dcdz1θ1# +
-    # H = [DcD2z1 DcDz1θ1; DcDz1θ1' DcD2θ1]
-    H = Diagonal([diag(obj.P_state + obj.M_observation); diag(obj.P_parameters)])
-    return c, g, H
-end
-
-function objective_function(obj::CvxObjective1320, z1, θ1, θ0, z̄1, ẑ1, d1, d̂1)
-    c = 0.0
-    # prior parameters cost
-    c += 0.5 * (θ1 - θ0)' * obj.P_parameters * (θ1 - θ0)
-    # prior state cost (process model = dynamics)
-    c += 0.5 * (z1 - z̄1)' * obj.P_state * (z1 - z̄1)
-    # measurement state cost (measurement model = identity)
-    c += 0.5 * (z1 - ẑ1)' * obj.M_observation * (z1 - ẑ1)
-    # measurement parameter cost (measurement model = point cloud)
-    num_cameras = length(d1)
-    for i = 1:num_cameras
-        num_rays = size(d1[i],2)
-        for j = 1:num_rays
-            di = d1[i][:,j]
-            d̂i = d̂1[i][:,j]
-            c += point_cloud_objective_function(obj, di, d̂i)
-        end
-    end
-    return c
-end
-
-function point_cloud_objective_function(obj::CvxObjective1320, d::Vector, d̂::Vector)
-    0.5 * obj.M_point_cloud * (d - d̂)' * (d - d̂) + 0.5 * obj.M_point_cloud * norm(d - d̂)
-end
-
-
 P_state = Diagonal(ones(6))
 M_observation = Diagonal(ones(6))
 P_parameters = Diagonal([1e2*ones(3); 1e-4*ones(14)])
@@ -185,21 +109,20 @@ params_prior = get_parameters(context)
 params_guess = get_parameters(context)
 
 c, g, H = filtering_objective(context, obj, state_guess, params_guess,
-    state_prior, params_prior, measurements[end])
+    state_prior, params_prior, deepcopy(measurements[end]))
 
 # @benchmark filtering_objective(context, obj, state_guess, params_guess,
-#     state_prior, params_prior, measurements[end])
+#     state_prior, params_prior, deepcopy(measurements[end]))
 
 # Main.@profiler [filtering_objective(context, obj, state_guess, params_guess,
-#     state_prior, params_prior, measurements[end]) for i=1:100]
+#     state_prior, params_prior, deepcopy(measurements[end])) for i=1:100]
 
 
 
 
 ################################################################################
-# filtering demo
+# one step filtering demo
 ################################################################################
-
 # context
 context = deepcopy(CvxContext1320(mech, cameras))
 
@@ -233,10 +156,9 @@ filtering_objective(context, obj, state_guess, params_guess,
     state_prior, params_prior, measurement)
 
 function local_filtering_objective(x)
-    nz = length(state_prior)
-    nθ = length(params_prior)
+    nz = context.mechanism.dimensions.state
     state_guess = deepcopy(x[1:nz])
-    params_guess = deepcopy(x[nz .+ (1:nθ)])
+    params_guess = deepcopy(x[nz+1:end])
 
     c, g, H = filtering_objective(context, obj, state_guess, params_guess,
         state_prior, params_prior, measurement)
@@ -244,10 +166,9 @@ function local_filtering_objective(x)
 end
 
 function local_filtering_gradient(x)
-    nz = length(state_prior)
-    nθ = length(params_prior)
+    nz = context.mechanism.dimensions.state
     state_guess = deepcopy(x[1:nz])
-    params_guess = deepcopy(x[nz .+ (1:nθ)])
+    params_guess = deepcopy(x[nz+1:end])
 
     c, g, H = filtering_objective(context, obj, state_guess, params_guess,
         state_prior, params_prior, measurement)
@@ -255,10 +176,9 @@ function local_filtering_gradient(x)
 end
 
 function local_filtering_hessian(x)
-    nz = length(state_prior)
-    nθ = length(params_prior)
+    nz = context.mechanism.dimensions.state
     state_guess = deepcopy(x[1:nz])
-    params_guess = deepcopy(x[nz .+ (1:nθ)])
+    params_guess = deepcopy(x[nz+1:end])
 
     c, g, H = filtering_objective(context, obj, state_guess, params_guess,
         state_prior, params_prior, measurement)
@@ -272,7 +192,6 @@ local_filtering_hessian(x0)
 local_projection100(x) = projection(context, x)
 local_clamping = x -> x
 
-
 xsol, xtrace = newton_solver!(x0,
     local_filtering_objective,
     local_filtering_gradient,
@@ -282,13 +201,12 @@ xsol, xtrace = newton_solver!(x0,
     residual_tolerance=1e-4,
     reg_min=1e-0,
     reg_max=1e+3,
-    reg_step=2.0,
-    max_iterations=30,
+    reg_step=1.3,
+    max_iterations=20,
     line_search_iterations=10,
     )
 
 # plot(hcat(xtrace...)')
-xsol
 
 # vis = Visualizer()
 # render(vis)
@@ -299,6 +217,103 @@ xsol
 prior = [state_prior; params_prior]
 solution = [state_truth; params_truth]
 vis, anim = visualize_solve!(vis, context, prior, solution, xtrace)
-# open(vis)
 
-# RobotVisualizer.convert_frames_to_video_and_gif("one_step_filtering")
+
+
+
+################################################################################
+# multi step filtering demo
+################################################################################
+
+# vis = Visualizer()
+# render(vis)
+# set_floor!(vis, color=RGBA(0,0,0,0.4))
+# set_light!(vis)
+# set_background!(vis)
+
+# generate reference trajectory
+
+# context
+context = deepcopy(CvxContext1320(mech, cameras))
+
+# objective
+P_state = Diagonal(1e+2ones(6))
+M_observation = 1e-2Diagonal(ones(6))
+P_parameters = Diagonal([1e2*ones(3); 1e-4*ones(14)])
+M_point_cloud = 1e-0
+obj = CvxObjective1320(P_state, M_observation, P_parameters, M_point_cloud)
+
+# local functions
+local_projection100(x) = projection(context, x)
+local_clamping = x -> x
+
+# truth
+params_truth = get_parameters(context)
+
+# prior
+state_prior = deepcopy(measurements[1].z)
+params_prior = get_parameters(context)
+# params_prior[4:end] .+= 2e-1 * ([1,0,1,1,1,0,0,1,0,1,1,1,0,1] .- 0.5)
+
+x_prior = deepcopy([state_prior; params_prior])
+x = deepcopy([measurements[2].z; params_prior])
+
+for i = 2:H0
+    println("step $i")
+    nz = context.mechanism.dimensions.state
+
+    # cheating
+    x_prior[1:nz] .= deepcopy(measurements[i-1].z)
+    x_prior[nz+1:end] .= deepcopy(params_truth)
+    x[1:nz] .= deepcopy(measurements[i].z)
+    x[nz+1:end] .= deepcopy(params_truth)
+
+
+    function local_filtering_objective(x)
+        nz = context.mechanism.dimensions.state
+        state_guess = deepcopy(x[1:nz])
+        params_guess = deepcopy(x[nz+1:end])
+        state_prior = deepcopy(x_prior[1:nz])
+        params_prior = deepcopy(x_prior[nz+1:end])
+
+        c, g, H = filtering_objective(context, obj, state_guess, params_guess,
+            state_prior, params_prior, measurements[i])
+        return c, g, H
+    end
+
+    local_objective(x) = local_filtering_objective(x)[1]
+    local_gradient(x) = local_filtering_objective(x)[2]
+    local_hessian(x) = local_filtering_objective(x)[3]
+
+    x_sol, x_trace = newton_solver!(x,
+        local_objective,
+        local_gradient,
+        local_hessian,
+        local_projection100,
+        local_clamping,
+        residual_tolerance=1e-3,
+        reg_min=1e-0,
+        reg_max=1e+3,
+        reg_step=1.3,
+        max_iterations=20,
+        line_search_iterations=10,
+        )
+
+    vis, anim = visualize_solve!(vis, context, x_prior, x_sol, x_trace)
+
+    x_prior = deepcopy(x_sol)
+end
+
+
+predicted_measurement = measurement_model(context, measurements[2].z, params_truth)
+measurements[2].z - predicted_measurement.z
+measurements[2].d - predicted_measurement.d
+
+
+
+
+# vis = Visualizer()
+# render(vis)
+# set_floor!(vis, color=RGBA(0,0,0,0.4))
+# set_light!(vis)
+# set_background!(vis)
