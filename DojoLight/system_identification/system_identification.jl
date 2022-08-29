@@ -238,8 +238,8 @@ context = deepcopy(CvxContext1320(mech, cameras))
 
 # objective
 P_state = Diagonal(1e+2ones(6))
-M_observation = 1e-2Diagonal(ones(6))
-P_parameters = Diagonal([1e2*ones(3); 1e-4*ones(14)])
+M_observation = 1e+2Diagonal(ones(6))
+P_parameters = Diagonal([1e2*ones(3); 1e-2*ones(14)])
 M_point_cloud = 1e-0
 obj = CvxObjective1320(P_state, M_observation, P_parameters, M_point_cloud)
 
@@ -252,21 +252,24 @@ params_truth = get_parameters(context)
 
 # prior
 state_prior = deepcopy(measurements[1].z)
-params_prior = get_parameters(context)
-# params_prior[4:end] .+= 2e-1 * ([1,0,1,1,1,0,0,1,0,1,1,1,0,1] .- 0.5)
+params_truth = get_parameters(context)
+params_prior = deepcopy.(params_truth)
+params_prior[4:end] .+= 2e-1 * ([1,0,1,1,1,0,0,1,0,1,1,1,0,1] .- 0.5)
 
 x_prior = deepcopy([state_prior; params_prior])
 x = deepcopy([measurements[2].z; params_prior])
 
-for i = 2:H0
+for i = 2:20
     println("step $i")
     nz = context.mechanism.dimensions.state
 
     # cheating
     x_prior[1:nz] .= deepcopy(measurements[i-1].z)
-    x_prior[nz+1:end] .= deepcopy(params_truth)
+    # x_prior[nz+1:end] .= deepcopy(params_truth)
+    x .= deepcopy(x_prior)
     x[1:nz] .= deepcopy(measurements[i].z)
-    x[nz+1:end] .= deepcopy(params_truth)
+
+    # x[nz+1:end] .= deepcopy(params_truth)
 
 
     function local_filtering_objective(x)
@@ -295,12 +298,13 @@ for i = 2:H0
         reg_min=1e-0,
         reg_max=1e+3,
         reg_step=1.3,
-        max_iterations=20,
+        max_iterations=5,
         line_search_iterations=10,
         )
 
-    vis, anim = visualize_solve!(vis, context, x_prior, x_sol, x_trace)
-
+    vis, anim = visualize_solve!(vis, context, x_prior,
+        [deepcopy(measurements[i].z); params_truth], x_trace)
+    sleep(2.0)
     x_prior = deepcopy(x_sol)
 end
 
