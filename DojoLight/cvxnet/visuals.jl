@@ -163,6 +163,30 @@ function visualize_kmeans!(vis::Visualizer, θ, polytope_dimensions, d_object, k
 	return nothing
 end
 
+function visualize_iterates!(vis::Visualizer, θ, polytope_dimensions, e, β, ρ; animation=MeshCat.Animation(10))
+	nβ = length(β)
+	T = length(θ)
+
+	for i = 1:T
+		build_2d_convex_bundle!(vis[:iterates], θ[i], polytope_dimensions, name=Symbol(i))
+	end
+	build_point_cloud!(vis[:iterates][:point_cloud], nβ;
+		color=RGBA(0.8,0.1,0.1,1), name=Symbol(1))
+
+	for i = 1:T
+	    atframe(animation, i) do
+			θ_f, polytope_dimensions_f = add_floor(θ[i], polytope_dimensions)
+			d = trans_point_cloud(e, β, ρ, unpack_halfspaces(θ_f, polytope_dimensions_f)...)
+			set_2d_point_cloud!(vis[:iterates], [e], [d]; name=:point_cloud)
+	        for ii = 1:T
+	            setvisible!(vis[:iterates][Symbol(ii)], ii == i)
+	        end
+	    end
+	end
+	setanimation!(vis, animation)
+	return vis, animation
+end
+
 
 #
 # S = 50
