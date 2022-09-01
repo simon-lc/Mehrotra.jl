@@ -7,6 +7,7 @@
 
 function unpack_halfspaces(θ::Vector{T}, polytope_dimensions::Vector{Int}) where T
     nθ = 2 .+ 3 .* polytope_dimensions
+    # nθ = 2 .+ 2 .* polytope_dimensions
     m = length(polytope_dimensions)
 
     A = [zeros(T, i, 2) for i in polytope_dimensions]
@@ -25,6 +26,7 @@ function pack_halfspaces(A::Vector{Matrix{T}}, b::Vector{Vector{T}}, o::Vector{V
     n = length(b)
     polytope_dimensions = length.(b)
     nθ = 2 .+ 3 .* polytope_dimensions
+    # nθ = 2 .+ 2 .* polytope_dimensions
 
     θ = zeros(T,sum(nθ))
 
@@ -39,6 +41,7 @@ end
 function unpack_halfspaces(θ::Vector{T}) where T
     nθ = length(θ)
     n = Int(floor((nθ - 2)/3))
+    # n = Int(floor((nθ - 2)/2))
 
     A = zeros(T, n, 2)
     b = zeros(T, n)
@@ -46,21 +49,28 @@ function unpack_halfspaces(θ::Vector{T}) where T
 
     for i = 1:n
         A[i,:] .= θ[2*(i-1) .+ (1:2)]
+        # A[i,:] .= [cos(θ[i]), sin(θ[i])]
     end
     b .= θ[2n .+ (1:n)]
-    o = θ[3n .+ (1:2)]
+    # b .= θ[1n .+ (1:n)]
+    o .= θ[3n .+ (1:2)]
+    # o .= θ[2n .+ (1:2)]
     return A, b, o
 end
 
 function pack_halfspaces(A::Matrix{T}, b::Vector{T}, o::Vector{T}) where T
     n = length(b)
     θ = zeros(T,2+3n)
+    # θ = zeros(T,2+2n)
 
     for i = 1:n
         θ[2*(i-1) .+ (1:2)] = A[i,1:2]
+        # θ[i] = atan(A[i,2], A[i,1])
     end
     θ[2n .+ (1:n)] .= b
+    # θ[1n .+ (1:n)] .= b
     θ[3n .+ (1:2)] .= o
+    # θ[2n .+ (1:2)] .= o
     return θ
 end
 

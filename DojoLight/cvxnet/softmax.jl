@@ -1,6 +1,18 @@
 ################################################################################
 # softmax
 ################################################################################
+function sdf(p, A, b, o, δ)
+	return sdf(p, A, b + A * o, δ)
+end
+
+function sdf(p, A::Vector, b, o, δ)
+	ϕ = +Inf
+	for i in 1:length(A)
+		ϕ = min(ϕ, sdf(p, A[i], b[i], o[i], δ))
+	end
+	return ϕ
+end
+
 function sdf(p, A, b, δ)
     N = length(b)
     v = δ[1] * (A*p - b)

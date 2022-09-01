@@ -92,7 +92,7 @@ cons = [
 
 # ## problem
 solver = DTO.Solver(dyn, obj, cons, bounds,
-    options=Options{Float64}())
+    options=DTO.Options{Float64}())
 
 # ## initialize
 u_guess = [0.01 * ones(num_action) for t = 1:T-1]

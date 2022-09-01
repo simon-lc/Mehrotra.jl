@@ -130,3 +130,76 @@ function plot_polytope(A, b, δ;
     plt = contour(plt, X,Y,V, levels=[0.0], color=:black, linewidth=2.0)
     return plt
 end
+
+
+function visualize_kmeans!(vis::Visualizer, θ, polytope_dimensions, d_object, kmres)
+	colors = [
+	    RGBA(1,0,0,1),
+	    RGBA(0,1,0,1),
+	    RGBA(0,0,1,1),
+	    RGBA(0,1,1,1),
+	    RGBA(1,1,0,1),
+	    RGBA(1,0,1,1),
+	    RGBA(0.5,0.5,0.5,1),
+	];
+
+	# display k-mean result
+	for i = 1:size(d_object, 2)
+	    ik = kmres.assignments[i]
+	    setobject!(
+	        vis[:cluster][Symbol(ik)][Symbol(i)],
+	        HyperSphere(MeshCat.Point(0,0,0.0), 0.035),
+	        MeshPhongMaterial(color=colors[ik%7+1]))
+	    settransform!(vis[:cluster][Symbol(ik)][Symbol(i)], MeshCat.Translation(0.2, d_object[:,i]...))
+	end
+	for i = 1:np
+	    setobject!(
+	        vis[:cluster][Symbol(i)][:center],
+	        HyperRectangle(MeshCat.Vec(-0.05,-0.05,-0.05), MeshCat.Vec(0.1,0.1,0.1)),
+	        MeshPhongMaterial(color=colors[i%7+1]))
+	    settransform!(vis[:cluster][Symbol(i)][:center], MeshCat.Translation(0.2, kmres.centers[:,i]...))
+	end
+	build_2d_convex_bundle!(vis, θ, polytope_dimensions, name=:initial, color=RGBA(1,1,1,0.4))
+	return nothing
+end
+
+
+#
+# S = 50
+# xl = [-2, 2.0]
+# yl = [-0, 2.0]
+# X = range(xl..., length=S)
+# Y = range(yl..., length=S)
+# V = zeros(S,S)
+# for (i, p1) in enumerate(X)
+# 	for (j, p2) in enumerate(Y)
+# 		p = [p1, p2]
+# 		V[j,i] = sdf4(p, AAt, bbt, oot, 100.0)
+# 		V[j,i] = sigmoid_fast(-20*sdf(p, AAt[3], bbt[3], oot[3], 1000.0))
+# 		# V[j,i] = sdf(p, AAt[1], bbt[1], oot[1], 1000.0)
+# 		# V[j,i] = sdf(p, AAt[2], bbt[2], oot[2], 1000.0)
+# 		# V[j,i] = sdf(p, AAt[3], bbt[3], oot[3], 1000.0)
+# 		# V[j,i] = sdf(p, AAt[4], bbt[4], oot[4], 1000.0)
+# 		# V[j,i] = sdf(p, AAt[5], bbt[5], oot[5], 1000.0)
+# 		# V[j,i] = sdf(p, AAt[6], bbt[6], oot[6], 1000.0)
+# 		# V[j,i] = sdf(p, AAt[7], bbt[7], oot[7], 1000.0)
+# 	end
+# end
+#
+# plt = heatmap(
+# 	X, Y, V,
+# 	aspectratio=1.0,
+# 	xlims=xl,
+# 	ylims=yl,
+# 	xlabel="x", ylabel="y",
+# 	)
+# plt = contour(plt, X,Y,V, levels=[0.0], color=:white, linewidth=2.0)
+#
+# # plot_polytope(AAt[1], bbt[1] + AAt[1] * oot[1], 100.0, xlims=[-2,2], ylims=[0,2])
+# # plot_polytope(AAt[2], bbt[2] + AAt[2] * oot[2], 100.0, xlims=[-2,2], ylims=[0,2])
+# # plot_polytope(AAt[3], bbt[3] + AAt[3] * oot[3], 100.0, xlims=[-2,2], ylims=[0,2])
+# # plot_polytope(AAt[4], bbt[4] + AAt[4] * oot[4], 100.0, xlims=[-2,2], ylims=[0,2])
+# # plot_polytope(AAt[5], bbt[5] + AAt[5] * oot[5], 100.0, xlims=[-2,2], ylims=[0,2])
+# # plot_polytope(AAt[6], bbt[6] + AAt[6] * oot[6], 100.0, xlims=[-2,2], ylims=[0,2])
+# plot_polytope(AAt[7], bbt[7] + AAt[7] * oot[7], 100.0, xlims=[-2,2], ylims=[0,2])
+#
