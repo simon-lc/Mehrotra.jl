@@ -163,21 +163,25 @@ function visualize_kmeans!(vis::Visualizer, θ, polytope_dimensions, d_object, k
 	return nothing
 end
 
-function visualize_iterates!(vis::Visualizer, θ, polytope_dimensions, e, β, ρ; animation=MeshCat.Animation(10))
+function visualize_iterates!(vis::Visualizer, θ, polytope_dimensions, e, β, ρ;
+		point_cloud::Bool=false,
+		animation=MeshCat.Animation(10))
 	nβ = length(β)
 	T = length(θ)
 
 	for i = 1:T
 		build_2d_convex_bundle!(vis[:iterates], θ[i], polytope_dimensions, name=Symbol(i))
 	end
-	build_point_cloud!(vis[:iterates][:point_cloud], nβ;
+	point_cloud && build_point_cloud!(vis[:iterates][:point_cloud], nβ;
 		color=RGBA(0.8,0.1,0.1,1), name=Symbol(1))
 
 	for i = 1:T
 	    atframe(animation, i) do
-			θ_f, polytope_dimensions_f = add_floor(θ[i], polytope_dimensions)
-			d = trans_point_cloud(e, β, ρ, unpack_halfspaces(θ_f, polytope_dimensions_f)...)
-			set_2d_point_cloud!(vis[:iterates], [e], [d]; name=:point_cloud)
+			if point_cloud
+				θ_f, polytope_dimensions_f = add_floor(θ[i], polytope_dimensions)
+				d = trans_point_cloud(e, β, ρ, unpack_halfspaces(θ_f, polytope_dimensions_f)...)
+				set_2d_point_cloud!(vis[:iterates], [e], [d]; name=:point_cloud)
+			end
 	        for ii = 1:T
 	            setvisible!(vis[:iterates][Symbol(ii)], ii == i)
 	        end
@@ -227,3 +231,17 @@ end
 # # plot_polytope(AAt[6], bbt[6] + AAt[6] * oot[6], 100.0, xlims=[-2,2], ylims=[0,2])
 # plot_polytope(AAt[7], bbt[7] + AAt[7] * oot[7], 100.0, xlims=[-2,2], ylims=[0,2])
 #
+
+
+
+# Apt, bpt, opt = unpack_halfspaces(θiter[end], polytope_dimensions)
+# # inside sampling, overlap penalty
+# for i = 1
+# 	p = opt[i]
+# 	for j = 1:length(bpt[i])
+# 		p = opt[i] + 1.0 * Apt[i][j,:] .* bpt[i][j] / norm(Apt[i][j,:])^2
+# 		setobject!(vis[:sampling][Symbol(i)][Symbol(j)], HyperSphere(MeshCat.Point(0, p...), 0.05),
+# 			MeshPhongMaterial(color=RGBA(1,0,0,1)))
+# 		sleep(0.1)
+# 	end
+# end

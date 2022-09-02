@@ -70,7 +70,7 @@ end
 
 function trans_point_loss(e::Vector, v::Vector, ρ, α::Matrix{T}, d̂::Vector) where T
 	d = trans_point_cloud(e, v, ρ, α)
-	return 0.5 * (d - d̂)' * (d - d̂) + 0.5 * norm(d - d̂)
+	return 0.5 * (d - d̂)' * (d - d̂) + 0.5 * softabs(norm(d - d̂), δ=0.001)
 end
 
 function trans_point_loss(e::Vector, v::Vector, ρ, θ::Vector{T},

@@ -29,7 +29,7 @@ Ap0 = [
     -1.0  0.0;
      0.0 -1.0;
     ] .- 0.00ones(4,2)
-bp0 = 0.5*[
+bp0 = 0.35*[
     +1,
     +1,
     +1,
@@ -42,7 +42,7 @@ Ap1 = [
      0.0  1.0;
     -1.0  0.0;
      0.0 -1.0;
-    ] .- 0.30ones(4,2)
+    ] .+ 0.20ones(4,2)
 bp1 = 0.25*[
     +1,
     +1,
@@ -56,7 +56,7 @@ Ap2 = [
      0.0  1.0;
     -1.0  0.0;
      0.0 -1.0;
-    ] .+ 0.10ones(4,2)
+    ] .- 0.30ones(4,2)
 bp2 = 0.25*[
     +1,
     +1,
@@ -69,27 +69,22 @@ Af = [0.0  1.0]
 bf = [0.0]
 of = [0.0, 0.0]
 
-AA = [Ap0, Ap1, Ap2, Af]
-bb = [bp0, bp1, bp2, bf]
-oo = [op0, op1, op2, of]
+Ap = [Ap0, Ap1, Ap2, Af]
+bp = [bp0, bp1, bp2, bf]
+op = [op0, op1, op2, of]
 
-op = [0.0, +0.5]
-ep = [0.0, +2.0]
-vp = [0.0, -1.0]
-cp = 1/0.01
-β = Vector(range(-0.2π, -0.8π, length=100))
-nβ = length(β)
+e0 = [0.0, +2.0]
+ρ0 = 1/0.02
+β0 = -π + atan(e0[2], e0[1]) .+ Vector(range(+0.3π, -0.3π, length=100))
+nβ = length(β0)
 
 build_2d_polytope!(vis[:polytope], Ap0, bp0 + Ap0 * op0, name=:poly0, color=RGBA(0,0,0,0.3))
 build_2d_polytope!(vis[:polytope], Ap1, bp1 + Ap1 * op1, name=:poly1, color=RGBA(0,0,0,0.3))
 build_2d_polytope!(vis[:polytope], Ap2, bp2 + Ap2 * op2, name=:poly2, color=RGBA(0,0,0,0.3))
 
-d0 = trans_point_cloud(ep, β, cp*100, AA, bb, oo)
-num_points = size(d0, 2)
-build_point_cloud!(vis[:point_cloud], num_points; color=RGBA(0.1,0.1,0.1,1), name=Symbol(1))
-set_2d_point_cloud!(vis, [ep], [d0]; name=:point_cloud)
-
-
+d0 = trans_point_cloud(e0, β0, ρ0*100, Ap, bp, op)
+build_point_cloud!(vis[:point_cloud], nβ; color=RGBA(0.1,0.1,0.1,1), name=Symbol(1))
+set_2d_point_cloud!(vis, [e0], [d0]; name=:point_cloud)
 
 nh = 8
 polytope_dimensions = [nh,nh,nh,nh,nh,nh]
@@ -99,43 +94,110 @@ Ainit, binit, oinit = unpack_halfspaces(deepcopy(θinit), polytope_dimensions)
 visualize_kmeans!(vis, θinit, polytope_dimensions, d_object, kmres)
 polytope_dimensions
 
+
+################################################################################
+# optimization
+################################################################################
+# projection
+local_projection(θ) = projection(θ, polytope_dimensions)
+# clamping
+local_clamping(Δθ) = clamping(Δθ, polytope_dimensions)
+# regularization
 θdiag = zeros(0)
 for i = 1:np
-	θi = [1e-1 * ones(2nh); 1e+0 * ones(nh); 1e-0 * ones(2)]
+	θi = [1e-1 * ones(2nh); 1e+0 * ones(nh); 3e+0 * ones(2)]
     # θi = [1e-2 * ones(nh); 1e+1 * ones(nh); 1e+0 * ones(2)]
     A, b, o = unpack_halfspaces(θi)
     push!(θdiag, pack_halfspaces(A, b, o)...)
 end
 θdiag
 
+parameters = Dict(
+	:δ_sdf => 75.0,
+	:δ_softabs => 0.01,
+	:altitude_threshold => 0.01,
+	:rendering => 10.0,
+	:sdf_matching => 20.0,
+	:overlap => 0.5,
+	:individual => 1.0,
+	# :individual => 0.0,
+	:expansion => 0.1,
+	# :expansion => 0.25,
+	:side_regularization => 0.5,
+	# :side_regularization => 0.25,
+)
 
-local_loss(θ) = shape_loss(θ, ep, β, cp, d0,
-	δ=100.0,
-	altitude_threshold=0.1,
-	rendering=10.0,
-	sdf_matching=1.0,
-	overlap=0.1,
-	individual=1.0,
-	expansion=0.5,
-	side_regularization=1.0,
-	)
-local_grad(θ) = ForwardDiff.gradient(θ -> local_loss(θ), θ)
-local_hess(θ) = Diagonal(1e-3*ones(length(θ)))
+# loss and gradients
+local_loss(θ) = shape_loss(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
+local_grad(θ) = shape_grad(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
+# local_hess(θ) = shape_hess(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2], polytope_dimensions; parameters...)
+
+# local_loss(θ) = shape_loss(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
+# local_grad(θ) = shape_grad(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
+
+local_loss(θ) = shape_loss(θ, [e0], [β0], ρ0, [d0]; parameters...)
+local_grad(θ) = shape_grad(θ, [e0], [β0], ρ0, [d0]; parameters...)
+
+
+# local_hess(θ) = Diagonal(1e-3*ones(length(θ)))
+local_hess(θ) = Diagonal(1e-6*ones(length(θ)))
+
 
 local_loss(θinit)
-local_loss(θiter[end])
+
+# parameters = Dict(
+# 	:δ => 20.0,
+# 	:altitude_threshold => 0.01,
+# 	:rendering => 10.0,
+# 	# :rendering => 0.0,
+# 	# :sdf_matching => 10.0,
+# 	:sdf_matching => 0.0,
+# 	# :overlap => 0.5,
+# 	:overlap => 0.0,
+# 	# :individual => 1.0,
+# 	:individual => 0.0,
+# 	# :expansion => 0.25,
+# 	:expansion => 0.00,
+# 	# :side_regularization => 1.0,
+# 	:side_regularization => 0.0,
+# )
+
+local_loss(θiter2[end])
 local_grad(θinit)
 local_hess(θinit)
-
-# projection
-local_projection(θ) = projection(θ, polytope_dimensions)
-# clamping
-local_clamping(Δθ) = clamping(Δθ, polytope_dimensions)
 
 ################################################################################
 # solve
 ################################################################################
-θsol, θiter = newton_solver!(θinit, local_loss, local_grad, local_hess, local_projection, local_clamping;
+θsol0, θiter0 = newton_solver!(θinit, local_loss, local_grad, local_hess, local_projection, local_clamping;
+# θsol0, θiter0 = newton_solver!(θsol2, local_loss, local_grad, local_hess, local_projection, local_clamping;
+        max_iterations=30,
+        reg_min=1e-2,
+        reg_max=1e+1,
+        reg_step=2.0,
+        line_search_iterations=10,
+        residual_tolerance=1e-4,
+        D=Diagonal(θdiag))
+
+visualize_iterates!(vis, θiter0, polytope_dimensions, e0, β0, ρ0)
+
+
+
+
+
+
+
+e1 = [-1.25, +2.0]
+β1 = -π + atan(e1[2], e1[1]) .+ Vector(range(+0.3π, -0.3π, length=100))
+d1 = trans_point_cloud(e1, β1, ρ0*100, Ap, bp, op)
+build_point_cloud!(vis[:point_cloud_1], nβ; color=RGBA(0.1,0.1,0.8,1), name=Symbol(1))
+set_2d_point_cloud!(vis, [e1], [d1]; name=:point_cloud_1)
+
+# loss and gradients
+local_loss(θ) = shape_loss(θ, [e1], [β1], ρ0, [d1]; parameters...)
+local_grad(θ) = shape_grad(θ, [e1], [β1], ρ0, [d1]; parameters...)
+
+θsol1, θiter1 = newton_solver!(θsol0, local_loss, local_grad, local_hess, local_projection, local_clamping;
         max_iterations=30,
         reg_min=1e-4,
         reg_max=1e+1,
@@ -144,16 +206,55 @@ local_clamping(Δθ) = clamping(Δθ, polytope_dimensions)
         residual_tolerance=1e-4,
         D=Diagonal(θdiag))
 
-visualize_iterates!(vis, θiter, polytope_dimensions, ep, β, cp)
+visualize_iterates!(vis, θiter1, polytope_dimensions, e1, β1, ρ0)
 
-# AAt, bbt, oot = unpack_halfspaces(θiter[end], polytope_dimensions)
-# # inside sampling, overlap penalty
-# for i = 1
-# 	p = oot[i]
-# 	for j = 1:length(bbt[i])
-# 		p = oot[i] + 1.0 * AAt[i][j,:] .* bbt[i][j] / norm(AAt[i][j,:])^2
-# 		setobject!(vis[:sampling][Symbol(i)][Symbol(j)], HyperSphere(MeshCat.Point(0, p...), 0.05),
-# 			MeshPhongMaterial(color=RGBA(1,0,0,1)))
-# 		sleep(0.1)
-# 	end
-# end
+
+
+
+
+
+e2 = [+1.25, +2.0]
+β2 = -π + atan(e2[2], e2[1]) .+ Vector(range(+0.3π, -0.3π, length=100))
+d2 = trans_point_cloud(e2, β2, ρ0*100, Ap, bp, op)
+build_point_cloud!(vis[:point_cloud_2], nβ; color=RGBA(0.1,0.8,0.1,1), name=Symbol(1))
+set_2d_point_cloud!(vis, [e2], [d2]; name=:point_cloud_2)
+
+# loss and gradients
+local_loss(θ) = shape_loss(θ, [e2], [β2], ρ0, [d2]; parameters...)
+local_grad(θ) = shape_grad(θ, [e2], [β2], ρ0, [d2]; parameters...)
+
+θsol2, θiter2 = newton_solver!(θsol1, local_loss, local_grad, local_hess, local_projection, local_clamping;
+        max_iterations=30,
+        reg_min=1e-4,
+        reg_max=1e+1,
+        reg_step=2.0,
+        line_search_iterations=10,
+        residual_tolerance=1e-4,
+        D=Diagonal(θdiag))
+
+visualize_iterates!(vis, θiter2, polytope_dimensions, e2, β2, ρ0)
+
+
+
+X = range(-1, 1, length=1000)
+plot(X, X.^2 .+ softabs.(X, δ=1))
+plot(X, softplus.(X, δ=1))
+
+
+softabs(0.0)
+
+
+# loss and gradients
+local_loss(θ) = shape_loss(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
+local_grad(θ) = shape_grad(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
+
+θsol2, θiter2 = newton_solver!(θsol2, local_loss, local_grad, local_hess, local_projection, local_clamping;
+        max_iterations=30,
+        reg_min=1e-4,
+        reg_max=1e+1,
+        reg_step=2.0,
+        line_search_iterations=10,
+        residual_tolerance=1e-4,
+        D=Diagonal(θdiag))
+
+visualize_iterates!(vis, θiter2, polytope_dimensions, e2, β2, ρ0)

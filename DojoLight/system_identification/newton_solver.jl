@@ -7,12 +7,14 @@ function newton_solver!(xinit, loss, gloss, Hloss, projection, clamping;
         residual_tolerance=1e-4,
         D=Diagonal(ones(length(xinit))))
 
+    stall = 0
     x = deepcopy(xinit)
     trace = [deepcopy(x)]
     reg = reg_max
 
     # newton's method
     for iterations = 1:max_iterations
+        (stall >= 5) && break
         l = loss(x)
         (l < residual_tolerance) && break
         g = gloss(x)
@@ -27,10 +29,13 @@ function newton_solver!(xinit, loss, gloss, Hloss, projection, clamping;
             l_candidate = loss(projection(x + clamping(α * Δx)))
             if l_candidate <= l
                 reg = clamp(reg/reg_step, reg_min, reg_max)
+                stall = 0
                 break
             end
             α /= 2
             if j == 10
+                stall += 1
+                α = 0.0
                 reg = clamp(reg*exp(3.0*log(reg_step)), reg_min, reg_max)
             end
         end

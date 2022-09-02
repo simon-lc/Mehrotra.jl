@@ -142,3 +142,16 @@ end
 function softmin(values, δ)
     return -softmax(-values, δ)
 end
+
+
+function softplus(x; δ=1.0)
+	if x > 20
+		return x
+	else
+		return δ * log(1 + exp(x/δ))
+	end
+end
+
+function softabs(x; δ=1.0)
+	return sqrt(x^2 + δ) - sqrt(δ)
+end
