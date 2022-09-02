@@ -165,24 +165,35 @@ end
 
 function visualize_iterates!(vis::Visualizer, θ, polytope_dimensions, e, β, ρ;
 		point_cloud::Bool=false,
+		max_iterations::Int=length(θ),
 		animation=MeshCat.Animation(10))
 	nβ = length(β)
 	T = length(θ)
 
-	for i = 1:T
-		build_2d_convex_bundle!(vis[:iterates], θ[i], polytope_dimensions, name=Symbol(i))
+	for i = 1:max_iterations
+		im = min(i, length(θ))
+		build_2d_convex_bundle!(vis[:iterates], θ[im], polytope_dimensions, name=Symbol(i))
 	end
 	point_cloud && build_point_cloud!(vis[:iterates][:point_cloud], nβ;
 		color=RGBA(0.8,0.1,0.1,1), name=Symbol(1))
 
-	for i = 1:T
-	    atframe(animation, i) do
+	for i = 1:max_iterations
+		atframe(animation, i) do
+			for ii = 1:max_iterations
+				setvisible!(vis[:iterates][Symbol(ii)], false)
+			end
+		end
+	end
+
+	for i = 1:max_iterations
+		atframe(animation, i) do
 			if point_cloud
-				θ_f, polytope_dimensions_f = add_floor(θ[i], polytope_dimensions)
+				im = min(i, length(θ))
+				θ_f, polytope_dimensions_f = add_floor(θ[im], polytope_dimensions)
 				d = trans_point_cloud(e, β, ρ, unpack_halfspaces(θ_f, polytope_dimensions_f)...)
 				set_2d_point_cloud!(vis[:iterates], [e], [d]; name=:point_cloud)
 			end
-	        for ii = 1:T
+	        for ii = 1:max_iterations
 	            setvisible!(vis[:iterates][Symbol(ii)], ii == i)
 	        end
 	    end

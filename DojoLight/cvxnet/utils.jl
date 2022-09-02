@@ -65,17 +65,111 @@ end
 ################################################################################
 # loss
 ################################################################################
+function inside_loss(θ_f::Vector{D}, polytope_dimensions_f::Vector{Int},
+		e::Vector, β::Vector, d_ref::Vector{Matrix{T}}; kwargs...) where {T,D}
+	ne = length(e)
+
+	l = 0.0
+	for i = 1:ne
+		l += inside_loss(θ_f, polytope_dimensions_f, e[i], β[i], d_ref[i]; kwargs...)
+	end
+	return l / ne
+end
+
+function inside_loss(θ_f::Vector{D}, polytope_dimensions_f::Vector{Int},
+	e::Vector{T}, β, d_ref::Matrix{T};
+	δ_sdf::T=75.0,
+	δ_softabs::T=0.01,
+	δ_sigmoid::T=0.1,
+	altitude_threshold::T=0.01,
+	thickness::T=0.2,
+	inside_sample::Int=10,
+	) where {T,D}
+
+	nβ = length(β)
+	l = 0.0
+
+	# Threads.@threads for j = 1:nβ
+	for j = 1:nβ
+		@views p_ref = d_ref[:,j]
+		v_ref = SVector{2,T}(cos(β[j]), sin(β[j]))
+		if p_ref[2] >= altitude_threshold
+			# sample inside points for a distance equal to thickness
+			α_ref = p_ref' * v_ref - e' * v_ref
+			for α in range(α_ref, α_ref + thickness, length=inside_sample)
+				p = e + α * v_ref
+				ϕ = sdfV(p, θ_f, polytope_dimensions_f, δ_sdf)
+				l += 10 * (1 - sigmoid_fast(-1/δ_sigmoid * ϕ))^2
+			end
+		end
+	end
+	return l / (nβ * inside_sample)
+end
+
+function outside_loss(θ_f::Vector{D}, polytope_dimensions_f::Vector{Int},
+		e::Vector, β::Vector, d_ref::Vector{Matrix{T}}; kwargs...) where {T,D}
+	ne = length(e)
+
+	l = 0.0
+	for i = 1:ne
+		l += outside_loss(θ_f, polytope_dimensions_f, e[i], β[i], d_ref[i]; kwargs...)
+	end
+	return l / ne
+end
+
+function outside_loss(θ_f::Vector{D}, polytope_dimensions_f::Vector{Int},
+	e::Vector{T}, β, d_ref::Matrix{T};
+	δ_sdf::T=75.0,
+	δ_softabs::T=0.01,
+	δ_sigmoid::T=0.1,
+	altitude_threshold::T=0.01,
+	thickness::T=0.2,
+	outside_sample::Int=10,
+	) where {T,D}
+
+	nβ = length(β)
+	l = 0.0
+
+	# Threads.@threads for j = 1:nβ
+	for j = 1:nβ
+		@views p_ref = d_ref[:,j]
+		if p_ref[2] >= altitude_threshold
+			# sample outside points for a distance equal to thickness before we reach the actual point
+			v_ref = SVector{2,T}(cos(β[j]), sin(β[j]))
+			α_ref = p_ref' * v_ref - e' * v_ref
+			α_max = max(0, α_ref - thickness)
+			for α in range(α_max, α_ref, length=outside_sample)
+				p = e + α * v_ref
+				ϕ = sdfV(p, θ_f, polytope_dimensions_f, δ_sdf)
+				l += 5 * (0 - sigmoid_fast(-1/δ_sigmoid * ϕ))^2
+			end
+		end
+	end
+
+	return l / (nβ * outside_sample)
+end
+
+
 function shape_loss(θ, e, β, ρ, d_ref;
+	altitude_threshold=0.01,
+	thickness=0.2,
+
 	δ_sdf=75.0,
 	δ_softabs=0.01,
-	altitude_threshold=0.1,
+	δ_sigmoid=0.1,
+
 	rendering=10.0,
+	add_rendering=true,
 	sdf_matching=1.0,
 	overlap=0.1,
 	individual=1.0,
 	expansion=0.3,
 	side_regularization=2.0,
-	add_rendering=true,
+	inside=1.0,
+	outside=1.0,
+
+	inside_sample::Int=10,
+	outside_sample::Int=10,
 	)
 
 	ne = length(e)
@@ -87,7 +181,7 @@ function shape_loss(θ, e, β, ρ, d_ref;
 	add_rendering && (l += rendering * trans_point_loss(e, β, ρ, θ_f, polytope_dimensions_f, d_ref))
 
 	# regularization
-	l += side_regularization * 10.0 * sum([0.5*norm(bi .- 0.50)^2 + softabs(norm(bi .- 0.50), δ=δ_softabs) for bi in b]) / (np * nh)
+	l += side_regularization * 10.0 * sum([0.5*norm(bi .- mean(bi))^2 + softabs(norm(bi .- mean(bi)), δ=δ_softabs) for bi in b]) / (np * nh)
 
 	# sdf matching
 	for j = 1:ne
@@ -114,24 +208,86 @@ function shape_loss(θ, e, β, ρ, d_ref;
 	for i = 1:np
 		p = o[i]
 		ϕ = sum([sigmoid_fast(-10*sdf(p, A_f[j], b_f[j], o_f[j], δ_sdf)) for j in 1:np+1])
-		l += overlap * 1e-2 * max(ϕ - 1, 0)^2 / np
+		l += overlap * 1e-2 * softplus(ϕ - 1, δ=δ_softabs)^2 / np
 		for j = 1:nh
-			for α ∈ [0.75, 0.5, 0.25]
+			for α ∈ [1.00, 0.75, 0.5, 0.25]
 				p = o[i] - α * A[i][j,:] .* b[i][j] / norm(A[i][j,:])^2
-				l += expansion * -10 * min(0, p[2]) / (np * nh * length(α))
+				# l += expansion * -10 * min(0, p[2]) / (np * nh * length(α))
 				ϕ = sum([sigmoid_fast(-10 * sdf(p, A_f[j], b_f[j], o_f[j], δ_sdf)) for j in 1:np+1])
-				l += overlap * 1e-2 * max(ϕ - 2, 0)^2 / (np * nh * length(α))
+				l += overlap * 1e-2 * softplus(ϕ - 2, δ=δ_softabs)^2 / (np * nh * length(α))
 			end
 		end
 	end
 
-	# spread
-	for i = 1:np
-		for j in setdiff(1:np, [i])
-			l += expansion * 100 * 0.5 * (max(0, 0.5 - softabs(norm(o[i] - o[j]), δ=δ_softabs)))^2 / (np^2)
-		end
-		l += expansion * -10 * min(0, o[i][2]) / np
-	end
+	# # spread
+	# for i = 1:np
+	# 	for j in setdiff(1:np, [i])
+	# 		l += expansion * 100 * 0.5 * (softplus(0.5 - softabs(norm(o[i] - o[j]), δ=δ_softabs), δ=δ_softabs))^2 / (np^2)
+	# 	end
+	# 	l += expansion * -10 * min(0, o[i][2]) / np
+	# end
+
+	# outside sampling
+	l += outside_loss(θ_f, polytope_dimensions_f, e, β, d_ref;
+		δ_sdf=δ_sdf,
+		δ_softabs=δ_softabs,
+		δ_sigmoid=δ_sigmoid,
+		altitude_threshold=altitude_threshold,
+		thickness=thickness,
+		outside_sample=outside_sample)
+	# outside sampling
+	# all active rays with padding = padding
+	# padding = 5
+	# padded_active_rays = falses(nβ)
+	# nα = 10
+	# for i = 1:ne
+	# 	for j = 1:nβ
+	# 		p_ref = d_ref[i][:,j]
+	# 		if p_ref[2] >= altitude_threshold
+	# 			ind = max(1, j-padding):min(nβ, j+padding)
+	# 			padded_active_rays[ind] .= true
+	# 		end
+	# 	end
+	# 	for j = 1:nβ
+	# 		if padded_active_rays[j]
+	# 			p_ref = d_ref[i][:,j]
+	# 			v_ref = [cos(β[i][j]), sin(β[i][j])]
+	# 			# sample outside points for a distance equal to thickness before we reach the actual point
+	# 			α_ref = (p_ref - e[i])' * v_ref
+	# 			α_max = max(0, α_ref - thickness)
+	# 			for α in range(α_max, α_ref, length=nα)
+	# 				p = e[i] + α * v_ref
+	# 				l += outside * 5 * (0 - sigmoid_fast(-10 * sdf(p, A, b, o, δ_sdf)))^2 / (ne * nβ * nα)
+	# 			end
+	# 		end
+	# 	end
+	# end
+
+	# inside sampling
+	l += inside_loss(θ_f, polytope_dimensions_f, e, β, d_ref;
+		δ_sdf=δ_sdf,
+		δ_softabs=δ_softabs,
+		δ_sigmoid=δ_sigmoid,
+		altitude_threshold=altitude_threshold,
+		thickness=thickness,
+		inside_sample=inside_sample)
+	# nα = 10
+	# for i = 1:ne
+	# 	for j = 1:nβ
+	# 		p_ref = d_ref[i][:,j]
+	# 		v_ref = [cos(β[i][j]), sin(β[i][j])]
+	# 		if p_ref[2] >= altitude_threshold
+	# 			# sample inside points for a distance equal to thickness or until we reach the floor
+	# 			α_ref = (p_ref - e[i])' * v_ref
+	# 			α_max = max(0, p_ref[2] / (1e-6 + max(0, v_ref[2])))
+	# 			for α in range(α_ref, min(α_ref + thickness, α_max), length=nα)
+	# 				p = e[i] + α * v_ref
+	# 				l += inside * 10 * (1 - sigmoid_fast(-10 * sdf(p, A, b, o, δ_sdf)))^2 / (ne * nβ * nα)
+	# 			end
+	# 		end
+	# 	end
+	# end
+
 	return l
 end
 
@@ -156,3 +312,141 @@ function shape_hess(θ, e, β, ρ, d, polytope_dimensions; parameters...)
 
 	return H
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+outside_parameters = Dict(
+	:δ_sdf => 15.0,
+	:δ_softabs => 0.01,
+	:δ_sigmoid => 0.1,
+	:altitude_threshold => 0.01,
+	:thickness => 0.2,
+	:outside_sample => 10,
+)
+
+ep = [e0]
+βp = [β0]
+dp = [d0]
+outside_loss(θ, polytope_dimensions, ep, βp, dp; outside_parameters...)
+Main.@profiler [outside_loss(θ, polytope_dimensions, ep, βp, dp; outside_parameters...) for i=1:100]
+@benchmark outside_loss($θ, $polytope_dimensions, $ep, $βp, $dp)
+
+outside_loss(θ, polytope_dimensions, e0, β0, d0; outside_parameters...)
+Main.@profiler [outside_loss(θ, polytope_dimensions, e0, β0, d0; outside_parameters...) for i=1:1000]
+@benchmark outside_loss($θ, $polytope_dimensions, $e0, $β0, $d0)
+
+
+
+
+
+
+
+
+
+function inside_loss(θ_f::Vector{D}, polytope_dimensions_f::Vector{Int},
+		e::Vector, β::Vector, d_ref::Vector{Matrix{T}}; kwargs...) where {T,D}
+	ne = length(e)
+
+	l = 0.0
+	for i = 1:ne
+		l += inside_loss(θ_f, polytope_dimensions_f, e[i], β[i], d_ref[i]; kwargs...)
+	end
+	return l / ne
+end
+
+function inside_loss(θ_f::Vector{D}, polytope_dimensions_f::Vector{Int},
+	e::Vector{T}, β, d_ref::Matrix{T};
+	δ_sdf::T=75.0,
+	δ_softabs::T=0.01,
+	δ_sigmoid::T=0.1,
+	altitude_threshold::T=0.01,
+	thickness::T=0.2,
+	inside_sample::Int=10,
+	) where {T,D}
+
+	nβ = length(β)
+	l = 0.0
+
+	# Threads.@threads for j = 1:nβ
+	for j = 1:nβ
+		@views p_ref = d_ref[:,j]
+		v_ref = SVector{2,T}(cos(β[j]), sin(β[j]))
+		if p_ref[2] >= altitude_threshold
+			# sample inside points for a distance equal to thickness
+			α_ref = p_ref' * v_ref - e' * v_ref
+			for α in range(α_ref, α_ref + thickness, length=inside_sample)
+				p = e + α * v_ref
+				ϕ = sdfV(p, θ_f, polytope_dimensions_f, δ_sdf)
+				l += 10 * (1 - sigmoid_fast(-1/δ_sigmoid * ϕ))^2
+			end
+		end
+	end
+	return l / (nβ * inside_sample)
+end
+
+
+inside_parameters = Dict(
+	:δ_sdf => 15.0,
+	:δ_softabs => 0.01,
+	:δ_sigmoid => 0.1,
+	:altitude_threshold => 0.01,
+	:thickness => 0.2,
+	:inside_sample => 10,
+)
+
+ep = [e0]
+βp = [β0]
+dp = [d0]
+inside_loss(θ, polytope_dimensions, ep, βp, dp; inside_parameters...)
+Main.@profiler [inside_loss(θ, polytope_dimensions, ep, βp, dp; inside_parameters...) for i=1:100]
+@benchmark inside_loss($θ, $polytope_dimensions, $ep, $βp, $dp)
+
+inside_loss(θ, polytope_dimensions, e0, β0, d0; inside_parameters...)
+Main.@profiler [inside_loss(θ, polytope_dimensions, e0, β0, d0; inside_parameters...) for i=1:1000]
+@benchmark inside_loss($θ, $polytope_dimensions, $e0, $β0, $d0)
+
+
+
+
+
+
+δp1 = 0.01
+p1 = [1.0, 0.0]
+δp1 = 0.01
+Afp1 = reshape(Ap1, 8)
+
+polytope_dimensions = [4,4,4]
+Afp = [reshape(Ap2, 8); reshape(Ap1, 8); reshape(Ap2, 8)]
+bp = [bp0; bp1; bp2]
+op = [op0; op1; op2]
+θ = rand(3 * (3 * 4  + 2))
+
+sdf(p1, Ap1, bp1, op1, δp1)
+sdfV(p1, Afp1, bp1, op1, δp1)
+sdfV(p1, θ, polytope_dimensions, δp1)
+
+unpack_halfspaces(θ, polytope_dimensions, 2)
+@benchmark unpack_halfspaces($θ, $polytope_dimensions, $2)
+
+
+
+@benchmark sdf($p1, $Ap1, $bp1, $op1, $δp1)
+@benchmark sdfV($p1, $Afp1, $bp1, $op1, $δp1)
+@benchmark sdfV1($p1, $θ, $polytope_dimensions, $δp1)

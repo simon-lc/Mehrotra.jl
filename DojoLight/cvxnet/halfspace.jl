@@ -22,6 +22,25 @@ function unpack_halfspaces(θ::Vector{T}, polytope_dimensions::Vector{Int}) wher
     return A, b, o
 end
 
+function unpack_halfspaces(θ::AbstractVector, polytope_dimensions::Vector{Int}, idx::Int)
+    d = 2
+	np = length(polytope_dimensions)
+	nh = polytope_dimensions[idx]
+
+	idx_start = 1 - (3polytope_dimensions[1] + 2)
+	idx_end = 0
+	for i = 1:idx
+		idx_start += 3polytope_dimensions[i] + 2
+		idx_end += 3polytope_dimensions[i] + 2
+	end
+
+	@views θi = θ[idx_start:idx_end]
+	@views Ai = θi[1:2*nh]
+	@views bi = θi[2*nh .+ (1:nh)]
+	@views oi = θi[3*nh .+ (1:2)]
+    return Ai, bi, oi
+end
+
 function pack_halfspaces(A::Vector{Matrix{T}}, b::Vector{Vector{T}}, o::Vector{Vector{T}}) where T
     n = length(b)
     polytope_dimensions = length.(b)

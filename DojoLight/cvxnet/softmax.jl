@@ -23,6 +23,40 @@ function sdf(p, A, b, δ)
     return ϕ
 end
 
+function sdfV(p::AbstractVector, θ::AbstractVector, polytope_dimensions::Vector{Int}, δ)
+	np = length(polytope_dimensions)
+	d = 2
+
+	ϕ = +Inf
+	for i = 1:np
+		Ai, bi, oi = unpack_halfspaces(θ, polytope_dimensions, i)
+		ϕ = min(ϕ, sdfV(p, Ai, bi, oi, δ))
+	end
+	return ϕ
+end
+
+function sdfV(p::AbstractVector, A::AbstractVector, b::AbstractVector, o::AbstractVector, δ)
+    n = length(b)
+	d = 2
+	# findmax
+	vm = -Inf
+	for i = 1:n
+		@views ai = A[(i-1)*d .+ (1:d)]
+		vi = δ * (ai' * p - ai' * o - b[i])
+		vm = max(vm, vi)
+	end
+	# sum exp
+	e = 0.0
+	for i = 1:n
+		@views ai = A[(i-1)*d .+ (1:d)]
+		vi = δ * (ai' * p - ai' * o - b[i])
+		e += exp(vi - vm)
+	end
+	s = e / n
+	ϕ = (log(s) + vm) / δ
+    return ϕ
+end
+
 function squared_sdf(p, A, b, δ)
     N = length(b)
     v = δ[1] * (A*p - b)

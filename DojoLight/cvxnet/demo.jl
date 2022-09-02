@@ -42,7 +42,7 @@ Ap1 = [
      0.0  1.0;
     -1.0  0.0;
      0.0 -1.0;
-    ] .+ 0.20ones(4,2)
+    ] .- 0.20ones(4,2)
 bp1 = 0.25*[
     +1,
     +1,
@@ -56,14 +56,14 @@ Ap2 = [
      0.0  1.0;
     -1.0  0.0;
      0.0 -1.0;
-    ] .- 0.30ones(4,2)
+    ] .- 0.20ones(4,2)
 bp2 = 0.25*[
     +1,
     +1,
     +1,
      1,
     ]
-op2 = [-0.7, 0.2]
+op2 = [-0.3, 0.7]
 
 Af = [0.0  1.0]
 bf = [0.0]
@@ -86,7 +86,7 @@ d0 = trans_point_cloud(e0, β0, ρ0*100, Ap, bp, op)
 build_point_cloud!(vis[:point_cloud], nβ; color=RGBA(0.1,0.1,0.1,1), name=Symbol(1))
 set_2d_point_cloud!(vis, [e0], [d0]; name=:point_cloud)
 
-nh = 8
+nh = 7
 polytope_dimensions = [nh,nh,nh,nh,nh,nh]
 np = length(polytope_dimensions)
 θinit, d_object, kmres = parameter_initialization(d0, polytope_dimensions; altitude_threshold=0.3)
@@ -113,37 +113,45 @@ end
 θdiag
 
 parameters = Dict(
-	:δ_sdf => 75.0,
+	:δ_sdf => 15.0,
 	:δ_softabs => 0.01,
 	:altitude_threshold => 0.01,
 	:rendering => 10.0,
 	:sdf_matching => 20.0,
-	:overlap => 0.5,
+	:overlap => 2.0,
 	:individual => 1.0,
-	# :individual => 0.0,
-	:expansion => 0.1,
-	# :expansion => 0.25,
+	:expansion => 0.0,
 	:side_regularization => 0.5,
-	# :side_regularization => 0.25,
+	:inside => 1.0,
+	:outside => 0.1,
 )
+max_iterations = 30
 
 # loss and gradients
 local_loss(θ) = shape_loss(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
 local_grad(θ) = shape_grad(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
-# local_hess(θ) = shape_hess(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2], polytope_dimensions; parameters...)
 
-# local_loss(θ) = shape_loss(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
-# local_grad(θ) = shape_grad(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
+# parameters = Dict(
+# 	:δ_sdf => 20.0,
+# 	:δ_softabs => 0.01,
+# 	:altitude_threshold => 0.01,
+# 	:rendering => 0.0* 10.0,
+# 	:sdf_matching => 0.0* 20.0,
+# 	:overlap => 0.0* 0.5,
+# 	:individual => 0.0* 1.0,
+# 	:expansion => 0.0* 0.1,
+# 	:side_regularization => 0.0* 0.5,
+# 	:inside => 0.0* 1.0,
+# 	:outside => 1.0* 1.0,
+# )
+local_loss(θinit)
+local_loss(θsol3)
 
 local_loss(θ) = shape_loss(θ, [e0], [β0], ρ0, [d0]; parameters...)
 local_grad(θ) = shape_grad(θ, [e0], [β0], ρ0, [d0]; parameters...)
-
-
-# local_hess(θ) = Diagonal(1e-3*ones(length(θ)))
 local_hess(θ) = Diagonal(1e-6*ones(length(θ)))
 
 
-local_loss(θinit)
 
 # parameters = Dict(
 # 	:δ => 20.0,
@@ -162,16 +170,22 @@ local_loss(θinit)
 # 	:side_regularization => 0.0,
 # )
 
-local_loss(θiter2[end])
+
+local_loss(θiter3[end])
 local_grad(θinit)
 local_hess(θinit)
+
+@benchmark local_loss(θiter3[end])
+@benchmark local_grad(θinit)
+Main.@profiler [local_loss(θiter3[end]) for i=1:100]
+Main.@profiler local_grad(θinit)
+
 
 ################################################################################
 # solve
 ################################################################################
 θsol0, θiter0 = newton_solver!(θinit, local_loss, local_grad, local_hess, local_projection, local_clamping;
-# θsol0, θiter0 = newton_solver!(θsol2, local_loss, local_grad, local_hess, local_projection, local_clamping;
-        max_iterations=30,
+        max_iterations=max_iterations,
         reg_min=1e-2,
         reg_max=1e+1,
         reg_step=2.0,
@@ -179,7 +193,7 @@ local_hess(θinit)
         residual_tolerance=1e-4,
         D=Diagonal(θdiag))
 
-visualize_iterates!(vis, θiter0, polytope_dimensions, e0, β0, ρ0)
+visualize_iterates!(vis, θiter0, polytope_dimensions, e0, β0, ρ0, max_iterations=max_iterations+1)
 
 
 
@@ -187,8 +201,8 @@ visualize_iterates!(vis, θiter0, polytope_dimensions, e0, β0, ρ0)
 
 
 
-e1 = [-1.25, +2.0]
-β1 = -π + atan(e1[2], e1[1]) .+ Vector(range(+0.3π, -0.3π, length=100))
+e1 = [-2.25, +2.0]
+β1 = -π + atan(e1[2], e1[1]) .+ Vector(range(+0.20π, -0.20π, length=100))
 d1 = trans_point_cloud(e1, β1, ρ0*100, Ap, bp, op)
 build_point_cloud!(vis[:point_cloud_1], nβ; color=RGBA(0.1,0.1,0.8,1), name=Symbol(1))
 set_2d_point_cloud!(vis, [e1], [d1]; name=:point_cloud_1)
@@ -198,7 +212,7 @@ local_loss(θ) = shape_loss(θ, [e1], [β1], ρ0, [d1]; parameters...)
 local_grad(θ) = shape_grad(θ, [e1], [β1], ρ0, [d1]; parameters...)
 
 θsol1, θiter1 = newton_solver!(θsol0, local_loss, local_grad, local_hess, local_projection, local_clamping;
-        max_iterations=30,
+        max_iterations=max_iterations,
         reg_min=1e-4,
         reg_max=1e+1,
         reg_step=2.0,
@@ -206,7 +220,7 @@ local_grad(θ) = shape_grad(θ, [e1], [β1], ρ0, [d1]; parameters...)
         residual_tolerance=1e-4,
         D=Diagonal(θdiag))
 
-visualize_iterates!(vis, θiter1, polytope_dimensions, e1, β1, ρ0)
+visualize_iterates!(vis, θiter1, polytope_dimensions, e1, β1, ρ0, max_iterations=max_iterations+1)
 
 
 
@@ -224,7 +238,7 @@ local_loss(θ) = shape_loss(θ, [e2], [β2], ρ0, [d2]; parameters...)
 local_grad(θ) = shape_grad(θ, [e2], [β2], ρ0, [d2]; parameters...)
 
 θsol2, θiter2 = newton_solver!(θsol1, local_loss, local_grad, local_hess, local_projection, local_clamping;
-        max_iterations=30,
+        max_iterations=max_iterations,
         reg_min=1e-4,
         reg_max=1e+1,
         reg_step=2.0,
@@ -232,7 +246,7 @@ local_grad(θ) = shape_grad(θ, [e2], [β2], ρ0, [d2]; parameters...)
         residual_tolerance=1e-4,
         D=Diagonal(θdiag))
 
-visualize_iterates!(vis, θiter2, polytope_dimensions, e2, β2, ρ0)
+visualize_iterates!(vis, θiter2, polytope_dimensions, e2, β2, ρ0, max_iterations=max_iterations+1)
 
 
 
@@ -248,8 +262,8 @@ softabs(0.0)
 local_loss(θ) = shape_loss(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
 local_grad(θ) = shape_grad(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
 
-θsol2, θiter2 = newton_solver!(θsol2, local_loss, local_grad, local_hess, local_projection, local_clamping;
-        max_iterations=30,
+θsol3, θiter3 = newton_solver!(θsol2, local_loss, local_grad, local_hess, local_projection, local_clamping;
+        max_iterations=max_iterations,
         reg_min=1e-4,
         reg_max=1e+1,
         reg_step=2.0,
@@ -257,4 +271,4 @@ local_grad(θ) = shape_grad(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]
         residual_tolerance=1e-4,
         D=Diagonal(θdiag))
 
-visualize_iterates!(vis, θiter2, polytope_dimensions, e2, β2, ρ0)
+visualize_iterates!(vis, θiter3, polytope_dimensions, e2, β2, ρ0, max_iterations=max_iterations+1)
