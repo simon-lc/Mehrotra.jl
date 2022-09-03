@@ -178,7 +178,7 @@ function softmin(values, δ)
 end
 
 
-function softplus(x; δ=1.0)
+function softplus(x, δ=1.0)
 	if x > 20
 		return x
 	else
@@ -186,6 +186,6 @@ function softplus(x; δ=1.0)
 	end
 end
 
-function softabs(x; δ=1.0)
+function softabs(x, δ=1.0)
 	return sqrt(x^2 + δ) - sqrt(δ)
 end

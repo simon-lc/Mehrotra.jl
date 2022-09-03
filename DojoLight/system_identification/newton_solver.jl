@@ -1,4 +1,4 @@
-function newton_solver!(xinit, loss, gloss, Hloss, projection, clamping;
+function newton_solver!(xinit, loss, grad, hess, projection, clamping;
         max_iterations=20,
         reg_min=1e-4,
         reg_max=1e+0,
@@ -17,8 +17,8 @@ function newton_solver!(xinit, loss, gloss, Hloss, projection, clamping;
         (stall >= 5) && break
         l = loss(x)
         (l < residual_tolerance) && break
-        g = gloss(x)
-        H = Hloss(x)
+        g = grad(x)
+        H = hess(x)
 
         # reg = clamp(norm(g, Inf)/10, reg_min, reg_max)
         Δx = - (H + reg * D) \ g
