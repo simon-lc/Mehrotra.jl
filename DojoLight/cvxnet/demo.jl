@@ -19,7 +19,8 @@ include("softmax.jl")
 include("utils.jl")
 
 vis = Visualizer()
-open(vis)
+render(vis)
+# open(vis)
 
 
 # parameters
@@ -87,7 +88,7 @@ d0 = trans_point_cloud(e0, β0, ρ0*100, θ_p, polytope_dimensions_p)
 build_point_cloud!(vis[:point_cloud], nβ; color=RGBA(0.1,0.1,0.1,1), name=Symbol(1))
 set_2d_point_cloud!(vis, [e0], [d0]; name=:point_cloud)
 
-nh = 7
+nh = 8
 polytope_dimensions = [nh,nh,nh,nh,nh,nh]
 np = length(polytope_dimensions)
 θinit, d_object, kmres = parameter_initialization(d0, polytope_dimensions; altitude_threshold=0.3)
@@ -103,14 +104,24 @@ setvisible!(vis[:initial], false)
 # optimization
 ################################################################################
 # projection
-local_projection(θ) = projection(θ, polytope_dimensions)
-# clamping
-local_clamping(Δθ) = clamping(Δθ, polytope_dimensions)
+local_projection(θ) = projection(θ, polytope_dimensions,
+	Alims=[-1.00, +1.00],
+	blims=[+0.02, +0.60],
+	olims=[-3.00, +3.00],
+	)
+
+# step_projection
+local_step_projection(Δθ) = step_projection(Δθ, polytope_dimensions;
+	Alims=[-0.40, +0.40],
+	blims=[-0.05, +0.05],
+	olims=[-0.05, +0.05],
+	)
 # regularization
 θdiag = zeros(0)
 for i = 1:np
-	θi = [1e-1 * ones(2nh); 1e+0 * ones(nh); 3e+0 * ones(2)]
-    # θi = [1e-2 * ones(nh); 1e+1 * ones(nh); 1e+0 * ones(2)]
+	# θi = [1e-0 * ones(2nh); 1e-0 * ones(nh); 3e+0 * ones(2)]
+	# θi = [1e-2 * ones(2nh); 1e-0 * ones(nh); 3e+0 * ones(2)]
+	θi = [3e-2 * ones(2nh); 3e-1 * ones(nh); 3e-1 * ones(2)]
     A, b, o = unpack_halfspaces(θi)
     push!(θdiag, pack_halfspaces(A, b, o)...)
 end
@@ -118,12 +129,16 @@ end
 
 parameters = Dict(
 	:δ_sdf => 15.0,
-	:δ_softabs => 0.01,
+	:δ_sigmoid => 0.1,
+	# :δ_softabs => 0.01,
+	:δ_softabs => 0.5,
 	:altitude_threshold => 0.01,
 	:rendering => 10.0,
 	:sdf_matching => 20.0,
 	:overlap => 2.0,
-	:individual => 1.0,
+	:individual => 0.0,
+	# :individual => 0.0,
+	# :side_regularization => 0.5,
 	:side_regularization => 0.5,
 	:inside => 1.0,
 	:outside => 0.1,
@@ -131,44 +146,9 @@ parameters = Dict(
 max_iterations = 30
 
 # loss and gradients
-# local_loss(θ) = shape_loss(θ, polytope_dimensions, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
-# local_grad(θ) = shape_grad(θ, polytope_dimensions, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
-#
-# parameters = Dict(
-# 	:δ_sdf => 15.0,
-# 	:δ_softabs => 0.01,
-# 	:altitude_threshold => 0.01,
-# 	:rendering => 1.0 * 10.0,
-# 	:sdf_matching => 1.0 * 20.0, ##########################
-# 	:overlap => 1.0 * 2.0,
-# 	:individual => 1.0 * 1.0, #############################
-# 	:side_regularization => 1.0 * 0.5,
-# 	:inside => 1.0 * 1.0, #################################
-# 	:outside => 1.0 * 0.1, ################################
-# )
-# local_loss(θinit)
-# local_loss(θsol3)
-
 local_loss(θ) = shape_loss(θ, polytope_dimensions, [e0], [β0], ρ0, [d0]; parameters...)
 local_grad(θ) = shape_grad(θ, polytope_dimensions, [e0], [β0], ρ0, [d0]; parameters...)
 local_hess(θ) = Diagonal(1e-6*ones(length(θ)))
-
-# parameters = Dict(
-# 	:δ => 20.0,
-# 	:altitude_threshold => 0.01,
-# 	:rendering => 10.0,
-# 	# :rendering => 0.0,
-# 	# :sdf_matching => 10.0,
-# 	:sdf_matching => 0.0,
-# 	# :overlap => 0.5,
-# 	:overlap => 0.0,
-# 	# :individual => 1.0,
-# 	:individual => 0.0,
-# 	# :expansion => 0.25,
-# 	:expansion => 0.00,
-# 	# :side_regularization => 1.0,
-# 	:side_regularization => 0.0,
-# )
 
 
 # local_loss(θsol3)
@@ -176,17 +156,10 @@ local_loss(θinit)
 local_grad(θinit)
 local_hess(θinit)
 
-# @benchmark local_loss(θiter3[end])
-# @benchmark local_loss(θinit)
-# @benchmark local_grad(θinit)
-# Main.@profiler [local_loss(θiter3[end]) for i=1:100]
-# Main.@profiler local_grad(θinit)
-
-
 ################################################################################
 # solve
 ################################################################################
-θsol0, θiter0 = newton_solver!(θinit, local_loss, local_grad, local_hess, local_projection, local_clamping;
+# θsol0, θiter0 = newton_solver!(θinit, local_loss, local_grad, local_hess, local_projection, local_step_projection;
         max_iterations=max_iterations,
         reg_min=1e-2,
         reg_max=1e+1,
@@ -194,27 +167,37 @@ local_hess(θinit)
         line_search_iterations=10,
         residual_tolerance=1e-4,
         D=Diagonal(θdiag))
+# visualize_iterates!(vis, θiter0, polytope_dimensions, e0, β0, ρ0, max_iterations=max_iterations+1)
 
-θsol0, θiter0 = bfgs_solver!(θinit, local_loss, local_grad, local_projection, local_clamping;
-# θsol0, θiter0 = bfgs_solver!(θinit, local_loss, local_grad, x ->x, x -> x;
+θsol0, θiter0 = bfgs_solver!(θinit, local_loss, local_grad, local_projection, local_step_projection;
         max_iterations=max_iterations,
-        reg_min=1e-2,
-        reg_max=1e+1,
+        reg_min=1e-4,
+        reg_max=1e2,
         reg_step=2.0,
-        line_search_iterations=100,
-        line_search_schedule=0.5,
+        line_search_iterations=20,
+        line_search_schedule=0.70,
         loss_tolerance=1e-4,
         grad_tolerance=1e-4,
-        H=Matrix(Diagonal(1 ./ θdiag)))
-
-
+		Binit=Matrix(Diagonal(θdiag)))
 visualize_iterates!(vis, θiter0, polytope_dimensions, e0, β0, ρ0, max_iterations=max_iterations+1)
 
-initial_invH(x) = Matrix(Diagonal(1 ./ θdiag))
+
+# off = 0
+# for i = 1:np
+# 	θi = θsol0[off .+ (1:2nh)]
+# 	θiniti = θinit[off .+ (1:2nh)]
+# 	for j = 1:nh
+# 		println(round.(θi[(j-1)*2 .+ (1:2)], digits=3))
+# 		println(round.(θiniti[(j-1)*2 .+ (1:2)], digits=3))
+# 	end
+# 	off += 3nh + 2
+# end
+
+
 
 # bfgs = BFGS(;
 # 	alphaguess = Optim.LineSearches.InitialStatic(),
-# 	linesearch = Optim.LineSearches.BackTracking(order=2),
+# 	linesearch = Optim.LineSearches.StrongWolfe(),
 # 	initial_invH = initial_invH,
 # 	initial_stepnorm = nothing,
 # 	manifold = Flat(),
@@ -235,17 +218,27 @@ initial_invH(x) = Matrix(Diagonal(1 ./ θdiag))
 # 	θinit,
 # 	bfgs,
 # 	Optim.Options(
+# 		iterations=40,
 # 		allow_f_increases=true,
-# 		# iterations = 500,
-# 		extended_trace = true,
+# 		# extended_trace = true,
 # 		store_trace = true,
-# 		show_trace = false);
+# 		show_trace = true,
+# 		# show_trace = false,
+# 		);
 # 	inplace=false)
 
 
-res1 = res.trace[1]
-θsol0 = res.minimizer
-θiter0 = [θsol0 for i=1:31]
+# res1 = res.trace[1]
+# θsol0 = res.minimizer
+# θiter0 = [θsol0 for i=1:31]
+# visualize_iterates!(vis, θiter0, polytope_dimensions, e0, β0, ρ0, max_iterations=max_iterations+1)
+
+
+
+
+
+
+
 
 e1 = [-2.25, +2.0]
 β1 = -π + atan(e1[2], e1[1]) .+ Vector(range(+0.20π, -0.20π, length=100))
@@ -254,10 +247,10 @@ build_point_cloud!(vis[:point_cloud_1], nβ; color=RGBA(0.1,0.1,0.8,1), name=Sym
 set_2d_point_cloud!(vis, [e1], [d1]; name=:point_cloud_1)
 
 # loss and gradients
-local_loss(θ) = shape_loss(θ, [e1], [β1], ρ0, [d1]; parameters...)
-local_grad(θ) = shape_grad(θ, [e1], [β1], ρ0, [d1]; parameters...)
+local_loss(θ) = shape_loss(θ, polytope_dimensions, [e1], [β1], ρ0, [d1]; parameters...)
+local_grad(θ) = shape_grad(θ, polytope_dimensions, [e1], [β1], ρ0, [d1]; parameters...)
 
-θsol1, θiter1 = newton_solver!(θsol0, local_loss, local_grad, local_hess, local_projection, local_clamping;
+# θsol1, θiter1 = newton_solver!(θsol0, local_loss, local_grad, local_hess, local_projection, local_step_projection;
         max_iterations=max_iterations,
         reg_min=1e-4,
         reg_max=1e+1,
@@ -265,7 +258,18 @@ local_grad(θ) = shape_grad(θ, [e1], [β1], ρ0, [d1]; parameters...)
         line_search_iterations=10,
         residual_tolerance=1e-4,
         D=Diagonal(θdiag))
+# visualize_iterates!(vis, θiter1, polytope_dimensions, e1, β1, ρ0, max_iterations=max_iterations+1)
 
+θsol1, θiter1 = bfgs_solver!(θsol0, local_loss, local_grad, local_projection, local_step_projection;
+        max_iterations=max_iterations,
+        reg_min=1e-4,
+        reg_max=1e2,
+        reg_step=2.0,
+        line_search_iterations=20,
+        line_search_schedule=0.70,
+        loss_tolerance=1e-4,
+        grad_tolerance=1e-4,
+		Binit=Matrix(Diagonal(θdiag)))
 visualize_iterates!(vis, θiter1, polytope_dimensions, e1, β1, ρ0, max_iterations=max_iterations+1)
 
 
@@ -280,10 +284,10 @@ build_point_cloud!(vis[:point_cloud_2], nβ; color=RGBA(0.1,0.8,0.1,1), name=Sym
 set_2d_point_cloud!(vis, [e2], [d2]; name=:point_cloud_2)
 
 # loss and gradients
-local_loss(θ) = shape_loss(θ, [e2], [β2], ρ0, [d2]; parameters...)
-local_grad(θ) = shape_grad(θ, [e2], [β2], ρ0, [d2]; parameters...)
+local_loss(θ) = shape_loss(θ, polytope_dimensions, [e2], [β2], ρ0, [d2]; parameters...)
+local_grad(θ) = shape_grad(θ, polytope_dimensions, [e2], [β2], ρ0, [d2]; parameters...)
 
-θsol2, θiter2 = newton_solver!(θsol1, local_loss, local_grad, local_hess, local_projection, local_clamping;
+# θsol2, θiter2 = newton_solver!(θsol1, local_loss, local_grad, local_hess, local_projection, local_step_projection;
         max_iterations=max_iterations,
         reg_min=1e-4,
         reg_max=1e+1,
@@ -291,16 +295,27 @@ local_grad(θ) = shape_grad(θ, [e2], [β2], ρ0, [d2]; parameters...)
         line_search_iterations=10,
         residual_tolerance=1e-4,
         D=Diagonal(θdiag))
+# visualize_iterates!(vis, θiter2, polytope_dimensions, e2, β2, ρ0, max_iterations=max_iterations+1)
+θsol2, θiter2 = bfgs_solver!(θsol1, local_loss, local_grad, local_projection, local_step_projection;
+        max_iterations=max_iterations,
+        reg_min=1e-4,
+        reg_max=1e2,
+        reg_step=2.0,
+        line_search_iterations=20,
+        line_search_schedule=0.70,
+        loss_tolerance=1e-4,
+        grad_tolerance=1e-4,
+		Binit=Matrix(Diagonal(θdiag)))
+visualize_iterates!(vis, θiter2, polytope_dimensions, e1, β1, ρ0, max_iterations=max_iterations+1)
 
-visualize_iterates!(vis, θiter2, polytope_dimensions, e2, β2, ρ0, max_iterations=max_iterations+1)
 
 
 
 # loss and gradients
-local_loss(θ) = shape_loss(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
-local_grad(θ) = shape_grad(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
+local_loss(θ) = shape_loss(θ, polytope_dimensions, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
+local_grad(θ) = shape_grad(θ, polytope_dimensions, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
 
-θsol3, θiter3 = newton_solver!(θsol2, local_loss, local_grad, local_hess, local_projection, local_clamping;
+# θsol3, θiter3 = newton_solver!(θsol2, local_loss, local_grad, local_hess, local_projection, local_step_projection;
         max_iterations=max_iterations,
         reg_min=1e-4,
         reg_max=1e+1,
@@ -308,5 +323,30 @@ local_grad(θ) = shape_grad(θ, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]
         line_search_iterations=10,
         residual_tolerance=1e-4,
         D=Diagonal(θdiag))
+# visualize_iterates!(vis, θiter3, polytope_dimensions, e2, β2, ρ0, max_iterations=max_iterations+1)
+θsol3, θiter3 = bfgs_solver!(θsol2, local_loss, local_grad, local_projection, local_step_projection;
+        max_iterations=max_iterations,
+        reg_min=1e-4,
+        reg_max=1e2,
+        reg_step=2.0,
+        line_search_iterations=20,
+        line_search_schedule=0.70,
+        loss_tolerance=1e-4,
+        grad_tolerance=1e-4,
+		Binit=Matrix(Diagonal(θdiag)))
+visualize_iterates!(vis, θiter3, polytope_dimensions, e1, β1, ρ0, max_iterations=max_iterations+1)
 
-visualize_iterates!(vis, θiter3, polytope_dimensions, e2, β2, ρ0, max_iterations=max_iterations+1)
+plt = plot()
+off = 0
+for i = 1:np
+	nh = polytope_dimensions[i]
+	θi = θsol3[off .+ (1:3nh+2)]
+	scatter!(plt, θi[2nh .+ (1:nh)])
+	off += 3nh + 2
+end
+display(plt)
+
+nh
+θsol3[17:24]
+aaa, bbb, ooo = unpack_halfspaces(θsol3, polytope_dimensions)
+plot_polytope(aaa[1], bbb[1] + aaa[1] * ooo[1], 100.0, xlims=[-5,5], ylims=[-5,5])

@@ -32,17 +32,21 @@ end
 ################################################################################
 # projection
 ################################################################################
-function projection(θ, polytope_dimensions)
+function projection(θ, polytope_dimensions;
+		Alims=[-1.00, +1.00],
+		blims=[+0.05, +0.40],
+		olims=[-3.00, +3.00],
+		)
 	θmin = []
 	θmax = []
     A, b, o = unpack_halfspaces(θ, polytope_dimensions)
 
     for (i,nh) in enumerate(polytope_dimensions)
-		push!(θmin, [-1.0 * ones(2nh); +0.05 * ones(nh); -3.0 * ones(2)]...)
-		push!(θmax, [+1.0 * ones(2nh); +0.40 * ones(nh); +3.0 * ones(2)]...)
-        for j = 1:nh
-            A[i][j,:] = A[i][j,:] / (1e-6 + norm(A[i][j,:]))
-        end
+		for j = 1:nh
+			A[i][j,:] = A[i][j,:] / (1e-6 + norm(A[i][j,:]))
+		end
+		push!(θmin, [Alims[1] * ones(2nh); blims[1] * ones(nh); olims[1] * ones(2)]...)
+		push!(θmax, [Alims[2] * ones(2nh); blims[2] * ones(nh); olims[2] * ones(2)]...)
     end
 
     return clamp.(θ, θmin, θmax)
@@ -50,14 +54,18 @@ end
 
 
 ################################################################################
-# clamping
+# step_projection
 ################################################################################
-function clamping(Δθ, polytope_dimensions)
+function step_projection(Δθ, polytope_dimensions;
+		Alims=[-0.60, +0.60],
+		blims=[-0.05, +0.05],
+		olims=[-0.05, +0.05],
+		)
 	Δθmin = []
 	Δθmax = []
 	for nh in polytope_dimensions
-		push!(Δθmin, [-0.60 * ones(2nh); -0.05 * ones(nh); -0.05 * ones(2)]...)
-		push!(Δθmax, [+0.60 * ones(2nh); +0.05 * ones(nh); +0.05 * ones(2)]...)
+		push!(Δθmin, [Alims[1] * ones(2nh); blims[1] * ones(nh); olims[1] * ones(2)]...)
+		push!(Δθmax, [Alims[2] * ones(2nh); blims[2] * ones(nh); olims[2] * ones(2)]...)
 	end
     return clamp.(Δθ, Δθmin, Δθmax)
 end
@@ -149,6 +157,9 @@ function individual_loss(θ::Vector{D}, polytope_dimensions::Vector{Int},
 	altitude_threshold=0.01,
 	) where {T,D}
 
+	# if eltype(θ) <: Float64
+	# 	@show norm(θ)
+	# end
 	nβ = length(β)
 	l = 0.0
 
@@ -173,14 +184,17 @@ function individual_loss(θ::Vector{D}, polytope_dimensions::Vector{Int},
 	return l / nβ
 end
 
+for i = 1:10
+	@show (i-2 + 10) % 10 + 1
+	@show i
+end
+
 function shape_loss(θ, polytope_dimensions, e, β, ρ, d_ref;
 	altitude_threshold=0.01,
 	thickness=0.2,
-
 	δ_sdf=75.0,
 	δ_softabs=0.01,
 	δ_sigmoid=0.1,
-
 	rendering=10.0,
 	add_rendering=true,
 	sdf_matching=1.0,
@@ -203,6 +217,13 @@ function shape_loss(θ, polytope_dimensions, e, β, ρ, d_ref;
 	l = 0.0
 	# regularization
 	l += side_regularization * 10.0 * sum([0.5*norm(bi .- mean(bi))^2 + softabs(norm(bi .- mean(bi)), δ_softabs) for bi in b]) / (np * nh)
+	for i = 1:np
+		nh = polytope_dimensions[i]
+		for j = 1:nh
+			Δs = b[i][(j-2 + nh) % nh + 1] - b[i][j]
+			l += side_regularization * 10.0 * (0.5 * Δs^2 + softabs(Δs, δ_softabs)) / (np * nh)
+		end
+	end
 
 	# inside sampling, overlap penalty
 	for i = 1:np
@@ -233,14 +254,6 @@ function shape_loss(θ, polytope_dimensions, e, β, ρ, d_ref;
 		l += sdf_matching * sdf_matching_loss(θ_f, polytope_dimensions_f, e[i], β[i], d_ref[i];
 			δ_sdf=δ_sdf,
 			δ_softabs=δ_softabs) / ne
-		# sdf matching
-		# for j = 1:ne
-		# 	for i = 1:nβ
-		# 		@views p = d_ref[j][:,i]
-		# 		ϕ = sdfV(p, θ_f, polytope_dimensions_f, δ_sdf)
-		# 		l += sdf_matching * 0.1 * (ϕ^2 + softabs(ϕ, δ_softabs)) / (nβ * ne)
-		# 	end
-		# end
 
 		# outside sampling
 		l += outside * outside_loss(θ_f, polytope_dimensions_f, e[i], β[i], d_ref[i];
@@ -250,33 +263,6 @@ function shape_loss(θ, polytope_dimensions, e, β, ρ, d_ref;
 			altitude_threshold=altitude_threshold,
 			thickness=thickness,
 			outside_sample=outside_sample) / ne
-		# outside sampling
-		# all active rays with padding = padding
-		# padding = 5
-		# padded_active_rays = falses(nβ)
-		# nα = 10
-		# for i = 1:ne
-		# 	for j = 1:nβ
-		# 		p_ref = d_ref[i][:,j]
-		# 		if p_ref[2] >= altitude_threshold
-		# 			ind = max(1, j-padding):min(nβ, j+padding)
-		# 			padded_active_rays[ind] .= true
-		# 		end
-		# 	end
-		# 	for j = 1:nβ
-		# 		if padded_active_rays[j]
-		# 			p_ref = d_ref[i][:,j]
-		# 			v_ref = [cos(β[i][j]), sin(β[i][j])]
-		# 			# sample outside points for a distance equal to thickness before we reach the actual point
-		# 			α_ref = (p_ref - e[i])' * v_ref
-		# 			α_max = max(0, α_ref - thickness)
-		# 			for α in range(α_max, α_ref, length=nα)
-		# 				p = e[i] + α * v_ref
-		# 				l += outside * 5 * (0 - sigmoid_fast(-10 * sdf(p, A, b, o, δ_sdf)))^2 / (ne * nβ * nα)
-		# 			end
-		# 		end
-		# 	end
-		# end
 
 		# inside sampling
 		l += inside * inside_loss(θ_f, polytope_dimensions_f, e[i], β[i], d_ref[i];
@@ -286,24 +272,7 @@ function shape_loss(θ, polytope_dimensions, e, β, ρ, d_ref;
 			altitude_threshold=altitude_threshold,
 			thickness=thickness,
 			inside_sample=inside_sample) / ne
-		# nα = 10
-		# for i = 1:ne
-		# 	for j = 1:nβ
-		# 		p_ref = d_ref[i][:,j]
-		# 		v_ref = [cos(β[i][j]), sin(β[i][j])]
-		# 		if p_ref[2] >= altitude_threshold
-		# 			# sample inside points for a distance equal to thickness or until we reach the floor
-		# 			α_ref = (p_ref - e[i])' * v_ref
-		# 			α_max = max(0, p_ref[2] / (1e-6 + max(0, v_ref[2])))
-		# 			for α in range(α_ref, min(α_ref + thickness, α_max), length=nα)
-		# 				p = e[i] + α * v_ref
-		# 				l += inside * 10 * (1 - sigmoid_fast(-10 * sdf(p, A, b, o, δ_sdf)))^2 / (ne * nβ * nα)
-		# 			end
-		# 		end
-		# 	end
-		# end
 	end
-
 	return l
 end
 

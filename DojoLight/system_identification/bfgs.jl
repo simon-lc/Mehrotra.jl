@@ -7,15 +7,19 @@ function bfgs_solver!(xinit, loss, grad, projection, step_projection;
         line_search_schedule=0.5,
         loss_tolerance=1e-4,
         grad_tolerance=1e-4,
-        H=Diagonal(ones(length(xinit))))
+        # Hinit=Diagonal(ones(length(xinit))))
+        Binit=Diagonal(ones(length(xinit))))
 
     n = length(xinit)
     # initialization
     stall = 0
     x = deepcopy(xinit)
+    # H = deepcopy(Hinit)
+    B = deepcopy(Binit)
     g_previous = zeros(n)
     trace = [deepcopy(x)]
     reg = reg_max
+    l_minimum = loss(xinit)
 
     # BFGS
     # https://www.math.uci.edu/~qnie/Publications/NumericalOptimization.pdf
@@ -27,45 +31,83 @@ function bfgs_solver!(xinit, loss, grad, projection, step_projection;
         (l < loss_tolerance) && break
         g = grad(x)
         (norm(g, Inf) < grad_tolerance) && break
+        y = g - g_previous
 
-        # Δx = - (H + reg * D) \ g
-        Δx = - H * g
+        # Δx = - (inv(H) + reg * I) \ g
+        @show isposdef(B)
+        # Δx = - (B + reg * I) \ g
+        Δx = - (B + reg * Binit) \ g
+        # Δx = - B \ g
 
         # linesearch
         α = 1.0
         for j = 1:line_search_iterations
             l_candidate = loss(projection(x + step_projection(α * Δx)))
-            if l_candidate <= l
+            if (l_candidate <= 1.00 * l_minimum)
+                (l_candidate <= l_minimum) && (l_minimum = l_candidate)
+                # (j > 6) && (reg = clamp(reg/reg_step, reg_min, reg_max))
                 reg = clamp(reg/reg_step, reg_min, reg_max)
                 stall = 0
                 break
             end
             α *= line_search_schedule
-            if j == 10
+            if j == line_search_iterations
                 stall += 1
-                # α = 0.0
+                α = 0.0
                 reg = clamp(reg*exp(3.0*log(reg_step)), reg_min, reg_max)
             end
         end
 
         s = step_projection(α * Δx)
-        y = g - g_previous
 
-        ρ = 1 / (y' * s)
-        if 1 / ρ > 0
-            H .= (I - ρ * s * y') * H * (I - ρ * y * s') + ρ * s * s'
-        else
-            nothing
+        θ = 1.0
+        r = deepcopy(y)
+        for j = 1:1
+            r = θ * y + (1 - θ) * B * s
+            if r' * s > 0
+                break
+            end
+            θ *= 0.8
+            if j == 100
+                # θ = 0.0
+                break
+            end
         end
+        θ = 1.0
+        r = θ * y + (1 - θ) * B * s
+        B = B - B * s * s' * B / (1e-3 + s' * B * s) + r * r' / (1e-3 + s' * r)
+        # H .= (I - ρr * s * r') * H * (I - ρr * r * s') + ρr * s * s'
+
+        # θ = 1.0
+        # if s' * y >= 0.2 * s' * B * s
+        #     θ = 1.0
+        # else
+        #     θ = (0.8 * s' * B * s) / (s' * B * s - s' * y)
+        # end
+        # r = θ * y + (1 - θ) * B * s
+        # B = B - B * s * s' * B / (s' * B * s) + r * r' / (s' * r)
+
+        # ρ = 1 / (y' * s)
+        # if 1 / ρ > 0
+        #     H .= (I - ρ * s * y') * H * (I - ρ * y * s') + ρ * s * s'
+        #     # D = inv(H) + 1/reg * Hinit
+        #     # H = inv(D)
+        # else
+        #     @show iterations
+        #     D = inv(H) + 1/reg * Hinit
+        #     H = inv(D)
+        #     nothing
+        # end
+
         # Bs = (H \ s)
-        # if s'* y >= 0.2 * s' *
+        # if s'* y >= 0.2 * s' * Bs
         #     θ = 1.0
         # else
         #     θ = (0.8 * s' * Bs) / (s' * Bs - s' * y)
         # end
         # r = θ * y + (1 - θ) * Bs
         # ρr = 1 / (r' * s)
-        # H .= (I - ρ * s * r') * H * (I - ρ * r * s') + ρ * s * s'
+        # H .= (I - ρr * s * r') * H * (I - ρr * r * s') + ρr * s * s'
 
 
         # header
@@ -84,7 +126,6 @@ function bfgs_solver!(xinit, loss, grad, projection, step_projection;
             reg,
             )
         x = projection(x + step_projection(α * Δx))
-        @show norm(step_projection(α * Δx))
         push!(trace, deepcopy(x))
         g_previous .= g
     end
