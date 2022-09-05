@@ -133,6 +133,37 @@ function outside_loss(θ::Vector{D}, polytope_dimensions::Vector{Int},
 	return l / (nβ * outside_sample)
 end
 
+function floor_loss(θ::Vector{D}, polytope_dimensions::Vector{Int},
+	e::Vector{T}, β, d_ref::Matrix{T};
+	δ_sdf::T=75.0,
+	δ_softabs::T=0.01,
+	δ_sigmoid::T=0.1,
+	altitude_threshold::T=0.01,
+	thickness::T=0.2,
+	floor_sample::Int=10,
+	) where {T,D}
+
+	nβ = length(β)
+	l = 0.0
+
+	for i = 1:nβ
+		@views p_ref = d_ref[:,i]
+		if p_ref[2] >= altitude_threshold
+			# sample outside points for a distance equal to thickness before we reach the actual point
+			v_ref = SVector{2,T}(cos(β[i]), sin(β[i]))
+			α_ref = p_ref' * v_ref - e' * v_ref
+			α_floor = - e[2] / (1e-6 + v_ref[2])
+			for α in range(α_floor, α_floor + thickness, length=floor_sample)
+				p = e + α * v_ref
+				ϕ = sdfV(p, θ, polytope_dimensions, δ_sdf)
+				l += 5 * (0 - sigmoid_fast(-1/δ_sigmoid * ϕ))^2
+			end
+		end
+	end
+
+	return l / (nβ * floor_sample)
+end
+
 function sdf_matching_loss(θ::Vector{D}, polytope_dimensions::Vector{Int},
 	e::Vector{T}, β, d_ref::Matrix{T};
 	δ_sdf::T=75.0,
@@ -184,11 +215,6 @@ function individual_loss(θ::Vector{D}, polytope_dimensions::Vector{Int},
 	return l / nβ
 end
 
-for i = 1:10
-	@show (i-2 + 10) % 10 + 1
-	@show i
-end
-
 function shape_loss(θ, polytope_dimensions, e, β, ρ, d_ref;
 	altitude_threshold=0.01,
 	thickness=0.2,
@@ -201,11 +227,14 @@ function shape_loss(θ, polytope_dimensions, e, β, ρ, d_ref;
 	overlap=0.1,
 	individual=1.0,
 	side_regularization=2.0,
+	shape_regularization=1.0,
 	inside=1.0,
 	outside=1.0,
+	floor=1.0,
 
 	inside_sample::Int=10,
 	outside_sample::Int=10,
+	floor_sample::Int=10,
 	)
 
 	np = length(polytope_dimensions)
@@ -217,26 +246,36 @@ function shape_loss(θ, polytope_dimensions, e, β, ρ, d_ref;
 	l = 0.0
 	# regularization
 	l += side_regularization * 10.0 * sum([0.5*norm(bi .- mean(bi))^2 + softabs(norm(bi .- mean(bi)), δ_softabs) for bi in b]) / (np * nh)
-	for i = 1:np
-		nh = polytope_dimensions[i]
-		for j = 1:nh
-			Δs = b[i][(j-2 + nh) % nh + 1] - b[i][j]
-			l += side_regularization * 10.0 * (0.5 * Δs^2 + softabs(Δs, δ_softabs)) / (np * nh)
-		end
-	end
+	# for i = 1:np
+	# 	nh = polytope_dimensions[i]
+	# 	for j = 1:nh
+	# 		Δs = b[i][(j-2 + nh) % nh + 1] - b[i][j]
+	# 		l += side_regularization * 10.0 * (0.5 * Δs^2 + softabs(Δs, δ_softabs)) / (np * nh)
+	# 	end
+	# end
 
 	# inside sampling, overlap penalty
 	for i = 1:np
 		p = o[i]
-		ϕ = sum([sigmoid_fast(-10*sdf(p, A_f[j], b_f[j], o_f[j], δ_sdf)) for j in 1:np+1])
+		ϕ = sum([sigmoid_fast(-10*sdf(p, A_f[k], b_f[k], o_f[k], δ_sdf)) for k in 1:np+1])
 		l += overlap * 1e-2 * softplus(ϕ - 1, δ_softabs)^2 / np
 		nh = polytope_dimensions[i]
 		for j = 1:nh
 			for α ∈ [1.00, 0.75, 0.5, 0.25]
 				p = o[i] - α * A[i][j,:] .* b[i][j] / norm(A[i][j,:])^2
-				ϕ = sum([sigmoid_fast(-10 * sdf(p, A_f[j], b_f[j], o_f[j], δ_sdf)) for j in 1:np+1])
+				ϕ = sum([sigmoid_fast(-10 * sdf(p, A_f[k], b_f[k], o_f[k], δ_sdf)) for k in 1:np+1])
 				l += overlap * 1e-2 * softplus(ϕ - 2, δ_softabs)^2 / (np * nh * length(α))
 			end
+		end
+	end
+
+	# regularization of polytope shape
+	for i = 1:np
+		nh = polytope_dimensions[i]
+		for j = 1:nh
+			p = o[i] - A[i][j,:] .* b[i][j] / norm(A[i][j,:])^2
+			ϕ = sdf(p, A[i], b[i], o[i], δ_sdf)
+			l += shape_regularization * 10 * (1 - sigmoid_fast(-1/δ_sigmoid * ϕ))^2 / (np * nh)
 		end
 	end
 
@@ -254,6 +293,15 @@ function shape_loss(θ, polytope_dimensions, e, β, ρ, d_ref;
 		l += sdf_matching * sdf_matching_loss(θ_f, polytope_dimensions_f, e[i], β[i], d_ref[i];
 			δ_sdf=δ_sdf,
 			δ_softabs=δ_softabs) / ne
+
+		# floor sampling
+		l += floor * floor_loss(θ_f, polytope_dimensions_f, e[i], β[i], d_ref[i];
+			δ_sdf=δ_sdf,
+			δ_softabs=δ_softabs,
+			δ_sigmoid=δ_sigmoid,
+			altitude_threshold=altitude_threshold,
+			thickness=thickness,
+			floor_sample=floor_sample) / ne
 
 		# outside sampling
 		l += outside * outside_loss(θ_f, polytope_dimensions_f, e[i], β[i], d_ref[i];

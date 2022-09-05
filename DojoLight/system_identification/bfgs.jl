@@ -60,19 +60,19 @@ function bfgs_solver!(xinit, loss, grad, projection, step_projection;
 
         s = step_projection(α * Δx)
 
-        θ = 1.0
-        r = deepcopy(y)
-        for j = 1:1
-            r = θ * y + (1 - θ) * B * s
-            if r' * s > 0
-                break
-            end
-            θ *= 0.8
-            if j == 100
-                # θ = 0.0
-                break
-            end
-        end
+        # θ = 1.0
+        # r = deepcopy(y)
+        # for j = 1:100
+        #     r = θ * y + (1 - θ) * B * s
+        #     if r' * s > 0
+        #         break
+        #     end
+        #     θ *= 0.8
+        #     if j == 100
+        #         θ = 0.0
+        #         break
+        #     end
+        # end
         θ = 1.0
         r = θ * y + (1 - θ) * B * s
         B = B - B * s * s' * B / (1e-3 + s' * B * s) + r * r' / (1e-3 + s' * r)
