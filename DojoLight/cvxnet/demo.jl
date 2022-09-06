@@ -20,7 +20,7 @@ include("utils.jl")
 
 vis = Visualizer()
 render(vis)
-# open(vis)
+open(vis)
 
 
 # parameters
@@ -76,8 +76,9 @@ op = [op0, op1, op2, of]
 θ_p, polytope_dimensions_p = pack_halfspaces(Ap, bp, op)
 
 e0 = [0.0, +2.0]
-ρ0 = 1/0.02
-β0 = -π + atan(e0[2], e0[1]) .+ Vector(range(+0.3π, -0.3π, length=100))
+ρ0 = 1/0.00002
+# β0 = -π + atan(e0[2], e0[1]) .+ Vector(range(+0.3π, -0.3π, length=100))
+β0 = -π + atan(e0[2], e0[1]) .+ Vector(range(+0.3π, -0.3π, length=2000))
 nβ = length(β0)
 
 build_2d_polytope!(vis[:polytope], Ap0, bp0 + Ap0 * op0, name=:poly0, color=RGBA(0,0,0,0.3))
@@ -121,7 +122,8 @@ local_step_projection(Δθ) = step_projection(Δθ, polytope_dimensions;
 for i = 1:np
 	# θi = [1e-0 * ones(2nh); 1e-0 * ones(nh); 3e+0 * ones(2)]
 	# θi = [1e-2 * ones(2nh); 1e-0 * ones(nh); 3e+0 * ones(2)]
-	θi = [3e-2 * ones(2nh); 1e-0 * ones(nh); 1e0 * ones(2)]
+	# θi = [3e-2 * ones(2nh); 1e0 * ones(nh); 1e0 * ones(2)]
+	θi = [1e-2 * ones(2nh); 1e0 * ones(nh); 1e0 * ones(2)]
     A, b, o = unpack_halfspaces(θi)
     push!(θdiag, pack_halfspaces(A, b, o)...)
 end
@@ -130,20 +132,15 @@ end
 parameters = Dict(
 	:thickness => 0.2,
 	:δ_sdf => 15.0,
-	# :δ_sigmoid => 0.1,
 	:δ_sigmoid => 0.1,
-	# :δ_softabs => 0.01,
 	:δ_softabs => 0.5,
 	:altitude_threshold => 0.01,
-	# :rendering => 10.0,
 	:rendering => 5.0,
 	:sdf_matching => 20.0,
 	:overlap => 2.0,
 	:individual => 1.0,
-	# :individual => 0.0,
 	:side_regularization => 0.5,
 	:shape_regularization => 0.25,
-	# :inside => 1.0,
 	:inside => 1.0,
 	:outside => 0.1,
 	:floor => 0.1,
@@ -177,10 +174,20 @@ local_hess(θinit)
 # )
 # local_loss(θsol3)
 
+ΔA_scale = +0.60
+Δb_scale = +0.05
+Δo_scale = +0.05
+Δθ_scale = []
+for nh in polytope_dimensions
+	push!(Δθ_scale, [ΔA_scale * ones(2nh); Δb_scale * ones(nh); Δo_scale * ones(2)]...)
+end
+Δθ_scale
+
+
 ################################################################################
 # solve
 ################################################################################
-θsol0, θiter0 = bfgs_solver!(θinit, local_loss, local_grad, local_projection, local_step_projection;
+θsol0, θiter0 = sr1_solver!(θinit, local_loss, local_grad, local_projection, local_step_projection;
         max_iterations=max_iterations,
         reg_min=1e-4,
         reg_max=1e2,
@@ -189,6 +196,8 @@ local_hess(θinit)
         line_search_schedule=0.70,
         loss_tolerance=1e-4,
         grad_tolerance=1e-4,
+		# Δx_scale=Δθ_scale,
+		# Δinit=5e-1,
 		Binit=Matrix(Diagonal(θdiag)))
 visualize_iterates!(vis, θiter0, polytope_dimensions, e0, β0, ρ0, max_iterations=max_iterations+1)
 
@@ -246,7 +255,7 @@ set_2d_point_cloud!(vis, [e1], [d1]; name=:point_cloud_1)
 local_loss(θ) = shape_loss(θ, polytope_dimensions, [e1], [β1], ρ0, [d1]; parameters...)
 local_grad(θ) = shape_grad(θ, polytope_dimensions, [e1], [β1], ρ0, [d1]; parameters...)
 
-θsol1, θiter1 = bfgs_solver!(θsol0, local_loss, local_grad, local_projection, local_step_projection;
+θsol1, θiter1 = sr1_solver!(θsol0, local_loss, local_grad, local_projection, local_step_projection;
         max_iterations=max_iterations,
         reg_min=1e-4,
         reg_max=1e2,
@@ -273,7 +282,7 @@ set_2d_point_cloud!(vis, [e2], [d2]; name=:point_cloud_2)
 local_loss(θ) = shape_loss(θ, polytope_dimensions, [e2], [β2], ρ0, [d2]; parameters...)
 local_grad(θ) = shape_grad(θ, polytope_dimensions, [e2], [β2], ρ0, [d2]; parameters...)
 
-θsol2, θiter2 = bfgs_solver!(θsol1, local_loss, local_grad, local_projection, local_step_projection;
+θsol2, θiter2 = sr1_solver!(θsol1, local_loss, local_grad, local_projection, local_step_projection;
         max_iterations=max_iterations,
         reg_min=1e-4,
         reg_max=1e2,
@@ -292,8 +301,8 @@ visualize_iterates!(vis, θiter2, polytope_dimensions, e1, β1, ρ0, max_iterati
 local_loss(θ) = shape_loss(θ, polytope_dimensions, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
 local_grad(θ) = shape_grad(θ, polytope_dimensions, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
 
-θsol3, θiter3 = bfgs_solver!(θsol2, local_loss, local_grad, local_projection, local_step_projection;
-        max_iterations=max_iterations,
+θsol3, θiter3 = sr1_solver!(θsol2, local_loss, local_grad, local_projection, local_step_projection;
+        max_iterations=3max_iterations,
         reg_min=1e-4,
         reg_max=1e2,
         reg_step=2.0,
@@ -302,4 +311,4 @@ local_grad(θ) = shape_grad(θ, polytope_dimensions, [e0, e1, e2], [β0, β1, β
         loss_tolerance=1e-4,
         grad_tolerance=1e-4,
 		Binit=Matrix(Diagonal(θdiag)))
-visualize_iterates!(vis, θiter3, polytope_dimensions, e1, β1, ρ0, max_iterations=max_iterations+1)
+visualize_iterates!(vis, θiter3, polytope_dimensions, e1, β1, ρ0, max_iterations=3max_iterations+1)

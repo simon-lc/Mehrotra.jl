@@ -246,13 +246,6 @@ function shape_loss(θ, polytope_dimensions, e, β, ρ, d_ref;
 	l = 0.0
 	# regularization
 	l += side_regularization * 10.0 * sum([0.5*norm(bi .- mean(bi))^2 + softabs(norm(bi .- mean(bi)), δ_softabs) for bi in b]) / (np * nh)
-	# for i = 1:np
-	# 	nh = polytope_dimensions[i]
-	# 	for j = 1:nh
-	# 		Δs = b[i][(j-2 + nh) % nh + 1] - b[i][j]
-	# 		l += side_regularization * 10.0 * (0.5 * Δs^2 + softabs(Δs, δ_softabs)) / (np * nh)
-	# 	end
-	# end
 
 	# inside sampling, overlap penalty
 	for i = 1:np

@@ -22,7 +22,7 @@ function unpack_halfspaces(θ::Vector{T}, polytope_dimensions::Vector{Int}) wher
     return A, b, o
 end
 
-function unpack_halfspaces(θ::AbstractVector, polytope_dimensions::Vector{Int}, idx::Int)
+function unpack_halfspaces(θ::AbstractVector, polytope_dimensions::AbstractVector, idx::Int)
     d = 2
 	np = length(polytope_dimensions)
 	nh = polytope_dimensions[idx]
