@@ -1,31 +1,44 @@
 ################################################################################
 # initialization
 ################################################################################
-function parameter_initialization(d, polytope_dimensions; altitude_threshold=0.1)
+function parameter_initialization(d::Matrix, polytope_dimensions)
 	np = length(polytope_dimensions)
-	# point cloud reaching the object
-	d_object = []
-	for i = 1:size(d,2)
-	    di = d[:,i]
-	    if di[2] > altitude_threshold
-	        push!(d_object, di)
-	    end
-	end
-	d_object = hcat(d_object...)
+
 	# k-mean clustering
-	kmres = kmeans(d_object, np)
+	kmres = Clustering.kmeans(d, np)
 	# initialization
 	b_mean = 2 * mean(sqrt.(kmres.costs))
 	θ = zeros(0)
 	for i = 1:np
 	    angles = range(-π, π, length=nh+1)[1:end-1]
 		θi = [vcat([[cos(a), sin(a)] for a in angles]...); b_mean*ones(nh); kmres.centers[:, i]]
-	    # θi = [vcat([[a] for a in angles]...); b_mean*ones(nh); kmres.centers[:, i]]
 	    A, b, o = unpack_halfspaces(θi)
 	    push!(θ, pack_halfspaces(A, b, o)...)
 	end
 
-	return θ, d_object, kmres
+	return θ, kmres
+end
+
+function filter_point_cloud(d::Vector; poses=fill(zeros(3), length(d)), altitude_threshold=0.01)
+	ne = length(d)
+	# point cloud reaching the object
+	d_object = []
+
+	for i = 1:ne
+		p = poses[i][1:2]
+		θ = poses[i][3]
+		bRw = [cos(θ) sin(θ); -sin(θ) cos(θ)]
+		nβ = size(d[i],2)
+		for j = 1:nβ
+		    d_world = d[i][:,j]
+			if d_world[2] > altitude_threshold
+				d_body = bRw * (d_world - p)
+		        push!(d_object, d_body)
+		    end
+		end
+	end
+	d_object = hcat(d_object...)
+	return d_object
 end
 
 
@@ -95,7 +108,7 @@ function inside_loss(θ::Vector{D}, polytope_dimensions::Vector{Int},
 			for α in range(α_ref, α_ref + thickness, length=inside_sample)
 				p = e + α * v_ref
 				ϕ = sdfV(p, θ, polytope_dimensions, δ_sdf)
-				l += 10 * (1 - sigmoid_fast(-1/δ_sigmoid * ϕ))^2
+				l += 10 * (1 - sigmoid(-1/δ_sigmoid * ϕ))^2
 			end
 		end
 	end
@@ -125,7 +138,7 @@ function outside_loss(θ::Vector{D}, polytope_dimensions::Vector{Int},
 			for α in range(α_max, α_ref, length=outside_sample)
 				p = e + α * v_ref
 				ϕ = sdfV(p, θ, polytope_dimensions, δ_sdf)
-				l += 5 * (0 - sigmoid_fast(-1/δ_sigmoid * ϕ))^2
+				l += 5 * (0 - sigmoid(-1/δ_sigmoid * ϕ))^2
 			end
 		end
 	end
@@ -156,7 +169,7 @@ function floor_loss(θ::Vector{D}, polytope_dimensions::Vector{Int},
 			for α in range(α_floor, α_floor + thickness, length=floor_sample)
 				p = e + α * v_ref
 				ϕ = sdfV(p, θ, polytope_dimensions, δ_sdf)
-				l += 5 * (0 - sigmoid_fast(-1/δ_sigmoid * ϕ))^2
+				l += 5 * (0 - sigmoid(-1/δ_sigmoid * ϕ))^2
 			end
 		end
 	end
@@ -176,7 +189,7 @@ function sdf_matching_loss(θ::Vector{D}, polytope_dimensions::Vector{Int},
 	for i = 1:nβ
 		@views p = d_ref[:,i]
 		ϕ = sdfV(p, θ, polytope_dimensions, δ_sdf)
-		l += 0.1 * (ϕ^2 + softabs(ϕ, δ_softabs)) / nβ
+		l += 0.1 * (0.5*ϕ^2 + softabs(ϕ, δ_softabs)) / nβ
 	end
 	return l / nβ
 end
@@ -209,7 +222,7 @@ function individual_loss(θ::Vector{D}, polytope_dimensions::Vector{Int},
 			end
 			Aidx, bidx, oidx = unpack_halfspaces(θ, polytope_dimensions, idx)
 			ϕ = sdfV(p, Aidx, bidx, oidx, δ_sdf)
-			l += 10.0 * (ϕ^2 + softabs(ϕ, δ_softabs))
+			l += 10.0 * (0.5*ϕ^2 + softabs(ϕ, δ_softabs))
 		end
 	end
 	return l / nβ
@@ -250,13 +263,13 @@ function shape_loss(θ, polytope_dimensions, e, β, ρ, d_ref;
 	# inside sampling, overlap penalty
 	for i = 1:np
 		p = o[i]
-		ϕ = sum([sigmoid_fast(-10*sdf(p, A_f[k], b_f[k], o_f[k], δ_sdf)) for k in 1:np+1])
+		ϕ = sum([sigmoid(-10*sdf(p, A_f[k], b_f[k], o_f[k], δ_sdf)) for k in 1:np+1])
 		l += overlap * 1e-2 * softplus(ϕ - 1, δ_softabs)^2 / np
 		nh = polytope_dimensions[i]
 		for j = 1:nh
 			for α ∈ [1.00, 0.75, 0.5, 0.25]
 				p = o[i] - α * A[i][j,:] .* b[i][j] / norm(A[i][j,:])^2
-				ϕ = sum([sigmoid_fast(-10 * sdf(p, A_f[k], b_f[k], o_f[k], δ_sdf)) for k in 1:np+1])
+				ϕ = sum([sigmoid(-10 * sdf(p, A_f[k], b_f[k], o_f[k], δ_sdf)) for k in 1:np+1])
 				l += overlap * 1e-2 * softplus(ϕ - 2, δ_softabs)^2 / (np * nh * length(α))
 			end
 		end
@@ -268,7 +281,7 @@ function shape_loss(θ, polytope_dimensions, e, β, ρ, d_ref;
 		for j = 1:nh
 			p = o[i] - A[i][j,:] .* b[i][j] / norm(A[i][j,:])^2
 			ϕ = sdf(p, A[i], b[i], o[i], δ_sdf)
-			l += shape_regularization * 10 * (1 - sigmoid_fast(-1/δ_sigmoid * ϕ))^2 / (np * nh)
+			l += shape_regularization * 10 * (1 - sigmoid(-1/δ_sigmoid * ϕ))^2 / (np * nh)
 		end
 	end
 
@@ -450,7 +463,7 @@ end
 # 			for α in range(α_ref, α_ref + thickness, length=inside_sample)
 # 				p = e + α * v_ref
 # 				ϕ = sdfV(p, θ_f, polytope_dimensions_f, δ_sdf)
-# 				l += 10 * (1 - sigmoid_fast(-1/δ_sigmoid * ϕ))^2
+# 				l += 10 * (1 - sigmoid(-1/δ_sigmoid * ϕ))^2
 # 			end
 # 		end
 # 	end

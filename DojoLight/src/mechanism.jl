@@ -151,16 +151,16 @@ function Mechanism1170(residual, bodies::Vector, contacts::Vector;
     return mechanism
 end
 
-function mechanism_residual(primals::Vector{T}, duals::Vector{T},
-        slacks::Vector{T}, parameters::Vector{T},
-        bodies::Vector, contacts::Vector) where T
+function mechanism_residual(primals::Vector, duals::Vector,
+        slacks::Vector, parameters::Vector,
+        bodies::Vector, contacts::Vector)
 
     num_duals = length(duals)
     num_primals = length(primals)
     num_equality = num_primals + num_duals
 
-    e = zeros(T, num_equality)
     x = [primals; duals; slacks]
+    e = zeros(eltype(x), num_equality)
     θ = parameters
 
     # body
@@ -173,4 +173,12 @@ function mechanism_residual(primals::Vector{T}, duals::Vector{T},
         residual!(e, x, θ, contact, bodies)
     end
     return e
+end
+
+function mechanism_residual(primals::Vector, duals::Vector,
+        slacks::Vector, mechanism::Mechanism1170)
+    mechanism_residual(primals, duals, slacks,
+        mechanism.parameters,
+        mechanism.bodies,
+        mechanism.contacts)
 end

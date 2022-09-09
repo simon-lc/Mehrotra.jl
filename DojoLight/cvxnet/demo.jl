@@ -11,7 +11,7 @@ using Clustering
 using LinearAlgebra
 
 include("../src/DojoLight.jl")
-include("../system_identification/newton_solver.jl")
+include("../system_identification/sr1.jl")
 include("halfspace.jl")
 include("transparency_point_cloud.jl")
 include("visuals.jl")
@@ -21,7 +21,10 @@ include("utils.jl")
 vis = Visualizer()
 render(vis)
 open(vis)
-
+set_background!(vis)
+set_light!(vis)
+set_floor!(vis, color=RGBA(0.4,0.4,0.4,0.4))
+iterate_color = RGBA(1,1,0,0.6)
 
 # parameters
 Ap0 = [
@@ -76,16 +79,15 @@ op = [op0, op1, op2, of]
 θ_p, polytope_dimensions_p = pack_halfspaces(Ap, bp, op)
 
 e0 = [0.0, +2.0]
-ρ0 = 1/0.00002
-# β0 = -π + atan(e0[2], e0[1]) .+ Vector(range(+0.3π, -0.3π, length=100))
-β0 = -π + atan(e0[2], e0[1]) .+ Vector(range(+0.3π, -0.3π, length=2000))
-nβ = length(β0)
+ρ0 = 0.0002
+nβ = 25
+β0 = -π + atan(e0[2], e0[1]) .+ Vector(range(+0.3π, -0.3π, length=nβ))
 
 build_2d_polytope!(vis[:polytope], Ap0, bp0 + Ap0 * op0, name=:poly0, color=RGBA(0,0,0,0.3))
 build_2d_polytope!(vis[:polytope], Ap1, bp1 + Ap1 * op1, name=:poly1, color=RGBA(0,0,0,0.3))
 build_2d_polytope!(vis[:polytope], Ap2, bp2 + Ap2 * op2, name=:poly2, color=RGBA(0,0,0,0.3))
 
-d0 = trans_point_cloud(e0, β0, ρ0*100, θ_p, polytope_dimensions_p)
+d0 = trans_point_cloud(e0, β0, ρ0/100, θ_p, polytope_dimensions_p)
 build_point_cloud!(vis[:point_cloud], nβ; color=RGBA(0.1,0.1,0.1,1), name=Symbol(1))
 set_2d_point_cloud!(vis, [e0], [d0]; name=:point_cloud)
 
@@ -120,9 +122,6 @@ local_step_projection(Δθ) = step_projection(Δθ, polytope_dimensions;
 # regularization
 θdiag = zeros(0)
 for i = 1:np
-	# θi = [1e-0 * ones(2nh); 1e-0 * ones(nh); 3e+0 * ones(2)]
-	# θi = [1e-2 * ones(2nh); 1e-0 * ones(nh); 3e+0 * ones(2)]
-	# θi = [3e-2 * ones(2nh); 1e0 * ones(nh); 1e0 * ones(2)]
 	θi = [1e-2 * ones(2nh); 1e0 * ones(nh); 1e0 * ones(2)]
     A, b, o = unpack_halfspaces(θi)
     push!(θdiag, pack_halfspaces(A, b, o)...)
@@ -140,7 +139,7 @@ parameters = Dict(
 	:overlap => 2.0,
 	:individual => 1.0,
 	:side_regularization => 0.5,
-	:shape_regularization => 0.25,
+	:shape_regularization => 0.5,
 	:inside => 1.0,
 	:outside => 0.1,
 	:floor => 0.1,
@@ -158,36 +157,37 @@ local_loss(θinit)
 local_grad(θinit)
 local_hess(θinit)
 # parameters = Dict(
+# 	:thickness => 0.2,
 # 	:δ_sdf => 15.0,
 # 	:δ_sigmoid => 0.1,
 # 	:δ_softabs => 0.5,
 # 	:altitude_threshold => 0.01,
-# 	:rendering => 0.0 * 10.0,
+# 	:rendering => 0.0 * 5.0,
 # 	:sdf_matching => 0.0 * 20.0,
 # 	:overlap => 0.0 * 2.0,
 # 	:individual => 0.0 * 1.0,
 # 	:side_regularization => 0.0 * 0.5,
-# 	:shape_regularization => 0.0 * 0.5,
-# 	:inside => 1.0 * 1.0,
-# 	:outside => 1.0 * 0.1,
-# 	:floor => 1.0 * 0.1,
+# 	:shape_regularization => 1.0 * 0.05,
+# 	:inside => 0.0 * 1.0,
+# 	:outside => 0.0 * 0.1,
+# 	:floor => 0.0 * 0.1,
 # )
-# local_loss(θsol3)
+local_loss(θsol3)
 
-ΔA_scale = +0.60
-Δb_scale = +0.05
-Δo_scale = +0.05
+ΔA_scale = 3e0#+0.60
+Δb_scale = 1e0#+0.05
+Δo_scale = 1e0# +0.05
 Δθ_scale = []
 for nh in polytope_dimensions
 	push!(Δθ_scale, [ΔA_scale * ones(2nh); Δb_scale * ones(nh); Δo_scale * ones(2)]...)
 end
 Δθ_scale
-
+Δinit = 1e-1
 
 ################################################################################
 # solve
 ################################################################################
-θsol0, θiter0 = sr1_solver!(θinit, local_loss, local_grad, local_projection, local_step_projection;
+θsol0, θiter0 = sr1_solver!(θinit, local_loss, local_grad, local_projection, x->x;
         max_iterations=max_iterations,
         reg_min=1e-4,
         reg_max=1e2,
@@ -196,10 +196,10 @@ end
         line_search_schedule=0.70,
         loss_tolerance=1e-4,
         grad_tolerance=1e-4,
-		# Δx_scale=Δθ_scale,
-		# Δinit=5e-1,
+		Δx_scale=Δθ_scale,
+		Δinit=Δinit,
 		Binit=Matrix(Diagonal(θdiag)))
-visualize_iterates!(vis, θiter0, polytope_dimensions, e0, β0, ρ0, max_iterations=max_iterations+1)
+visualize_iterates!(vis, θiter0, polytope_dimensions, e0, β0, ρ0, max_iterations=max_iterations+1, color=iterate_color)
 
 
 # bfgs = BFGS(;
@@ -239,15 +239,9 @@ visualize_iterates!(vis, θiter0, polytope_dimensions, e0, β0, ρ0, max_iterati
 # visualize_iterates!(vis, θiter0, polytope_dimensions, e0, β0, ρ0, max_iterations=max_iterations+1)
 
 
-
-
-
-
-
-
 e1 = [-2.25, +2.0]
-β1 = -π + atan(e1[2], e1[1]) .+ Vector(range(+0.20π, -0.20π, length=100))
-d1 = trans_point_cloud(e1, β1, ρ0*100, θ_p, polytope_dimensions_p)
+β1 = -π + atan(e1[2], e1[1]) .+ Vector(range(+0.20π, -0.20π, length=nβ))
+d1 = trans_point_cloud(e1, β1, ρ0/100, θ_p, polytope_dimensions_p)
 build_point_cloud!(vis[:point_cloud_1], nβ; color=RGBA(0.1,0.1,0.8,1), name=Symbol(1))
 set_2d_point_cloud!(vis, [e1], [d1]; name=:point_cloud_1)
 
@@ -255,7 +249,7 @@ set_2d_point_cloud!(vis, [e1], [d1]; name=:point_cloud_1)
 local_loss(θ) = shape_loss(θ, polytope_dimensions, [e1], [β1], ρ0, [d1]; parameters...)
 local_grad(θ) = shape_grad(θ, polytope_dimensions, [e1], [β1], ρ0, [d1]; parameters...)
 
-θsol1, θiter1 = sr1_solver!(θsol0, local_loss, local_grad, local_projection, local_step_projection;
+θsol1, θiter1 = sr1_solver!(θsol0, local_loss, local_grad, local_projection, x->x;
         max_iterations=max_iterations,
         reg_min=1e-4,
         reg_max=1e2,
@@ -264,8 +258,10 @@ local_grad(θ) = shape_grad(θ, polytope_dimensions, [e1], [β1], ρ0, [d1]; par
         line_search_schedule=0.70,
         loss_tolerance=1e-4,
         grad_tolerance=1e-4,
+		Δx_scale=Δθ_scale,
+		Δinit=Δinit,
 		Binit=Matrix(Diagonal(θdiag)))
-visualize_iterates!(vis, θiter1, polytope_dimensions, e1, β1, ρ0, max_iterations=max_iterations+1)
+visualize_iterates!(vis, θiter1, polytope_dimensions, e1, β1, ρ0, max_iterations=max_iterations+1, color=iterate_color)
 
 
 
@@ -273,8 +269,8 @@ visualize_iterates!(vis, θiter1, polytope_dimensions, e1, β1, ρ0, max_iterati
 
 
 e2 = [+1.25, +2.0]
-β2 = -π + atan(e2[2], e2[1]) .+ Vector(range(+0.3π, -0.3π, length=100))
-d2 = trans_point_cloud(e2, β2, ρ0*100, θ_p, polytope_dimensions_p)
+β2 = -π + atan(e2[2], e2[1]) .+ Vector(range(+0.3π, -0.3π, length=nβ))
+d2 = trans_point_cloud(e2, β2, ρ0/100, θ_p, polytope_dimensions_p)
 build_point_cloud!(vis[:point_cloud_2], nβ; color=RGBA(0.1,0.8,0.1,1), name=Symbol(1))
 set_2d_point_cloud!(vis, [e2], [d2]; name=:point_cloud_2)
 
@@ -282,7 +278,7 @@ set_2d_point_cloud!(vis, [e2], [d2]; name=:point_cloud_2)
 local_loss(θ) = shape_loss(θ, polytope_dimensions, [e2], [β2], ρ0, [d2]; parameters...)
 local_grad(θ) = shape_grad(θ, polytope_dimensions, [e2], [β2], ρ0, [d2]; parameters...)
 
-θsol2, θiter2 = sr1_solver!(θsol1, local_loss, local_grad, local_projection, local_step_projection;
+θsol2, θiter2 = sr1_solver!(θsol1, local_loss, local_grad, local_projection, x->x;
         max_iterations=max_iterations,
         reg_min=1e-4,
         reg_max=1e2,
@@ -291,8 +287,10 @@ local_grad(θ) = shape_grad(θ, polytope_dimensions, [e2], [β2], ρ0, [d2]; par
         line_search_schedule=0.70,
         loss_tolerance=1e-4,
         grad_tolerance=1e-4,
+		Δx_scale=Δθ_scale,
+		Δinit=Δinit,
 		Binit=Matrix(Diagonal(θdiag)))
-visualize_iterates!(vis, θiter2, polytope_dimensions, e1, β1, ρ0, max_iterations=max_iterations+1)
+visualize_iterates!(vis, θiter2, polytope_dimensions, e1, β1, ρ0, max_iterations=max_iterations+1, color=iterate_color)
 
 
 
@@ -301,8 +299,8 @@ visualize_iterates!(vis, θiter2, polytope_dimensions, e1, β1, ρ0, max_iterati
 local_loss(θ) = shape_loss(θ, polytope_dimensions, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
 local_grad(θ) = shape_grad(θ, polytope_dimensions, [e0, e1, e2], [β0, β1, β2], ρ0, [d0, d1, d2]; parameters...)
 
-θsol3, θiter3 = sr1_solver!(θsol2, local_loss, local_grad, local_projection, local_step_projection;
-        max_iterations=3max_iterations,
+θsol3, θiter3 = sr1_solver!(θsol2, local_loss, local_grad, local_projection, x->x;
+        max_iterations=max_iterations,
         reg_min=1e-4,
         reg_max=1e2,
         reg_step=2.0,
@@ -310,5 +308,7 @@ local_grad(θ) = shape_grad(θ, polytope_dimensions, [e0, e1, e2], [β0, β1, β
         line_search_schedule=0.70,
         loss_tolerance=1e-4,
         grad_tolerance=1e-4,
+		Δx_scale=Δθ_scale,
+		Δinit=Δinit,
 		Binit=Matrix(Diagonal(θdiag)))
-visualize_iterates!(vis, θiter3, polytope_dimensions, e1, β1, ρ0, max_iterations=3max_iterations+1)
+visualize_iterates!(vis, θiter3, polytope_dimensions, e1, β1, ρ0, max_iterations=max_iterations+1, color=iterate_color)

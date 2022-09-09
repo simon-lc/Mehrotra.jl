@@ -1,10 +1,3 @@
-# struct ConvexBundle1110{T,N,}
-#     A::Vector{Matrix{T}}
-#     b::Vector{Vector{T}}
-#     o::Vector{Vector{T}}
-#     θ::Vector{T}
-# end
-
 function unpack_halfspaces(θ::Vector{T}, polytope_dimensions::Vector{Int}) where T
     nθ = 2 .+ 3 .* polytope_dimensions
     # nθ = 2 .+ 2 .* polytope_dimensions
@@ -134,6 +127,44 @@ function halfspace_transformation(pose::Vector{T}, A::Vector{<:Matrix{T2}},
     return Ā, b̄, ō
 end
 
+function transform(A::Matrix, b::Vector, o::Vector, x::Vector)
+	# transform a polytope encoded by A, b, o into a translated and rotated polytope
+	# encoded by At, bt, ot
+	# xw = p + wRb * xb
+	# A * (xb - o) <= b
+	# At * (xw - ot) <= bt
+
+	p = x[1:2] # 2D position
+	θ = x[3] # angle
+	bRw = [cos(θ) sin(θ); -sin(θ) cos(θ)]
+	wRb = bRw'
+	At = deepcopy(A * bRw)
+	bt = deepcopy(b)
+	ot = deepcopy(wRb * o + p)
+	return At, bt, ot
+end
+
+function transform(A::Vector{Matrix{T}}, b::Vector{Vector{T}}, o::Vector{Vector{T}}, x::Vector) where T
+	np = length(A)
+	At = Vector{Matrix{T}}()
+	bt = Vector{Vector{T}}()
+	ot = Vector{Vector{T}}()
+	for i = 1:np
+		Ati, bti, oti = transform(A[i], b[i], o[i], x)
+		push!(At, Ati)
+		push!(bt, bti)
+		push!(ot, oti)
+	end
+	return At, bt, ot
+end
+
+function normalize_A!(A::Matrix; ϵ=1e-6)
+	nh = size(A,2)
+	for i = 1:nh
+		A[:,i] ./= norm(A[:,i]) + ϵ
+	end
+	return nothing
+end
 
 # polytope_dimensions0 = [1,2,3,4,22]
 # A0 = [rand(i,2) for i in polytope_dimensions0]

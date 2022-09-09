@@ -60,7 +60,7 @@ function transparency(α_sorted::Matrix, ρ)
 		(αmin <= 0) && continue
 		(αmin == Inf) && continue
 		δ = αmax - αmin
-		ex = exp(-δ*ρ)
+		ex = exp(-δ/ρ)
 		α_trans += αmin * (1 - ex) * cum_e
 		cum_e *= ex
     end
@@ -69,7 +69,7 @@ end
 
 function trans_point_loss(α, α_hat)
 	Δα = (α - α_hat)
-	return 0.5 * Δα^2 + 0.5 * softabs(abs(Δα), 0.001)
+	return 0.5 * Δα^2 + softabs(abs(Δα), 0.001)
 end
 
 function trans_point_loss(e::AbstractVector, β, ρ, θ::AbstractVector{D}, polytope_dimensions::Vector{Int}, d̂::Matrix) where D
@@ -99,7 +99,7 @@ function point_cloud_smoothing(vis::Visualizer, e, β, θ, polytope_dimensions)
 	anim = MeshCat.Animation(20)
 	for (i, ρ) in enumerate(range(0, 3.0, length=100))
 		atframe(anim, i) do
-			d = trans_point_cloud(e, β, exp(log(10)*ρ), θ, polytope_dimensions)
+			d = trans_point_cloud(e, β, exp(-log(10)*ρ), θ, polytope_dimensions)
 			num_points = size(d, 2)
 			set_2d_point_cloud!(vis, [e], [d]; name=:point_cloud)
 		end

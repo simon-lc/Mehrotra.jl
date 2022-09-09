@@ -31,7 +31,7 @@ function record!(storage::Storage116{T,H}, mechanism::Mechanism1170{T,D,NB,NC}, 
 
     for j = 1:NB
         storage.x[i][j] .= mechanism.bodies[j].pose
-        # storage.v[i][j] .= mechanism.bodies[j].velocity
+        storage.v[i][j] .= mechanism.bodies[j].velocity
     end
 
     variables = mechanism.solver.solution.all

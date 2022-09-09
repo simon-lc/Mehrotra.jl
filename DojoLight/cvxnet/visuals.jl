@@ -104,7 +104,22 @@ function plot_halfspace(plt, a, b; show_plot::Bool=true)
 end
 
 function plot_polytope(A, b, δ;
-        xlims=(-1,1), ylims=(-1,1), S::Int=25) where {T,N,D}
+        xlims=(-1,1),
+        ylims=(-1,1),
+        S::Int=25,
+        size=(400,400),
+        plot_heatmap=true,
+        plot_halfspaces=true,
+        countour_color=:black,
+        levels=[0.0],
+        plt=plot())
+
+    plot!(plt,
+        aspectratio=1.0,
+        xlims=xlims,
+        ylims=ylims,
+        xlabel="x", ylabel="y",
+        size=size)
 
     X = range(xlims..., length=S)
     Y = range(ylims..., length=S)
@@ -117,17 +132,59 @@ function plot_polytope(A, b, δ;
         end
     end
 
-    plt = heatmap(
+    if plot_heatmap
+        plt = heatmap!(plt,
         X, Y, V,
+        )
+    end
+
+    if plot_halfspaces
+        for i = 1:length(b)
+            plt = plot_halfspace(plt, A[i:i,:], b[i:i], show_plot=false)
+        end
+    end
+    plt = contour(plt, X,Y,V, levels=levels, color=countour_color, linewidth=2.0, legend=false)
+    return plt
+end
+
+function plot_heatmap(;
+        xlims=(-1,1),
+        ylims=(-1,1),
+        S::Int=25,
+        size=(400,400),
+        plot_heatmap=true,
+        plot_halfspaces=true,
+        countour_color=:black,
+        f=x->x,
+        levels=[0.0],
+        plt=plot())
+
+    plot!(plt,
         aspectratio=1.0,
         xlims=xlims,
         ylims=ylims,
         xlabel="x", ylabel="y",
-        )
-    for i = 1:length(b)
-        plt = plot_halfspace(plt, A[i:i,:], b[i:i], show_plot=false)
+        size=size)
+
+    X = range(xlims..., length=S)
+    Y = range(ylims..., length=S)
+    V = zeros(S,S)
+
+    for i = 1:S
+        for j = 1:S
+            p = [X[i], Y[j]]
+            # V[j,i] = f(sdfV(p, θ, polytope_dimensions, δ))
+            V[j,i] = f(p)
+        end
     end
-    plt = contour(plt, X,Y,V, levels=[0.0], color=:black, linewidth=2.0)
+
+    if plot_heatmap
+        plt = heatmap!(plt,
+        X, Y, V,
+        )
+    end
+
+    plt = contour(plt, X,Y,V, levels=levels, color=countour_color, linewidth=2.0, legend=false)
     return plt
 end
 
@@ -166,13 +223,14 @@ end
 function visualize_iterates!(vis::Visualizer, θ, polytope_dimensions, e, β, ρ;
 		point_cloud::Bool=false,
 		max_iterations::Int=length(θ),
+		color=RGBA(1,1,0,0.4),
 		animation=MeshCat.Animation(10))
 	nβ = length(β)
 	T = length(θ)
 
 	for i = 1:max_iterations
 		im = min(i, length(θ))
-		build_2d_convex_bundle!(vis[:iterates], θ[im], polytope_dimensions, name=Symbol(i))
+		build_2d_convex_bundle!(vis[:iterates], θ[im], polytope_dimensions, name=Symbol(i), color=color)
 	end
 	point_cloud && build_point_cloud!(vis[:iterates][:point_cloud], nβ;
 		color=RGBA(0.8,0.1,0.1,1), name=Symbol(1))
@@ -198,6 +256,7 @@ function visualize_iterates!(vis::Visualizer, θ, polytope_dimensions, e, β, ρ
 	        end
 	    end
 	end
+	settransform!(vis[:iterates], MeshCat.Translation(0.05,0,0.0))
 	setanimation!(vis, animation)
 	return vis, animation
 end
@@ -214,7 +273,7 @@ end
 # 	for (j, p2) in enumerate(Y)
 # 		p = [p1, p2]
 # 		V[j,i] = sdf4(p, AAt, bbt, oot, 100.0)
-# 		V[j,i] = sigmoid_fast(-20*sdf(p, AAt[3], bbt[3], oot[3], 1000.0))
+# 		V[j,i] = sigmoid(-20*sdf(p, AAt[3], bbt[3], oot[3], 1000.0))
 # 		# V[j,i] = sdf(p, AAt[1], bbt[1], oot[1], 1000.0)
 # 		# V[j,i] = sdf(p, AAt[2], bbt[2], oot[2], 1000.0)
 # 		# V[j,i] = sdf(p, AAt[3], bbt[3], oot[3], 1000.0)

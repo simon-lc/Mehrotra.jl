@@ -5,6 +5,18 @@ function get_polytope_drop(;
     inertia=0.2 * ones(1,1),
     friction_coefficient=0.9,
     method_type::Symbol=:finite_difference,
+    A = [
+        +1.0 +0.2;
+        +0.1 +1.0;
+        -1.0 +0.3;
+        +0.0 -1.0;
+        ],
+    b = 0.5*[
+        +1,
+        +1,
+        +1,
+        +1,
+        ],
     options=Options(
         # verbose=false,
         complementarity_tolerance=1e-4,
@@ -15,38 +27,14 @@ function get_polytope_drop(;
         )
     )
 
+    for i = 1:length(b)
+        A[i,:] ./= norm(A[i,:])
+    end
     Af = [0.0  +1.0]
     bf = [0.0]
-    Ap1 = [
-        +1.0 +0.2;
-        +0.1 +1.0;
-        -1.0 +0.3;
-        +0.0 -1.0;
-        ] .- 0.00ones(4,2);
-    for i = 1:4
-        Ap1[i,:] ./= norm(Ap1[i,:])
-    end
-    bp1 = 0.5*[
-        +1,
-        +1,
-        +1,
-        +1,
-        ];
-    # Ap1 = [
-    #     1.0  0.0;
-    #     0.0  1.0;
-    #     -1.0  0.0;
-    #     0.0 -1.0;
-    #     ] .- 0.30ones(4,2);
-    # bp1 = 0.2*[
-    #     +1,
-    #     +1,
-    #     +1,
-    #     1,
-    #     ];
 
     # nodes
-    shapes = [PolytopeShape1170(Ap1, bp1)]
+    shapes = [PolytopeShape1170(A, b)]
     bodies = [
         Body1170(timestep, mass, inertia, shapes, gravity=+gravity, name=:pbody),
         ]

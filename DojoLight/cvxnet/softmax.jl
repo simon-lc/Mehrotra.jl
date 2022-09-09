@@ -35,6 +35,13 @@ function sdfV(p::AbstractVector, θ::AbstractVector, polytope_dimensions::Vector
 	return ϕ
 end
 
+function sdfV(p::AbstractVector, θ::AbstractVector, polytope_dimensions::Vector{Int}, i::Int, δ)
+	d = 2
+	Ai, bi, oi = unpack_halfspaces(θ, polytope_dimensions, i)
+	ϕ = sdfV(p, Ai, bi, oi, δ)
+	return ϕ
+end
+
 function sdfV(p::AbstractVector, A::AbstractVector, b::AbstractVector, o::AbstractVector, δ)
     n = length(b)
 	d = 2
@@ -188,4 +195,8 @@ end
 
 function softabs(x, δ=1.0)
 	return sqrt(x^2 + δ) - sqrt(δ)
+end
+
+function sigmoid(x)
+	return 1 / (1 + exp(-x))
 end
