@@ -1,7 +1,5 @@
 module Mehrotra
 
-using AMD
-using BenchmarkTools
 using Crayons
 using Printf
 using QDLDL
@@ -10,12 +8,7 @@ using LinearAlgebra
 using Symbolics
 using Rotations
 using SparseArrays
-using MeshCat
-using GeometryBasics
 using FiniteDiff
-using SparsityDetection
-using SparseDiffTools
-using ILUZero
 using LoopVectorization
 using SuiteSparse
 
