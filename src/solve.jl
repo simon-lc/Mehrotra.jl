@@ -101,10 +101,15 @@ function Mehrotra.solve!(solver)
             compressed=compressed,
             sparse_solver=sparse_solver)
 
+        # @warn "scketchy reg"
+        # num_primals = solver.dimensions.primals
+        # data.jacobian_variables_dense[1:num_primals, 1:num_primals] .+= 1e-4*I(num_primals)
+        # data.jacobian_variables_dense[1:num_primals, 1:num_primals] .+= 1e-4*Diagonal([0,0,0,1,1,-1])
+
         # add correction to aim at the tolerance central path
         correction!(methods, data, α.affine_step_size, step, data.step_correction, solution, κ.tolerance_central_path;
             compressed=compressed, complementarity_correction=0.0)
-        # # search direction
+        # search direction
         search_direction!(solver)
         # affine line search
         α.affine_step_size .= 1.0

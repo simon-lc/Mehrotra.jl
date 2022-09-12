@@ -5,7 +5,12 @@ makedocs(
     sitename = "Mehrotra",
     format = Documenter.HTML(prettyurls = false),  # optional
     pages = [
-        "Introduction" => "index.md"
+        "Get Started" => "index.md"
+        "Solver" => "solver.md"
+        "Examples" => "examples.md"
+        "API Documentation" => "api.md"
+        "Contributing" => "contributing.md"
+        "Citing" => "citing.md"
     ]
 )
 
