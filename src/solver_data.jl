@@ -8,9 +8,6 @@ struct SolverData{T}
     jacobian_parameters::SparseMatrixCSC{T,Int}
     step::Point{T}
     step_correction::Point{T}
-    # merit::Vector{T}
-    # merit_gradient::Vector{T}
-    # constraint_violation::Vector{T}
     solution_sensitivity::Matrix{T}
 end
 
@@ -38,19 +35,11 @@ function SolverData(dim::Dimensions, idx::Indices, p_data::ProblemData;
     jacobian_variables_compressed_dense = zeros(num_equality, num_equality)
     jacobian_variables_compressed_sparse = spzeros(num_equality, num_equality)
 
-    # blocks = [p_data.equality_jacobian_parameters]
-    # ranges = [(idx.equality, idx.parameters)]
-    # names = [:equality_jacobian_parameters]
-    # jacobian_parameters = BlockSparse(num_variables, num_parameters, blocks, ranges, names=names)
     jacobian_parameters =spzeros(num_variables, num_parameters)
 
     step = Point(dim, idx)
     step_correction = Point(dim, idx)
 
-    # merit = zeros(1)
-    # merit_gradient = zeros(num_variables)
-
-    # constraint_violation = zeros(num_variables)
 
     solution_sensitivity = zeros(num_variables, num_parameters)
 
@@ -61,16 +50,9 @@ function SolverData(dim::Dimensions, idx::Indices, p_data::ProblemData;
         jacobian_variables_sparse,
         jacobian_variables_compressed_dense,
         jacobian_variables_compressed_sparse,
-        # slackness_jacobian_slacks,
-        # cone_product_jacobian_inverse_slack,
-        # cone_product_jacobian_duals,
-        # cone_product_jacobian_ratio,
         jacobian_parameters,
         step,
         step_correction,
-        # merit,
-        # merit_gradient,
-        # constraint_violation,
         solution_sensitivity,
     )
 end

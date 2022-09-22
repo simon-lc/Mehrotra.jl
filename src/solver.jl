@@ -93,21 +93,6 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     random_solution = Point(dim, idx)
     random_solution.all .= rand(dim.variables)
 
-    # evaluate!(problem, methods, idx, random_solution, parameters,
-    #     objective_jacobian_variables_variables=true,
-    #     equality_jacobian_variables=true,
-    #     equality_dual_jacobian_variables_variables=true,
-    #     cone_jacobian_variables=true,
-    #     cone_dual_jacobian_variables_variables=true,
-    # )
-    # cone!(problem, cone_methods, idx, random_solution,
-    #     jacobian=true,
-    # )
-    # residual_jacobian_variables!(data, problem, idx, rand(1), rand(1), randn(num_equality), 1.0e-5, 1.0e-5,
-    #     constraint_tensor=options.constraint_tensor)
-    # residual_jacobian_variables_symmetric!(data.jacobian_variables_symmetric, data.jacobian_variables, idx,
-    #     problem.second_order_jacobians, problem.second_order_jacobians)
-
     residual!(data, problem, idx, #central_paths.central_path;
         compressed=options.compressed_search_direction,
         sparse_solver=options.sparse_solver)
