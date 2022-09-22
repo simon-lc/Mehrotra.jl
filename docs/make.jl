@@ -7,7 +7,7 @@ makedocs(
     pages = [
         "Get Started" => "index.md"
         "Solver" => "solver.md"
-        "Examples" => "examples.md"
+        # "Examples" => "examples.md"
         "API Documentation" => "api.md"
         "Contributing" => "contributing.md"
         "Citing" => "citing.md"
