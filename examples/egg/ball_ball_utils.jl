@@ -1,20 +1,4 @@
-function RobotVisualizer.set_surface!(vis::Visualizer, f::Any;
-    xlims=[-20.0, 20.0],
-    ylims=[-20.0, 20.0],
-    zlims=[-2.0, 4.0],
-    color=RGBA(1.0, 1.0, 1.0, 1.0),
-    wireframe=false,
-    n::Int=100)
-    mesh = GeometryBasics.Mesh(f,
-        MeshCat.HyperRectangle(
-            MeshCat.Vec(xlims[1], ylims[1], zlims[1]),
-            MeshCat.Vec(xlims[2] - xlims[1], ylims[2] - ylims[1], zlims[2] - zlims[1])),
-        Meshing.MarchingCubes(), samples=(n, n, n))
-    setobject!(vis["surface"], mesh, MeshPhongMaterial(color=color, wireframe=wireframe))
-    return nothing
-end
-
-function unpack_egg_bowl_parameters(parameters)
+function unpack_ball_ball_parameters(parameters)
     p2 = parameters[1:2]
     θ2 = parameters[3:3]
     v15 = parameters[4:5]
@@ -25,21 +9,21 @@ function unpack_egg_bowl_parameters(parameters)
     inertia = parameters[12]
     gravity = parameters[13]
     friction_coefficient = parameters[14]
-    bowl_diag = parameters[15:16]
-    egg_diag = parameters[17:18]
-    return p2, θ2, v15, ω15, u, timestep, mass, inertia, gravity, friction_coefficient, bowl_diag, egg_diag
+    outer_ball_radius = parameters[15:15]
+    inner_ball_radius = parameters[16:16]
+    return p2, θ2, v15, ω15, u, timestep, mass, inertia, gravity, friction_coefficient, outer_ball_radius, inner_ball_radius
 end
 
-function linear_egg_bowl_residual(primals, duals, slacks, parameters)
+function linear_ball_ball_residual(primals, duals, slacks, parameters)
     y, z, s = primals, duals, slacks
-    p2, θ2, v15, ω15, u, timestep, mass, inertia, gravity, friction_coefficient, bowl_diag, egg_diag =
-        unpack_egg_bowl_parameters(parameters)
+    p2, θ2, v15, ω15, u, timestep, mass, inertia, gravity, friction_coefficient, outer_ball_radius, inner_ball_radius =
+        unpack_ball_ball_parameters(parameters)
 
     # velocity
     v25 = y[1:2]
     ω25 = y[3:3]
-    c = y[4:5]
-    λ = y[6:6]
+    # c = y[4:5]
+    # λ = y[6:6]
 
     p1 = p2 - timestep * v15
     θ1 = θ2 - timestep * ω15
@@ -47,17 +31,19 @@ function linear_egg_bowl_residual(primals, duals, slacks, parameters)
     θ3 = θ2 + timestep * ω25
 
     bRw = [cos(θ3[1]) sin(θ3[1]); -sin(θ3[1]) cos(θ3[1])]
-    B = Diagonal(egg_diag)
-    W = Diagonal(bowl_diag)
+    B = Diagonal(inner_ball_radius)
+    W = Diagonal(outer_ball_radius)
     # contact point as the minimum of a sum of a convex and a concave function (the sum ahas to be convex)
-    cw = c + p3
+    cn = -p3 / (norm(p3) + 1e-6)
+    cw = p3 + cn * inner_ball_radius[1]
     cb = bRw * (cw - p3)
     # signed distance function
-    ϕ = [cb' * B * cb - 1]
+    # ϕ = [cb' * B * cb - 1]
+    ϕ = [outer_ball_radius[1] - inner_ball_radius[1] - norm(p3)]
 
     # contact normal and tangent
-    cn = - W * cw
-    cn ./= norm(cn) + 1e-6
+    # cn = - W * cw
+    # cn ./= norm(cn) + 1e-6
     R = [0 -1; 1 0]
     ct = R * cn
 
@@ -90,8 +76,8 @@ function linear_egg_bowl_residual(primals, duals, slacks, parameters)
 
     res = [
         M * ([p3; θ3] - 2*[p2; θ2] + [p1; θ1])/timestep - timestep * [0; mass * gravity; 0] - N'*γ - P'*β - u*timestep;
-        bRw' * B * cb + 2λ[1] * W * cw;
-        (cw' * W * cw .- 1);
+        # bRw' * B * cb + 2λ[1] * W * cw;
+        # (cw' * W * cw .- 1);
 
         sγ - ϕ;
         sψ - fric;
@@ -100,9 +86,9 @@ function linear_egg_bowl_residual(primals, duals, slacks, parameters)
     return res
 end
 
-function simulate_egg_bowl(solver, p2, θ2, v15, ω15, u; timestep=0.01, mass=1.0,
-        inertia=0.1, friction_coefficient=0.2, gravity=-9.81, bowl_diag=1.5,
-        egg_diag=[0.1, 0.1], warm_start::Bool=false, verbose=false)
+function simulate_ball_ball(solver, p2, θ2, v15, ω15, u; timestep=0.01, mass=1.0,
+        inertia=0.1, friction_coefficient=0.2, gravity=-9.81, outer_ball_radius=1.5,
+        inner_ball_radius=0.1, warm_start::Bool=false, verbose=false)
 
     solver.options.verbose = verbose
     solver.options.warm_start = warm_start
@@ -122,7 +108,7 @@ function simulate_egg_bowl(solver, p2, θ2, v15, ω15, u; timestep=0.01, mass=1.
         push!(θ, θ2)
         push!(v, v15)
         push!(ω, ω15)
-        parameters = [p2; θ2; v15; ω15; u[i]; timestep; mass; inertia; gravity; friction_coefficient; bowl_diag; egg_diag]
+        parameters = [p2; θ2; v15; ω15; u[i]; timestep; mass; inertia; gravity; friction_coefficient; outer_ball_radius; inner_ball_radius]
         solver.parameters .= parameters
 
         warm_start && (solver.solution.all .= guess)
@@ -134,7 +120,7 @@ function simulate_egg_bowl(solver, p2, θ2, v15, ω15, u; timestep=0.01, mass=1.
         ω15 .= solver.solution.primals[3:3]
         p2 = p2 + timestep * v15
         θ2 = θ2 + timestep * ω15
-        push!(c, deepcopy(solver.solution.primals[4:5] + p2))
+        push!(c, p2 + inner_ball_radius .* p2./norm(p2))
     end
     return p, θ, v, ω, c, iterations
 end

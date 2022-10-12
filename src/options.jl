@@ -45,6 +45,7 @@ Base.@kwdef mutable struct Options{T}
     warm_start::Bool=false ##############################
     complementarity_correction::T=0.5 ##########################
     complementarity_decoupling::Bool=false ##########################
+    complementarity_backstep::T=1e-2 ##########################
     sparse_solver::Bool=false ###########################
     compressed_search_direction::Bool=false #########################
     symmetric::Bool=false ###########################

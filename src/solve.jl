@@ -1,4 +1,11 @@
 function Mehrotra.solve!(solver)
+    # options
+    options = solver.options
+    compressed = options.compressed_search_direction
+    decoupling = options.complementarity_decoupling
+    complementarity_correction = options.complementarity_correction
+    sparse_solver = options.sparse_solver
+
     # initialize
     solver.trace.iterations = 0
     warm_start = solver.options.warm_start
@@ -8,9 +15,8 @@ function Mehrotra.solve!(solver)
     !warm_start && initialize_slacks!(solver)
     !warm_start && initialize_interior_point!(solver)
 
-    ϵ = 1e-2
-    warm_start && (solver.solution.duals .= solver.solution.duals .+ ϵ)
-    warm_start && (solver.solution.slacks .= solver.solution.slacks .+ ϵ)
+    warm_start && (solver.solution.duals .= solver.solution.duals .+ options.complementarity_backstep)
+    warm_start && (solver.solution.slacks .= solver.solution.slacks .+ options.complementarity_backstep)
 
     # indices
     indices = solver.indices
@@ -47,13 +53,6 @@ function Mehrotra.solve!(solver)
     # barrier + augmented Lagrangian
     α = solver.step_sizes
     κ = solver.central_paths
-
-    # options
-    options = solver.options
-    compressed = options.compressed_search_direction
-    decoupling = options.complementarity_decoupling
-    complementarity_correction = options.complementarity_correction
-    sparse_solver = options.sparse_solver
 
     # info
     options.verbose && solver_info(solver)

@@ -456,19 +456,19 @@ function al_solve(solution, parameters, κ)
     return solution, trace
 end
 
-κ = 1e-4
-nx = solver.dimensions.variables
-solution = zeros(nx)
-mass = 1.0
-inertia = 0.1
-gravity = -9.81
-parameters = [p2; θ2; v15; ω15; u[1]; timestep; mass; inertia; gravity; friction_coefficient; side]
-sol, trace = al_solve(solution, parameters, κ)
-
-sol[solver.indices.duals]
-sol[solver.indices.slacks]
-
-plot(norm.(trace, Inf), yaxis=:log)
+# κ = 1e-4
+# nx = solver.dimensions.variables
+# solution = zeros(nx)
+# mass = 1.0
+# inertia = 0.1
+# gravity = -9.81
+# parameters = [p2; θ2; v15; ω15; u[1]; timestep; mass; inertia; gravity; friction_coefficient; side]
+# sol, trace = al_solve(solution, parameters, κ)
+#
+# sol[solver.indices.duals]
+# sol[solver.indices.slacks]
+#
+# plot(norm.(trace, Inf), yaxis=:log)
 
 function al_simulate_block_2d(solver, p2, θ2, v15, ω15, u; timestep=0.01, mass=1.0,
         inertia=0.1, friction_coefficient=0.2, gravity=-9.81, side=0.5)

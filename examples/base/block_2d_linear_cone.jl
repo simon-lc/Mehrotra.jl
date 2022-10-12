@@ -81,14 +81,15 @@ p2 = [1,1.0]
 v15 = [0,-1]
 ω15 = [0]
 u = rand(3)
+timestep = 1.5
 side = 0.5
-parameters = [p2; θ2; v15; ω15; u; 0.01; 1.0; 0.1; -9.81; 1.0; side]
+parameters = [p2; θ2; v15; ω15; u; timestep; 1.0; 0.1; -9.81; 1.0; side]
 
 solver = Solver(residual, num_primals, num_cone,
     parameters=parameters,
     nonnegative_indices=idx_nn,
     second_order_indices=idx_soc,
-    options=Options(max_iterations=30, verbose=true)
+    options=Mehrotra.Options(max_iterations=30, verbose=true)
     )
 
 solve!(solver)
@@ -98,16 +99,17 @@ variables = solver.solution.all
 H = 1000
 p2 = [1,1.0]
 θ2 = [0.0]
-v15 = [-3.0,0.0]
-ω15 = [20.0]
+v15 = [-5.0,0.0]
+# ω15 = [20.0]
+ω15 = [0.2]
 u = [zeros(3) for i=1:H]
-p, θ, v, ω = simulate_block_2d(solver, p2, θ2, v15, ω15, u, friction_coefficient=1.0)
+p, θ, v, ω = simulate_block_2d(solver, p2, θ2, v15, ω15, u, friction_coefficient=1.0, timestep=timestep)
 
 # plot(hcat(p...)')
 
 render(vis)
 setobject!(vis[:particle], HyperRectangle(Vec(-side/2, -side/2, -side/2), Vec(side, side, side)))
-anim = MeshCat.Animation(100)
+anim = MeshCat.Animation(Int(floor(1/timestep)))
 
 for i = 1:H
     atframe(anim, i) do
