@@ -57,7 +57,7 @@ function Solver(equality, num_primals::Int, num_cone::Int;
         if method_type == :symbolic
             methods = symbolics_methods(equality, dim, idx)
         elseif method_type == :finite_difference
-            methods = finite_difference_methods(equality, dim, idx)
+            methods = finite_difference_methods(equality, dim, idx, regularizer=1e-6)
         else
             error("unknown method_type")
         end
