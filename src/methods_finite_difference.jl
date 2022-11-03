@@ -1,5 +1,7 @@
 function finite_difference_methods(equality::Function, dim::Dimensions, idx::Indices;
-        regularizer=1e-6)
+        primal_regularizer=1e-3,
+        dual_regularizer=1e-6,
+        )
     parameter_keywords = idx.parameter_keywords
 
     # in-place evaluation
@@ -21,8 +23,8 @@ function finite_difference_methods(equality::Function, dim::Dimensions, idx::Ind
         f(out, x) = equality_constraint(out, x, θ)
         matrix_cache = reshape(vector_cache, (dim.equality, dim.variables))
         FiniteDiff.finite_difference_jacobian!(matrix_cache, f, x)
-        matrix_cache[idx.primals, idx.primals] .+= regularizer * Diagonal(ones(dim.primals))
-        matrix_cache[idx.duals, idx.duals] .-= regularizer * Diagonal(ones(dim.duals))
+        matrix_cache[idx.primals, idx.primals] .+= primal_regularizer * Diagonal(ones(dim.primals))
+        matrix_cache[idx.duals, idx.duals] .-= dual_regularizer * Diagonal(ones(dim.duals))
         return nothing
     end
 

@@ -50,6 +50,8 @@ end
 
 function generate_symbolic_gradients(func::Function, dim::Dimensions, ind::Indices;
         parameter_keywords=Dict{Symbol,Vector{Int}}(:all => ind.parameters),
+        primal_regularizer=1e-2,
+        dual_regularizer=1e-10,
         checkbounds=true,
         threads=false)
 
@@ -78,6 +80,8 @@ function generate_symbolic_gradients(func::Function, dim::Dimensions, ind::Indic
 
     # equality jacobians
     fx = Symbolics.sparsejacobian(f, x)
+    fx[ind.primals, ind.primals] .+= primal_regularizer * I(dim.primals)
+    fx[ind.duals, ind.duals] .+= dual_regularizer * I(dim.duals)
     fθ = Symbolics.sparsejacobian(f, θ)
     fk = [Symbolics.sparsejacobian(f, θ[parameter_keywords[k]]) for k in eachindex(parameter_keywords)]
 
