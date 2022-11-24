@@ -23,7 +23,7 @@ Base.@kwdef mutable struct Options{T}
     equality_tolerance::T=1.0e-4 ###########################
     complementarity_tolerance::T=1.0e-5 ###############################
     min_regularization::T=1.0e-20
-    primal_regularization_initial::T=1.0e-7 #########################
+    primal_regularization_initial::T=1.0e-7
     dual_regularization_initial::T=1.0e-7
     max_regularization::T=1.0e40
     dual_regularization::T=1.0e-8
@@ -42,6 +42,8 @@ Base.@kwdef mutable struct Options{T}
     armijo_tolerance::T=1.0e-4
     machine_tolerance::T=1.0e-16
     max_filter::Int=1000
+    primal_regularization::T=1e-7 ######################
+    dual_regularization::T=1e-7 ##########################
     warm_start::Bool=false ##############################
     complementarity_correction::T=0.5 ##########################
     complementarity_decoupling::Bool=false ##########################

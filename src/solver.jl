@@ -55,9 +55,13 @@ function Solver(equality, num_primals::Int, num_cone::Int;
     # codegen methods
     if methods == nothing
         if method_type == :symbolic
-            methods = symbolics_methods(equality, dim, idx)
+            methods = symbolics_methods(equality, dim, idx,
+                primal_regularizer=options.primal_regularizer,
+                dual_regularizer=options.dual_regularizer)
         elseif method_type == :finite_difference
-            methods = finite_difference_methods(equality, dim, idx, regularizer=1e-6)
+            methods = finite_difference_methods(equality, dim, idx,
+                primal_regularizer=options.primal_regularizer,
+                dual_regularizer=options.dual_regularizer)
         else
             error("unknown method_type")
         end
