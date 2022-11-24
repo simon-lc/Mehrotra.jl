@@ -26,7 +26,6 @@ Base.@kwdef mutable struct Options{T}
     primal_regularization_initial::T=1.0e-7
     dual_regularization_initial::T=1.0e-7
     max_regularization::T=1.0e40
-    dual_regularization::T=1.0e-8
     scaling_regularization_initial::T=100.0
     scaling_regularization::T=8.0
     scaling_regularization_last::T=(1.0 / 3.0)
