@@ -20,11 +20,17 @@ struct ProblemMethods{T,E,EC,EX,EXC,EP,EK,C,CC,S} <: AbstractProblemMethods{T,E,
     equality_jacobian_keywords_indices::Vector{Vector{Int}}
 end
 
-function symbolics_methods(equality::Function, dim::Dimensions, idx::Indices)
+function symbolics_methods(equality::Function, dim::Dimensions, idx::Indices;
+        primal_regularization=1e-7,
+        dual_regularization=1e-7,
+        )
     parameter_keywords = idx.parameter_keywords
 
     e, ec, ex, exc, eθ, ek, c, cc, s, ex_sparsity, exc_sparsity, eθ_sparsity, ek_indices =
-        generate_symbolic_gradients(equality, dim, idx, parameter_keywords=parameter_keywords)
+        generate_symbolic_gradients(equality, dim, idx, parameter_keywords=parameter_keywords,
+            primal_regularization=primal_regularization,
+            dual_regularization=dual_regularization,
+            )
 
     methods = ProblemMethods(
         e,
@@ -53,8 +59,8 @@ end
 
 function generate_symbolic_gradients(func::Function, dim::Dimensions, ind::Indices;
         parameter_keywords=Dict{Symbol,Vector{Int}}(:all => ind.parameters),
-        primal_regularizer=1e-7,
-        dual_regularizer=1e-7,
+        primal_regularization=1e-7,
+        dual_regularization=1e-7,
         checkbounds=true,
         threads=false)
 
@@ -83,8 +89,8 @@ function generate_symbolic_gradients(func::Function, dim::Dimensions, ind::Indic
 
     # equality jacobians
     fx = Symbolics.sparsejacobian(f, x)
-    fx[ind.primals, ind.primals] += primal_regularizer * I(dim.primals)
-    fx[ind.duals, ind.duals] -= dual_regularizer * I(dim.duals)
+    fx[ind.primals, ind.primals] += primal_regularization * I(dim.primals)
+    fx[ind.duals, ind.duals] -= dual_regularization * I(dim.duals)
     fθ = Symbolics.sparsejacobian(f, θ)
     fk = [Symbolics.sparsejacobian(f, θ[parameter_keywords[k]]) for k in eachindex(parameter_keywords)]
 

@@ -9,6 +9,8 @@ include(joinpath(Mehrotra.module_dir(), "examples/benchmark_problems/particle_ut
             residual_tolerance=1e-10,
             complementarity_tolerance=(1/10)^i,
             compressed_search_direction=false,
+            primal_regularization=0.0,
+            dual_regularization=0.0,
             )
 
         solver = random_lcp(; num_primals=6, num_cone=12,
@@ -31,6 +33,8 @@ end
             residual_tolerance=1e-10,
             complementarity_tolerance=(1/10)^i,
             compressed_search_direction=false,
+            primal_regularization=0.0,
+            dual_regularization=0.0,
             )
 
         solver = random_lcp(; num_primals=6, num_cone=12,
@@ -75,6 +79,8 @@ end
             verbose=false,
             residual_tolerance=1e-10,
             compressed_search_direction=false,
+            primal_regularization=0.0,
+            dual_regularization=0.0,
             )
         )
     # test relaxed complementarity
@@ -118,6 +124,8 @@ end
             residual_tolerance=1e-10,
             differentiate=false,
             compressed_search_direction=false,
+            primal_regularization=0.0,
+            dual_regularization=0.0,
             )
         )
     # test relaxed complementarity
