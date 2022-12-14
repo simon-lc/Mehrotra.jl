@@ -6,11 +6,11 @@ makedocs(
     format = Documenter.HTML(prettyurls = false),  # optional
     pages = [
         "Get Started" => "index.md"
-        "Solver" => "solver.md"
+        # "Solver" => "solver.md"
         # "Examples" => "examples.md"
         "API Documentation" => "api.md"
         "Contributing" => "contributing.md"
-        "Citing" => "citing.md"
+        # "Citing" => "citing.md"
     ]
 )
 
