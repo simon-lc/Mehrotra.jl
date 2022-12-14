@@ -4,6 +4,7 @@ using Crayons
 using Printf
 using QDLDL
 using LinearAlgebra
+using LoopVectorization
 using Symbolics
 using SparseArrays
 using FiniteDiff
