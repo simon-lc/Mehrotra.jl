@@ -3,13 +3,10 @@ module Mehrotra
 using Crayons
 using Printf
 using QDLDL
-using Scratch
 using LinearAlgebra
 using Symbolics
-using Rotations
 using SparseArrays
 using FiniteDiff
-using LoopVectorization
 using SuiteSparse
 
 include("block_sparse.jl")
