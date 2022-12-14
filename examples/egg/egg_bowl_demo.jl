@@ -6,6 +6,7 @@ using Random
 using RobotVisualizer
 using Meshing
 using GeometryBasics
+using Rotations
 
 include("egg_bowl_utils.jl")
 
@@ -32,6 +33,7 @@ idx_soc = [collect(1:0)]
 ################################################################################
 # parameters
 ################################################################################
+p2 = [0.5, 1.2]
 θ2 = [-1.0]
 v15 = [0.0, +0.0]
 ω15 = [-5.0]
