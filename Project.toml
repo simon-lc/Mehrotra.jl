@@ -1,7 +1,7 @@
 name = "Mehrotra"
 uuid = "ff64e54f-29a3-40c0-a3ca-0c9552343258"
 authors = ["simon-lc <simonlc@stanford.edu>"]
-version = "0.2.0"
+version = "0.3.0"
 
 [deps]
 Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
