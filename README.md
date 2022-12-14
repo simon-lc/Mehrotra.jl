@@ -34,43 +34,16 @@ using Mehrotra
 ```
 
 ## Remaining tasks
-- [ ] primals regualization 
-- [ ] interface so that we can provide equality residual only and the solver builds methods internally ForwardDiff etc
-- [ ] exploit sparsity
 - [ ] @turbo loop vectorization
 - [ ] in-place addition to a vector using symbolics
-- [ ] custom pure-julia sparse solver
 - [ ] sparse allocation-free linear solve
-- [ ] improve upon compressed step
-- [ ] think about a general framework to handle QP, LP, DynamicsLCP, DynamicsNCP
 - [ ] warm-starting strategy (add user-provided slacks initialization method s = F(z) in general)
 - [x] consistency logic for efficient dynamics query
 - [ ] exploit structure of the symmetric problems
 - [x] allocation-free implementation
 - [ ] experiment with different relaxation scheduling strategies
-- [x] interface to provide your own function evaluations and gradients
-- [x] provide your own linear system solver
-- [x] implement different benchmark problems 
-- [x] add tests
 - [ ] add documentation
 - [ ] register package
-- [ ] add quaternion support
-- [x] differentiate solution
 
-### Name
-
-complementarity solver
-conic
-predictor corrector
-mehrotra
-primal dual 
-interior point method
-warm start
-differentiable
-smooth
-LP
-QP
-LCP
-NCP
 
 
